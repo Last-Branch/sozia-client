@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #ffffff;
+}
+
+#root,
+#root > div {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  flex: 1 1 auto;
+}
