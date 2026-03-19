@@ -37,3 +37,6 @@ coverage/
 Thumbs.db
 .idea/
 .vscode/
+
+# Local developer notes (not for version control)
+CLAUDE.md
