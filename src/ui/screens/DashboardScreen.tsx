@@ -9,9 +9,11 @@ import { useSessionController } from '../SessionController';
 export function DashboardScreen({
   onOpenLive,
   onOpenSettings,
+  onOpenHelp,
 }: {
   onOpenLive: () => void;
   onOpenSettings: () => void;
+  onOpenHelp: () => void;
 }) {
   const { state, activePath, startSession } = useSessionController();
 
@@ -64,7 +66,15 @@ export function DashboardScreen({
                 <Text className="max-w-[200px] text-center text-white/90">Real-time speech to text</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity className="relative min-h-[180px] items-center justify-center rounded-[32px] bg-gradient-to-br from-[#1E8449] to-[#145A32] p-8 shadow-xl">
+              <TouchableOpacity
+                className="relative min-h-[180px] items-center justify-center rounded-[32px] bg-gradient-to-br from-[#1E8449] to-[#145A32] p-8 shadow-xl"
+                onPress={async () => {
+                  if (state === 'IDLE') {
+                    await startSession(ModalityPath.SIGN);
+                  }
+                  onOpenLive();
+                }}
+              >
                 <View className="mb-4 h-24 w-24 items-center justify-center rounded-full bg-white/20">
                   <Hand size={56} color="#fff" />
                 </View>
@@ -109,7 +119,7 @@ export function DashboardScreen({
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => setActiveTab('help')}
+                  onPress={() => { setActiveTab('help'); onOpenHelp(); }}
                   className={`items-center gap-1 ${activeTab === 'help' ? 'text-[#2ECC71]' : 'text-gray-400'}`}
                 >
                   <CircleHelp size={24} color={activeTab === 'help' ? '#2ECC71' : '#9CA3AF'} />
@@ -122,7 +132,7 @@ export function DashboardScreen({
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => setActiveTab('profile')}
+                  onPress={() => { setActiveTab('profile'); onOpenSettings(); }}
                   className={`items-center gap-1 ${
                     activeTab === 'profile' ? 'text-[#2ECC71]' : 'text-gray-400'
                   }`}

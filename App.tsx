@@ -5,6 +5,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { SessionControllerProvider } from './src/ui/SessionController';
 import { DashboardScreen } from './src/ui/screens/DashboardScreen';
+import { HelpScreen } from './src/ui/screens/HelpScreen';
 import { LiveTranslationScreen } from './src/ui/screens/LiveTranslationScreen';
 import { LoginScreen } from './src/ui/screens/LoginScreen';
 import { PermissionsScreen } from './src/ui/screens/PermissionsScreen';
@@ -13,7 +14,7 @@ import { SignUpScreen } from './src/ui/screens/SignUpScreen';
 
 export default function App() {
   const [route, setRoute] = React.useState<
-    'login' | 'signup' | 'permissions' | 'dashboard' | 'live-translation' | 'settings'
+    'login' | 'signup' | 'permissions' | 'dashboard' | 'live-translation' | 'settings' | 'help'
   >('login');
 
   return (
@@ -31,8 +32,13 @@ export default function App() {
             <PermissionsScreen onNext={() => setRoute('dashboard')} onBack={() => setRoute('signup')} />
           )}
           {route === 'dashboard' && (
-            <DashboardScreen onOpenLive={() => setRoute('live-translation')} onOpenSettings={() => setRoute('settings')} />
+            <DashboardScreen
+              onOpenLive={() => setRoute('live-translation')}
+              onOpenSettings={() => setRoute('settings')}
+              onOpenHelp={() => setRoute('help')}
+            />
           )}
+          {route === 'help' && <HelpScreen onBack={() => setRoute('dashboard')} />}
           {route === 'live-translation' && <LiveTranslationScreen onBack={() => setRoute('dashboard')} />}
           {route === 'settings' && <SettingsScreen onBack={() => setRoute('dashboard')} />}
 
