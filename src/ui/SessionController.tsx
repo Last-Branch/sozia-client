@@ -1,11 +1,14 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 
 import { ModalityPath, SessionState } from '../common/models';
+import { TranscriptStore } from '../store';
 
 export type SessionControllerValue = {
   sessionId: string | null;
   state: SessionState;
   activePath: ModalityPath | null;
+  /** Shared transcript timeline for the active session. */
+  store: TranscriptStore;
 
   startSession: (path: ModalityPath) => Promise<void>;
   pauseSession: () => void;
@@ -55,6 +58,10 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   const [state, setState] = useState<SessionState>(SessionState.IDLE);
   const [activePath, setActivePath] = useState<ModalityPath | null>(null);
 
+  // Stable store instance — lives for the lifetime of the provider.
+  // Cleared at the start of each new session and on stop.
+  const store = useMemo(() => new TranscriptStore(), []);
+
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -63,6 +70,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   const startSession = useCallback(async (path: ModalityPath) => {
     try {
       setState(SessionState.INITIALIZING);
+      store.clear();
       const newSessionId = uuidV4();
       setSessionId(newSessionId);
       setActivePath(path);
@@ -72,7 +80,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       setState(SessionState.ERROR);
       throw e;
     }
-  }, []);
+  }, [store]);
 
   const pauseSession = useCallback(() => {
     setState((prev) => (prev === SessionState.RUNNING ? SessionState.PAUSED : prev));
@@ -86,20 +94,22 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     setState(SessionState.IDLE);
     setSessionId(null);
     setActivePath(null);
-  }, []);
+    store.clear();
+  }, [store]);
 
   const value = useMemo<SessionControllerValue>(
     () => ({
       sessionId,
       state,
       activePath,
+      store,
       startSession,
       pauseSession,
       resumeSession,
       stopSession,
       getState,
     }),
-    [activePath, getState, pauseSession, resumeSession, sessionId, startSession, state, stopSession]
+    [activePath, getState, pauseSession, resumeSession, sessionId, startSession, state, stopSession, store]
   );
 
   return <SessionControllerContext.Provider value={value}>{children}</SessionControllerContext.Provider>;
