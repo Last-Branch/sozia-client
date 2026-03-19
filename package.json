@@ -18,7 +18,12 @@
           "<rootDir>/__tests__/**/*.test.ts"
         ],
         "transform": {
-          "^.+\\.ts$": ["ts-jest", { "tsconfig": "./tsconfig.test.json" }]
+          "^.+\\.ts$": [
+            "ts-jest",
+            {
+              "tsconfig": "./tsconfig.test.json"
+            }
+          ]
         },
         "moduleNameMapper": {
           "^@/(.*)$": "<rootDir>/src/$1"
@@ -39,6 +44,7 @@
   "dependencies": {
     "babel-preset-expo": "~55.0.8",
     "expo": "~55.0.6",
+    "expo-av": "^16.0.8",
     "expo-status-bar": "~55.0.4",
     "lucide-react-native": "^0.577.0",
     "nativewind": "^4.2.3",
