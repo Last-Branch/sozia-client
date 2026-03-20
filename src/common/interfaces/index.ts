@@ -84,14 +84,30 @@ export interface ITransmissionManager {
 // sozia.client.config — Configuration & Diagnostics
 // ---------------------------------------------------------------------------
 
-/** Persisted user preferences. */
+/**
+ * Persisted application configuration. Loaded at app start; changes are
+ * written to local storage immediately.
+ * See LLD Section 3.2.7 — Configuration.
+ */
 export interface AppConfig {
-  language: 'TR' | 'EN';
-  darkMode: boolean;
-  /** Subtitle text size as a percentage (e.g., 80, 100, 130). */
-  textSizePercent: number;
-  /** Last-selected modality path, or null if never chosen. */
-  preferredPath: ModalityPath | null;
+  /** User-selected microphone device ID, or null if not yet chosen. */
+  selectedMicId: string | null;
+  /** User-selected camera device ID, or null if not yet chosen. */
+  selectedCameraId: string | null;
+  /** Default modality path used when starting a new session. */
+  defaultPath: ModalityPath;
+  /** Transcript display font size in pixels. */
+  fontSize: number;
+  /** Minimum confidence for fusion; results below this are suppressed. */
+  confidenceThreshold: number;
+  /** Audio chunk duration in milliseconds. */
+  chunkDurationMs: number;
+  /** WebSocket endpoint URL. */
+  serverUrl: string;
+  /** Maximum WebSocket reconnection attempts before signalling ERROR. */
+  maxReconnectAttempts: number;
+  /** Opt-in diagnostic logging. */
+  diagnosticsEnabled: boolean;
 }
 
 /**
@@ -100,14 +116,19 @@ export interface AppConfig {
  * Implemented by: src/config/
  */
 export interface IConfigurationManager {
-  load(): Promise<AppConfig>;
-  save(config: AppConfig): Promise<void>;
+  /** Read persisted config from local storage. */
+  load(): Promise<void>;
+  /** Write current config to local storage. */
+  save(): Promise<void>;
 
-  /** Return a single config value. */
+  /** Type-safe getter for a config value. */
   get<K extends keyof AppConfig>(key: K): AppConfig[K];
 
-  /** Update a single config value and persist. */
-  set<K extends keyof AppConfig>(key: K, value: AppConfig[K]): Promise<void>;
+  /** Set a value and trigger save. */
+  set<K extends keyof AppConfig>(key: K, value: AppConfig[K]): void;
+
+  /** Restore all values to defaults. */
+  reset(): void;
 }
 
 // ---------------------------------------------------------------------------
