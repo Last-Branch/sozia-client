@@ -12,10 +12,8 @@
  */
 
 import {
-  AudioFeatureChunk,
   DeviceInfo,
   DeviceKind,
-  LandmarkFrame,
   ModalityPath,
   PipelineHealth,
   SessionState,
@@ -48,51 +46,6 @@ export interface IDeviceManager {
 }
 
 // ---------------------------------------------------------------------------
-// sozia.client.pipeline.video — Video Pipeline
-// ---------------------------------------------------------------------------
-
-/** Callback invoked each time the video pipeline produces a landmark frame. */
-export type LandmarkFrameCallback = (frame: LandmarkFrame) => void;
-
-/**
- * Captures video from the active camera, runs MediaPipe landmark extraction,
- * and emits LandmarkFrame objects.
- * Implemented by: src/pipeline/video/
- *
- * Follows the same lifecycle pattern as IAudioPipeline:
- *   start() → (running: emitting LandmarkFrames)
- *           → pause() → resume() → stop()
- */
-export interface IVideoPipeline {
-  /**
-   * Begin camera capture and landmark extraction for the given session.
-   * Resolves once the pipeline is ready to emit frames.
-   * Rejects if camera permission is denied or the device is unavailable.
-   */
-  start(sessionId: string): Promise<void>;
-
-  /** Suspend frame emission without releasing the camera. */
-  pause(): void;
-
-  /** Resume frame emission after a pause. */
-  resume(): void;
-
-  /** Stop capture and release the camera. Safe to call from any state. */
-  stop(): void;
-
-  /**
-   * Returns a snapshot of the current video pipeline health for upstream reporting.
-   */
-  getHealth(): PipelineHealth;
-
-  /**
-   * Register a callback to receive landmark frames as they are extracted.
-   * Returns an unsubscribe function.
-   */
-  onFrame(callback: LandmarkFrameCallback): () => void;
-}
-
-// ---------------------------------------------------------------------------
 // sozia.client.transmission — Transmission Manager
 // ---------------------------------------------------------------------------
 
@@ -106,16 +59,14 @@ export type ConnectionStateCallback = (connected: boolean) => void;
  * Single bidirectional WebSocket chokepoint between client and server (Rule R4).
  * All cross-tier communication flows through this interface.
  * Implemented by: src/transmission/
+ *
+ * Note: sendAudioFeatures and sendLandmarkFrame signatures will be added
+ * when LandmarkFrame and AudioFeatureChunk DTOs are introduced alongside
+ * their respective pipeline implementations.
  */
 export interface ITransmissionManager {
   connect(serverUrl: string): Promise<void>;
   disconnect(): Promise<void>;
-
-  /** Send an audio feature chunk to the server for inference. */
-  sendAudioFeatures(chunk: AudioFeatureChunk): void;
-
-  /** Send a video landmark frame to the server for inference. */
-  sendLandmarkFrame(frame: LandmarkFrame): void;
 
   /** Send a pipeline health report to the server. */
   sendHealthReport(report: PipelineHealth): void;

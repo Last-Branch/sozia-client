@@ -83,51 +83,6 @@ export interface DeviceInfo {
 }
 
 /**
- * A single frame of MediaPipe landmark data produced by the video pipeline.
- * Only numerical coordinates are transmitted — no raw pixels cross the network.
- */
-export interface LandmarkFrame {
-  sessionId: string;
-  /** Zero-based frame counter within the session. */
-  frameIndex: number;
-  /**
-   * 478 facial landmarks from MediaPipe Face Mesh.
-   * Each landmark is [x, y, z] normalised to [0, 1]. Null when face is not detected.
-   */
-  faceLandmarks: [number, number, number][] | null;
-  /** 21 left-hand landmarks. Null when left hand is not detected. */
-  leftHandLandmarks: [number, number, number][] | null;
-  /** 21 right-hand landmarks. Null when right hand is not detected. */
-  rightHandLandmarks: [number, number, number][] | null;
-  /** 33 pose landmarks. Null when pose is not detected. */
-  poseLandmarks: [number, number, number][] | null;
-  /** Milliseconds since session start. */
-  timestampMs: number;
-}
-
-/**
- * A timestamped chunk of preprocessed audio features (MFCC or Mel-spectrogram).
- * Transmitted upstream to the server. Never contains raw PCM audio.
- *
- * Wire format: JSON. Field names must match the Python mirror in sozia-server exactly.
- * See LLD Section 3.1.2 — AudioFeatureChunk.
- */
-export interface AudioFeatureChunk {
-  /** UUID v4 of the active session. */
-  sessionId: string;
-  /** Milliseconds since session start (>= 0). */
-  timestampMs: number;
-  /** 2D array of shape [T, D] — T temporal frames, D feature dimensions. T >= 1, D >= 1. */
-  features: number[][];
-  /** Which feature representation this chunk contains. Must match the server's expected input. */
-  featureType: 'mfcc' | 'mel_spectrogram';
-  /** Audio sample rate in Hertz. Positive integer (e.g., 16 000). */
-  sampleRateHz: number;
-  /** Duration of this chunk in milliseconds (> 0; typical values 500–2 000 ms). */
-  chunkDurationMs: number;
-}
-
-/**
  * The output of a single inference engine. Produced server-side and consumed by
  * FusionOrchestrator. Not sent directly to the client — the fusion layer wraps
  * it into a TranscriptSegment first.
