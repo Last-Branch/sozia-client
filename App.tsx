@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { SessionControllerProvider } from './src/ui/SessionController';
@@ -42,16 +42,18 @@ export default function App() {
           {route === 'live-translation' && <LiveTranslationScreen onBack={() => setRoute('dashboard')} />}
           {route === 'settings' && <SettingsScreen onBack={() => setRoute('dashboard')} />}
 
-          <View className="border-t border-neutral-200 px-4 py-3">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xs text-neutral-500">Route: {route}</Text>
-              {route !== 'login' && (
-                <TouchableOpacity onPress={() => setRoute('login')}>
-                  <Text className="text-xs font-semibold text-neutral-900">Reset</Text>
-                </TouchableOpacity>
-              )}
+          {Platform.OS === 'web' && (
+            <View className="border-t border-neutral-200 px-4 py-3">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-xs text-neutral-500">Route: {route}</Text>
+                {route !== 'login' && (
+                  <TouchableOpacity onPress={() => setRoute('login')}>
+                    <Text className="text-xs font-semibold text-neutral-900">Reset</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
-          </View>
+          )}
 
           <StatusBar style="auto" />
         </SafeAreaView>
