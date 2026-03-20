@@ -124,7 +124,7 @@ export interface ISessionController {
   readonly state: SessionState;
   readonly activePath: ModalityPath | null;
 
-  startSession(path: ModalityPath): Promise<void>;
+  startSession(path: ModalityPath): void;
   pauseSession(): void;
   resumeSession(): void;
   stopSession(): void;
