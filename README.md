@@ -39,6 +39,17 @@ npm run start
 npm run android
 npm run ios
 npm run web
+npm run test
+```
+
+## Tests
+
+This repo currently includes unit tests for core TypeScript logic under `__tests__/`.
+
+Run all tests with:
+
+```bash
+npm run test
 ```
 
 ## Notes

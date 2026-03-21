@@ -51,7 +51,7 @@ export function DashboardScreen({
 
             <View className="gap-6 px-6 pb-6">
               <TouchableOpacity
-                className="relative min-h-[180px] items-center justify-center rounded-[32px] bg-gradient-to-br from-[#2ECC71] to-[#27AE60] p-8 shadow-xl"
+                className="relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#2ECC71] p-8 shadow-xl"
                 onPress={async () => {
                   if (state === 'IDLE') {
                     await startSession(ModalityPath.SPEECH);
@@ -67,7 +67,7 @@ export function DashboardScreen({
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="relative min-h-[180px] items-center justify-center rounded-[32px] bg-gradient-to-br from-[#1E8449] to-[#145A32] p-8 shadow-xl"
+                className="relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#1E8449] p-8 shadow-xl"
                 onPress={async () => {
                   if (state === 'IDLE') {
                     await startSession(ModalityPath.SIGN);

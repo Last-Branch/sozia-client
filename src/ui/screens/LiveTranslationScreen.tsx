@@ -96,8 +96,8 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
           <View className="relative flex-1">
             {/* Camera background */}
-            <View className="absolute inset-0 items-center justify-center bg-gradient-to-br from-gray-800 via-gray-700 to-gray-900">
-              <View className="absolute inset-0 bg-gradient-to-b from-black/20 to-black/60" />
+            <View className="absolute inset-0 items-center justify-center bg-gray-800">
+              <View className="absolute inset-0 bg-black/40" />
               <View className="z-0 items-center">
                 <View className="mb-3 h-24 w-24 items-center justify-center rounded-full border-2 border-white/20">
                   <View className="h-16 w-16 rounded-full border-2 border-white/30" />
