@@ -5,6 +5,7 @@ import { ChevronDown, CircleX, Settings, SwitchCamera } from 'lucide-react-nativ
 import { useLanguage } from '../LanguageContext';
 
 import { ModalityType, SegmentStatus, type TranscriptSegment } from '../../common/models';
+import { StatusBar } from '../StatusBar';
 import { useSessionController } from '../SessionController';
 
 // ---------------------------------------------------------------------------
@@ -94,6 +95,8 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               <Text className="text-xs font-semibold text-gray-300">{t('live.back')}</Text>
             </TouchableOpacity>
           </View>
+
+          <StatusBar />
 
           <View className="relative flex-1">
             {/* Camera background */}
