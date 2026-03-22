@@ -33,9 +33,13 @@ export function DashboardScreen({
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
-      <ScrollView className="flex-1 w-full" contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 w-full items-center px-4 py-8">
-          <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
+      <View className="flex-1 w-full items-center justify-center p-4">
+        <View className="w-full flex-1 max-h-[1000px] max-w-sm overflow-hidden rounded-[40px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
+          <ScrollView 
+            className="flex-1 w-full" 
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false}
+          >
             <View className="flex-row items-center justify-between px-6 pt-6 pb-4">
               <Text className="text-3xl font-black text-gray-900 dark:text-gray-100">{t('dashboard.hello')}</Text>
               <TouchableOpacity
@@ -99,8 +103,9 @@ export function DashboardScreen({
                 </View>
               </View>
             </View>
+          </ScrollView>
 
-            <View className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-3">
+          <View className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-3">
               <View className="flex-row items-center justify-around">
                 <TouchableOpacity
                   onPress={() => setActiveTab('home')}
@@ -147,7 +152,6 @@ export function DashboardScreen({
             </View>
           </View>
         </View>
-      </ScrollView>
     </SafeAreaView>
   );
 }

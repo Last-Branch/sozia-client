@@ -17,13 +17,14 @@ export function LoginScreen({
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/10 via-white dark:via-gray-900 to-[#2ECC71]/5">
-      <ScrollView
-        className="flex-1 w-full"
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View className="flex-1 w-full items-center justify-center px-4 py-8">
-          <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-8 shadow-2xl">
+      <View className="flex-1 w-full items-center justify-center p-4">
+        <View className="w-full flex-1 max-h-[1000px] max-w-sm overflow-hidden rounded-[40px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
+          <ScrollView
+            className="flex-1 w-full"
+            contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingVertical: 32 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             <View className="mb-4 items-end">
               <View className="flex-row rounded-full bg-gray-100 dark:bg-gray-800 p-1">
                 <TouchableOpacity
@@ -152,9 +153,9 @@ export function LoginScreen({
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </ScrollView>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }

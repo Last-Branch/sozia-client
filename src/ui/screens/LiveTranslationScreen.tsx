@@ -85,9 +85,8 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
-      <ScrollView className="flex-1 w-full" contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 w-full items-center justify-center px-4 py-8">
-          <View className="h-[680px] w-full max-w-sm rounded-[32px] border-[12px] border-gray-800 bg-black shadow-2xl overflow-hidden">
+      <View className="flex-1 w-full items-center justify-center p-4">
+        <View className="w-full flex-1 max-h-[1000px] max-w-sm overflow-hidden rounded-[40px] border-[12px] border-gray-800 bg-black shadow-2xl">
           {/* Top bar */}
           <View className="z-20 flex-row items-center justify-between bg-black/30 px-6 pt-3 pb-2">
             <Text className="text-xs font-semibold text-white">Sozia · {state}</Text>
@@ -249,9 +248,8 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               </View>
             </View>
           </View>
-          </View>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
