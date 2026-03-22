@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 
-import { ModalityPath, SessionState } from '../common/models';
-import { TranscriptStore } from '../store';
+import { ModalityPath, SessionState } from '../../common/models';
+import { TranscriptStore } from '../../store';
 
 export type SessionControllerValue = {
   sessionId: string | null;

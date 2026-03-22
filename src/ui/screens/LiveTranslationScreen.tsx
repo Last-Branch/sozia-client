@@ -2,10 +2,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, CircleX, Settings, SwitchCamera } from 'lucide-react-native';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityType, SegmentStatus, type TranscriptSegment } from '../../common/models';
-import { useSessionController } from '../SessionController';
+import { StatusBar } from '../components/StatusBar';
+import { useSessionController } from '../controller/SessionController';
 
 // ---------------------------------------------------------------------------
 // DEV-only test data
@@ -94,6 +95,8 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               <Text className="text-xs font-semibold text-gray-300">{t('live.back')}</Text>
             </TouchableOpacity>
           </View>
+
+          <StatusBar />
 
           <View className="relative flex-1">
             {/* Camera background */}

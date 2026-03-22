@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 import { ArrowLeft, ChevronRight, FileText, Globe, MessageCircle, Moon } from 'lucide-react-native';
 
 export function SettingsScreen({ onBack }: { onBack: () => void }) {

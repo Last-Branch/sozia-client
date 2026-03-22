@@ -2,10 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CircleCheckBig, CircleHelp, CircleUser, Hand, House, Mic } from 'lucide-react-native';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath } from '../../common/models';
-import { useSessionController } from '../SessionController';
+import { useSessionController } from '../controller/SessionController';
 
 export function DashboardScreen({
   onOpenLive,

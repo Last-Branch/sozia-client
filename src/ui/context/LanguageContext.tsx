@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
-import en from './i18n/locales/en.json';
-import tr from './i18n/locales/tr.json';
+import en from '../i18n/locales/en.json';
+import tr from '../i18n/locales/tr.json';
 
 export type Language = 'EN' | 'TR';
 

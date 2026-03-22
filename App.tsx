@@ -3,8 +3,8 @@ import React from 'react';
 import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-import { LanguageProvider } from './src/ui/LanguageContext';
-import { SessionControllerProvider } from './src/ui/SessionController';
+import { LanguageProvider } from './src/ui/context/LanguageContext';
+import { SessionControllerProvider } from './src/ui/controller/SessionController';
 import { DashboardScreen } from './src/ui/screens/DashboardScreen';
 import { HelpScreen } from './src/ui/screens/HelpScreen';
 import { LiveTranslationScreen } from './src/ui/screens/LiveTranslationScreen';

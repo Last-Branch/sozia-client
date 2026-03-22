@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 import { ArrowLeft, Camera, ChevronDown, ChevronRight, Hand, MessageCircle, Mic, Shield } from 'lucide-react-native';
 
 export function HelpScreen({ onBack }: { onBack: () => void }) {
