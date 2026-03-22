@@ -18,7 +18,7 @@ export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: (
         keyboardShouldPersistTaps="handled"
       >
         <View className="flex-1 w-full items-center justify-center px-4 py-8">
-          <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
+          <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-8 shadow-2xl">
             <View className="mb-4 items-end">
               <View className="flex-row rounded-full bg-gray-100 dark:bg-gray-800 p-1">
                 <TouchableOpacity

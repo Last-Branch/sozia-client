@@ -14,8 +14,11 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
   const language = i18n.language.toUpperCase() as 'EN' | 'TR';
 
   return (
-    <SafeAreaView className="flex-1 w-full bg-white dark:bg-gray-900">
-      <View className="mb-6 flex-row items-center px-4 pt-4">
+    <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
+      <ScrollView className="flex-1 w-full" contentContainerStyle={{ flexGrow: 1 }}>
+        <View className="flex-1 w-full items-center justify-center px-4 py-8">
+          <View className="w-full max-w-sm flex-1 overflow-hidden rounded-[32px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
+            <View className="mb-6 flex-row items-center px-4 pt-4">
         <TouchableOpacity
           onPress={onBack}
           className="mr-3 h-10 w-10 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800"
@@ -128,6 +131,9 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
             </View>
             <Text className="text-xl font-black text-gray-900 dark:text-gray-100">SOZIA</Text>
             <Text className="text-xs font-semibold text-gray-400 dark:text-gray-500">{t('settings.version')}</Text>
+          </View>
+        </View>
+      </ScrollView>
           </View>
         </View>
       </ScrollView>

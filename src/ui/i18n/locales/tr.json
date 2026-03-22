@@ -3,7 +3,7 @@
     "login": {
       "subtitle": "Yardımcı İletişim",
       "email": "E-posta",
-      "emailPlaceholder": "ornek@email.com",
+      "emailPlaceholder": "örnek@e-posta.com",
       "password": "Şifre",
       "passwordPlaceholder": "Şifrenizi girin",
       "forgotPassword": "Şifremi Unuttum?",

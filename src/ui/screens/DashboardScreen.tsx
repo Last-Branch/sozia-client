@@ -59,7 +59,7 @@ export function DashboardScreen({
                 <View className="mb-4 h-24 w-24 items-center justify-center rounded-full bg-white/20">
                   <Mic size={56} color="#fff" />
                 </View>
-                <Text className="mb-1 text-2xl font-black text-white">{t('dashboard.startLipReading')}</Text>
+                <Text className="mb-1 text-center text-2xl font-black text-white">{t('dashboard.startLipReading')}</Text>
                 <Text className="max-w-[200px] text-center text-white/90">{t('dashboard.startLipReadingDesc')}</Text>
               </TouchableOpacity>
 
@@ -75,7 +75,7 @@ export function DashboardScreen({
                 <View className="mb-4 h-24 w-24 items-center justify-center rounded-full bg-white/20">
                   <Hand size={56} color="#fff" />
                 </View>
-                <Text className="mb-1 text-2xl font-black text-white">{t('dashboard.startSignLanguage')}</Text>
+                <Text className="mb-1 text-center text-2xl font-black text-white">{t('dashboard.startSignLanguage')}</Text>
                 <Text className="max-w-[200px] text-center text-white/90">
                   {t('dashboard.startSignLanguageDesc')}
                 </Text>
