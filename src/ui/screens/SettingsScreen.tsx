@@ -9,7 +9,6 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
   const { colorScheme, setColorScheme } = useColorScheme();
   const darkMode = colorScheme === 'dark';
   const toggleDarkMode = () => setColorScheme(darkMode ? 'light' : 'dark');
-  const [textSize, setTextSize] = useState(100);
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
 
   return (
@@ -88,38 +87,6 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
                 </View>
               </View>
 
-              <View className="mb-6 rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
-                <View className="mb-3 flex-row items-center gap-3">
-                  <View className="h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/10">
-                    <Type size={18} color="#2563EB" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="font-bold text-gray-900 dark:text-gray-100">Adjust Text Size</Text>
-                    <Text className="text-sm text-gray-500 dark:text-gray-400">Customize subtitle size</Text>
-                  </View>
-                </View>
-                <View className="flex-row gap-2">
-                  {[80, 100, 130].map((size) => (
-                    <TouchableOpacity
-                      key={size}
-                      className={`flex-1 rounded-2xl px-3 py-3 ${
-                        textSize === size ? 'bg-[#2ECC71]' : 'bg-white dark:bg-gray-800'
-                      }`}
-                      onPress={() => setTextSize(size)}
-                      activeOpacity={0.85}
-                    >
-                      <Text
-                        className={`text-center text-sm font-semibold ${
-                          textSize === size ? 'text-white' : 'text-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        {size}%
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
               <TouchableOpacity
                 className="mb-4 rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4"
                 onPress={() => setShowPrivacyDetails((value) => !value)}
@@ -159,7 +126,6 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
                 <Text className="text-sm text-gray-600 dark:text-gray-400">
                   Theme: {darkMode ? 'Dark mode enabled' : 'Light mode enabled'}
                 </Text>
-                <Text className="text-sm text-gray-600 dark:text-gray-400">Text size: {textSize}%</Text>
               </View>
 
               <View className="items-center pt-4">

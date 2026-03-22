@@ -37,7 +37,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
   const [textSize, setTextSize] = useState(100);
   const [groupMode, setGroupMode] = useState(false);
 
-  const baseFontSize = Math.max(24, (textSize / 100) * 30);
+  const baseFontSize = (textSize / 100) * 30;
 
   // DEV inject: cycles through lines, partial → final → next line
   const devStep = useRef<{ lineIdx: number; partialId: string | null }>({ lineIdx: 0, partialId: null });
@@ -173,28 +173,18 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                   </View>
                 </View>
 
-                {/* Text size (simple preset buttons for RN) */}
+                {/* Subtitle Size */}
                 <View className="mb-4">
-                  <Text className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Text Size</Text>
-                  <View className="flex-row justify-between">
-                    {[80, 100, 130].map((size) => (
-                      <TouchableOpacity
-                        key={size}
-                        className={`flex-1 items-center rounded-full px-3 py-2 ${
-                          textSize === size ? 'bg-[#2ECC71] shadow-md' : 'bg-gray-100 dark:bg-gray-800'
-                        } mx-1`}
-                        onPress={() => setTextSize(size)}
-                      >
-                        <Text
-                          className={`text-xs font-semibold ${
-                            textSize === size ? 'text-white' : 'text-gray-700 dark:text-gray-300'
-                          }`}
-                        >
-                          {size}%
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                  <View className="mb-2 flex-row items-center justify-between">
+                    <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">Subtitle Size</Text>
+                    <Text className="text-xs font-bold text-[#2ECC71]">{textSize}%</Text>
                   </View>
+                  <SimpleSlider 
+                    value={textSize} 
+                    onValueChange={setTextSize} 
+                    min={50} 
+                    max={150} 
+                  />
                 </View>
 
                 {/* Group mode */}
@@ -314,6 +304,44 @@ function TranscriptView({
           </Text>
         );
       })}
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// SimpleSlider
+// ---------------------------------------------------------------------------
+
+function SimpleSlider({ value, onValueChange, min, max }: { value: number; onValueChange: (v: number) => void; min: number; max: number }) {
+  const [width, setWidth] = useState(0);
+  const percent = Math.max(0, Math.min(1, (value - min) / (max - min)));
+
+  return (
+    <View 
+      className="h-10 w-full justify-center" 
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      onStartShouldSetResponder={() => true}
+      onResponderGrant={(e) => {
+        if (width > 0) {
+          const x = e.nativeEvent.locationX;
+          onValueChange(Math.round(min + Math.max(0, Math.min(1, x / width)) * (max - min)));
+        }
+      }}
+      onResponderMove={(e) => {
+        if (width > 0) {
+          const x = e.nativeEvent.locationX;
+          onValueChange(Math.round(min + Math.max(0, Math.min(1, x / width)) * (max - min)));
+        }
+      }}
+    >
+      <View className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700" pointerEvents="none">
+        <View className="h-2 rounded-full bg-[#2ECC71]" style={{ width: `${percent * 100}%` }} />
+      </View>
+      <View 
+        className="absolute h-6 w-6 rounded-full bg-white shadow-md border border-gray-200 dark:border-gray-600 dark:bg-gray-800" 
+        style={{ left: `${percent * 100}%`, transform: [{ translateX: -12 }] }} 
+        pointerEvents="none"
+      />
     </View>
   );
 }
