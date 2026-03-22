@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Apple, Eye, EyeOff, Lock, Mail, MessageCircle } from 'lucide-react-native';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export function LoginScreen({
   onSignIn,

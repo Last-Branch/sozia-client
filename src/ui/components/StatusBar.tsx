@@ -1,8 +1,8 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 
-import { SessionState } from '../common/models';
-import { useSessionController } from './SessionController';
+import { SessionState } from '../../common/models';
+import { useSessionController } from '../controller/SessionController';
 
 /**
  * Advisory banner that appears inside the live session UI when the session

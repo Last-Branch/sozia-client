@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, MessageCircle, Mic } from 'lucide-react-native';
-import { useLanguage } from '../LanguageContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export function PermissionsScreen({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const { t } = useLanguage();
