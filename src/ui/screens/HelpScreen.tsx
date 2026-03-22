@@ -1,232 +1,127 @@
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Camera, ChevronDown, ChevronRight, Hand, MessageCircle, Mic, Shield } from 'lucide-react-native';
 
-type FaqItem = { question: string; answer: string };
-
-const FAQ_EN: FaqItem[] = [
-  {
-    question: 'How does lip reading work?',
-    answer:
-      'Sozia uses your device camera to track facial landmarks in real time. The lip movements are analysed locally on your device — no video is ever sent to the cloud.',
-  },
-  {
-    question: 'How does sign language recognition work?',
-    answer:
-      'Your hand and body landmarks are extracted on-device using MediaPipe. Only the numerical landmark data (not video) is sent to the server for Turkish Sign Language classification.',
-  },
-  {
-    question: 'Is my audio or video stored anywhere?',
-    answer:
-      'No. Raw audio and video never leave your device. Only anonymised numerical feature arrays are transmitted over an encrypted connection for inference.',
-  },
-  {
-    question: 'What is the difference between Speech and Sign modes?',
-    answer:
-      'Speech mode combines microphone audio (ASR) with lip-reading for higher accuracy. Sign mode recognises Turkish Sign Language gestures and converts them to natural-language text. Only one mode can be active at a time.',
-  },
-  {
-    question: 'Why does the subtitle sometimes appear twice and then change?',
-    answer:
-      'Sozia uses an optimistic display strategy: a preliminary subtitle appears immediately, then gets replaced by the final, more accurate result once all modalities finish processing.',
-  },
-  {
-    question: 'What should I do if the app shows DEGRADED status?',
-    answer:
-      'DEGRADED means one modality (e.g. microphone or camera) became unavailable. The app continues with the remaining modality. Check that the required permissions are granted and try restarting the session.',
-  },
-];
-
-const FAQ_TR: FaqItem[] = [
-  {
-    question: 'Dudak okuma nasıl çalışır?',
-    answer:
-      'Sozia, yüz referans noktalarını gerçek zamanlı olarak izlemek için cihaz kameranızı kullanır. Dudak hareketleri yalnızca cihazınızda analiz edilir; hiçbir video buluta gönderilmez.',
-  },
-  {
-    question: 'İşaret dili tanıma nasıl çalışır?',
-    answer:
-      'El ve vücut referans noktaları, cihazınızda MediaPipe aracılığıyla çıkarılır. Yalnızca sayısal veri (video değil) şifreli bir bağlantı üzerinden Türk İşaret Dili sınıflandırması için sunucuya gönderilir.',
-  },
-  {
-    question: 'Ses veya görüntüm bir yerde depolanıyor mu?',
-    answer:
-      'Hayır. Ham ses ve görüntü hiçbir zaman cihazınızı terk etmez. Yalnızca anonimleştirilmiş sayısal özellik dizileri çıkarım için şifreli bağlantı üzerinden iletilir.',
-  },
-  {
-    question: 'Konuşma ve İşaret modları arasındaki fark nedir?',
-    answer:
-      'Konuşma modu, daha yüksek doğruluk için mikrofon sesini (ASR) dudak okumayla birleştirir. İşaret modu, Türk İşaret Dili hareketlerini tanır ve doğal dil metnine dönüştürür. Aynı anda yalnızca bir mod etkin olabilir.',
-  },
-  {
-    question: 'Altyazı neden bazen iki kez görünüp değişiyor?',
-    answer:
-      'Sozia iyimser bir görüntüleme stratejisi kullanır: geçici bir altyazı hemen görünür, ardından tüm modaliteler işlemeyi bitirince daha doğru nihai sonuçla değiştirilir.',
-  },
-  {
-    question: 'Uygulama DEGRADED durumu gösterirse ne yapmalıyım?',
-    answer:
-      "DEGRADED, mikrofon veya kamera gibi bir modalite'nin kullanılamaz hale geldiği anlamına gelir. Uygulama kalan modalite ile devam eder. Gerekli izinlerin verildiğini kontrol edin ve oturumu yeniden başlatmayı deneyin.",
-  },
-];
-
 export function HelpScreen({ onBack }: { onBack: () => void }) {
-  const [language, setLanguage] = useState<'TR' | 'EN'>('EN');
+  const { t } = useTranslation();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  const faq = language === 'EN' ? FAQ_EN : FAQ_TR;
+  const faq = t('help.faq', { returnObjects: true }) as Array<{ question: string; answer: string }>;
 
   return (
-    <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
-      <ScrollView className="flex-1 w-full" contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="flex-1 w-full items-center px-4 py-8">
-          <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
+    <SafeAreaView className="flex-1 w-full bg-white dark:bg-gray-900">
+      <View className="flex-row items-center justify-between px-5 pt-4 pb-2">
+        <TouchableOpacity
+          onPress={onBack}
+          className="h-11 w-11 items-center justify-center rounded-2xl bg-gray-100 dark:bg-gray-800"
+          activeOpacity={0.8}
+        >
+          <ArrowLeft size={22} color="#374151" className="dark:text-gray-300" />
+        </TouchableOpacity>
+        <Text className="text-xl font-black text-gray-900 dark:text-gray-100">{t('help.title')}</Text>
+        <View className="h-11 w-11" />
+      </View>
 
-            {/* Header */}
-            <View className="flex-row items-center justify-between border-b border-gray-100 dark:border-gray-700 px-6 pt-5 pb-4">
-              <View className="flex-row items-center gap-3">
-                <TouchableOpacity
-                  className="h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
-                  onPress={onBack}
-                  hitSlop={8}
-                >
-                  <ArrowLeft size={18} color="#374151" />
-                </TouchableOpacity>
-                <Text className="text-3xl font-black text-gray-900 dark:text-gray-100">Help</Text>
-              </View>
-              <View className="flex-row rounded-full bg-gray-100 dark:bg-gray-800 p-1">
-                <TouchableOpacity
-                  onPress={() => setLanguage('TR')}
-                  className={`px-3 py-1 rounded-full ${language === 'TR' ? 'bg-[#2ECC71]' : ''}`}
-                >
-                  <Text className={language === 'TR' ? 'text-white font-semibold' : 'text-gray-600 dark:text-gray-400'}>TR</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setLanguage('EN')}
-                  className={`px-3 py-1 rounded-full ${language === 'EN' ? 'bg-[#2ECC71]' : ''}`}
-                >
-                  <Text className={language === 'EN' ? 'text-white font-semibold' : 'text-gray-600 dark:text-gray-400'}>EN</Text>
-                </TouchableOpacity>
-              </View>
+      <ScrollView className="flex-1 w-full px-5" contentContainerStyle={{ paddingTop: 16, paddingBottom: 60 }}>
+        <View className="mb-6 rounded-3xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-6">
+          <Text className="mb-4 text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+            {t('help.quickGuide')}
+          </Text>
+
+          <View className="mb-5 flex-row">
+            <View className="mt-1 h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10 dark:bg-blue-500/20">
+              <Mic size={16} color="#3B82F6" />
             </View>
-
-            <View className="px-6 py-6">
-
-              {/* Quick guide */}
-              <Text className="mb-3 font-black text-gray-900 dark:text-gray-100">
-                {language === 'EN' ? 'Quick Guide' : 'Hızlı Kılavuz'}
+            <View className="ml-3 flex-1">
+              <Text className="font-bold text-gray-900 dark:text-gray-100">{t('help.speechMode')}</Text>
+              <Text className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                {t('help.speechModeDesc')}
               </Text>
-              <View className="mb-6 gap-3">
-                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
-                  <View className="h-10 w-10 items-center justify-center rounded-2xl bg-[#2ECC71]/10">
-                    <Mic size={20} color="#2ECC71" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="mb-0.5 font-bold text-gray-900 dark:text-gray-100">
-                      {language === 'EN' ? 'Speech Mode' : 'Konuşma Modu'}
-                    </Text>
-                    <Text className="text-xs leading-5 text-gray-500 dark:text-gray-400">
-                      {language === 'EN'
-                        ? 'Tap "Start Lip Reading" on the dashboard. Grant microphone and camera access. Speak clearly facing the camera.'
-                        : '"Dudak Okumayı Başlat" düğmesine basın. Mikrofon ve kamera erişimine izin verin. Kameraya bakarak net konuşun.'}
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
-                  <View className="h-10 w-10 items-center justify-center rounded-2xl bg-[#1E8449]/10">
-                    <Hand size={20} color="#1E8449" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="mb-0.5 font-bold text-gray-900 dark:text-gray-100">
-                      {language === 'EN' ? 'Sign Language Mode' : 'İşaret Dili Modu'}
-                    </Text>
-                    <Text className="text-xs leading-5 text-gray-500 dark:text-gray-400">
-                      {language === 'EN'
-                        ? 'Tap "Start Sign Language". Keep your hands centred and visible. Ensure good lighting.'
-                        : '"İşaret Dilini Başlat" düğmesine basın. Ellerinizi ortalı ve görünür tutun. İyi aydınlatma sağlayın.'}
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
-                  <View className="h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/10">
-                    <Camera size={20} color="#2563EB" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="mb-0.5 font-bold text-gray-900 dark:text-gray-100">
-                      {language === 'EN' ? 'Best Conditions' : 'En İyi Koşullar'}
-                    </Text>
-                    <Text className="text-xs leading-5 text-gray-500 dark:text-gray-400">
-                      {language === 'EN'
-                        ? 'Well-lit environment, camera at eye level, minimal background noise, stable internet connection.'
-                        : 'İyi aydınlatılmış ortam, kamera göz hizasında, minimum arka plan gürültüsü, kararlı internet bağlantısı.'}
-                    </Text>
-                  </View>
-                </View>
-
-                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
-                  <View className="h-10 w-10 items-center justify-center rounded-2xl bg-purple-50 dark:bg-purple-900/200/10">
-                    <Shield size={20} color="#7C3AED" />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="mb-0.5 font-bold text-gray-900 dark:text-gray-100">
-                      {language === 'EN' ? 'Privacy' : 'Gizlilik'}
-                    </Text>
-                    <Text className="text-xs leading-5 text-gray-500 dark:text-gray-400">
-                      {language === 'EN'
-                        ? 'Raw audio and video never leave your device. Only anonymised numerical data is transmitted.'
-                        : 'Ham ses ve video hiçbir zaman cihazınızı terk etmez. Yalnızca anonimleştirilmiş sayısal veriler iletilir.'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* FAQ */}
-              <Text className="mb-3 font-black text-gray-900 dark:text-gray-100">
-                {language === 'EN' ? 'Frequently Asked Questions' : 'Sık Sorulan Sorular'}
-              </Text>
-              <View className="gap-2">
-                {faq.map((item, i) => (
-                  <TouchableOpacity
-                    key={i}
-                    className="overflow-hidden rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60"
-                    onPress={() => setOpenIndex(openIndex === i ? null : i)}
-                    activeOpacity={0.85}
-                  >
-                    <View className="flex-row items-center justify-between px-4 py-4">
-                      <Text className="flex-1 pr-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {item.question}
-                      </Text>
-                      {openIndex === i ? (
-                        <ChevronDown size={16} color="#9CA3AF" />
-                      ) : (
-                        <ChevronRight size={16} color="#9CA3AF" />
-                      )}
-                    </View>
-                    {openIndex === i && (
-                      <View className="border-t border-gray-200 dark:border-gray-700 px-4 pb-4 pt-3">
-                        <Text className="text-sm leading-6 text-gray-600 dark:text-gray-400">{item.answer}</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              {/* App info */}
-              <View className="mt-8 items-center">
-                <View className="mb-3 h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-[#2ECC71] to-[#27AE60] shadow-lg">
-                  <MessageCircle size={28} color="#fff" />
-                </View>
-                <Text className="text-lg font-black text-gray-900 dark:text-gray-100">SOZIA</Text>
-                <Text className="text-xs text-gray-400">
-                  {language === 'EN' ? 'Assistive Communication · v1.0.0' : 'Yardımcı İletişim · v1.0.0'}
-                </Text>
-              </View>
-
             </View>
           </View>
+
+          <View className="mb-5 flex-row">
+            <View className="mt-1 h-8 w-8 items-center justify-center rounded-xl bg-[#2ECC71]/10 dark:bg-[#2ECC71]/20">
+              <Hand size={16} color="#2ECC71" />
+            </View>
+            <View className="ml-3 flex-1">
+              <Text className="font-bold text-gray-900 dark:text-gray-100">{t('help.signMode')}</Text>
+              <Text className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                {t('help.signModeDesc')}
+              </Text>
+            </View>
+          </View>
+
+          <View className="mb-5 flex-row">
+            <View className="mt-1 h-8 w-8 items-center justify-center rounded-xl bg-orange-500/10 dark:bg-orange-500/20">
+              <Camera size={16} color="#F97316" />
+            </View>
+            <View className="ml-3 flex-1">
+              <Text className="font-bold text-gray-900 dark:text-gray-100">{t('help.bestConditions')}</Text>
+              <Text className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                {t('help.bestConditionsDesc')}
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row">
+            <View className="mt-1 h-8 w-8 items-center justify-center rounded-xl bg-purple-500/10 dark:bg-purple-500/20">
+              <Shield size={16} color="#A855F7" />
+            </View>
+            <View className="ml-3 flex-1">
+              <Text className="font-bold text-gray-900 dark:text-gray-100">{t('help.privacy')}</Text>
+              <Text className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                {t('help.privacyDesc')}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <Text className="mb-4 text-xl font-bold text-gray-900 dark:text-gray-100">{t('help.faqTitle')}</Text>
+        <View className="mb-8 overflow-hidden rounded-3xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-800/80 shadow-sm">
+          {faq.map((item, index) => {
+            const isOpen = openIndex === index;
+            const isLast = index === faq.length - 1;
+
+            return (
+              <View key={index} className={`border-b ${isLast ? 'border-transparent' : 'border-gray-100 dark:border-gray-700'}`}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setOpenIndex(isOpen ? null : index)}
+                  className="flex-row items-center justify-between p-4"
+                >
+                  <Text className="flex-1 pr-4 font-semibold text-gray-800 dark:text-gray-200">
+                    {item.question}
+                  </Text>
+                  <View className="h-8 w-8 items-center justify-center rounded-full bg-gray-50 dark:bg-gray-700">
+                    <ChevronDown
+                      size={18}
+                      color="#6B7280"
+                      style={{ transform: [{ rotate: isOpen ? '180deg' : '0deg' }] }}
+                    />
+                  </View>
+                </TouchableOpacity>
+
+                {isOpen && (
+                  <View className="bg-gray-50 dark:bg-gray-800/50 px-4 pb-4 pt-1">
+                    <Text className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                      {item.answer}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
+
+        <View className="items-center pb-8 pt-4">
+          <View className="mb-3 h-16 w-16 items-center justify-center rounded-3xl bg-[#2ECC71]/10">
+            <MessageCircle size={32} color="#2ECC71" />
+          </View>
+          <Text className="text-xl font-black text-gray-900 dark:text-gray-100">SOZIA</Text>
+          <Text className="text-xs font-semibold text-gray-400 dark:text-gray-500">{t('help.subtitle')}</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

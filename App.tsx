@@ -3,6 +3,7 @@ import React from 'react';
 import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
+import './src/ui/i18n';
 import { SessionControllerProvider } from './src/ui/SessionController';
 import { DashboardScreen } from './src/ui/screens/DashboardScreen';
 import { HelpScreen } from './src/ui/screens/HelpScreen';

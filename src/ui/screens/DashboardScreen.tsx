@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CircleCheckBig, CircleHelp, CircleUser, Hand, House, Mic } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 import { ModalityPath } from '../../common/models';
 import { useSessionController } from '../SessionController';
@@ -16,16 +17,12 @@ export function DashboardScreen({
   onOpenHelp: () => void;
 }) {
   const { state, activePath, startSession } = useSessionController();
+  const { t } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<'home' | 'help' | 'profile'>('home');
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
 
-  const tips = [
-    'Tip: Ensure you are in a well-lit environment for accurate lip and sign tracking.',
-    'Tip: Position your camera at eye level for best results.',
-    'Tip: Minimize background noise for clearer speech detection.',
-    'Tip: Keep your hands visible and centered for sign language.',
-  ];
+  const tips = t('dashboard.tips', { returnObjects: true }) as string[];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -40,7 +37,7 @@ export function DashboardScreen({
         <View className="flex-1 w-full items-center px-4 py-8">
           <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
             <View className="flex-row items-center justify-between px-6 pt-6 pb-4">
-              <Text className="text-3xl font-black text-gray-900 dark:text-gray-100">Hello!</Text>
+              <Text className="text-3xl font-black text-gray-900 dark:text-gray-100">{t('dashboard.hello')}</Text>
               <TouchableOpacity
                 className="h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
                 onPress={onOpenSettings}
@@ -62,8 +59,8 @@ export function DashboardScreen({
                 <View className="mb-4 h-24 w-24 items-center justify-center rounded-full bg-white/20">
                   <Mic size={56} color="#fff" />
                 </View>
-                <Text className="mb-1 text-2xl font-black text-white">Start Lip Reading</Text>
-                <Text className="max-w-[200px] text-center text-white/90">Real-time speech to text</Text>
+                <Text className="mb-1 text-2xl font-black text-white">{t('dashboard.startLipReading')}</Text>
+                <Text className="max-w-[200px] text-center text-white/90">{t('dashboard.startLipReadingDesc')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -78,9 +75,9 @@ export function DashboardScreen({
                 <View className="mb-4 h-24 w-24 items-center justify-center rounded-full bg-white/20">
                   <Hand size={56} color="#fff" />
                 </View>
-                <Text className="mb-1 text-2xl font-black text-white">Start Sign Language</Text>
+                <Text className="mb-1 text-2xl font-black text-white">{t('dashboard.startSignLanguage')}</Text>
                 <Text className="max-w-[200px] text-center text-white/90">
-                  Gesture to text translation
+                  {t('dashboard.startSignLanguageDesc')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -90,11 +87,11 @@ export function DashboardScreen({
                 <View className="flex-row items-start gap-3">
                   <CircleCheckBig size={24} color="#2ECC71" />
                   <View className="flex-1">
-                    <Text className="mb-1 font-bold text-gray-900 dark:text-gray-100">Ready to Start?</Text>
+                    <Text className="mb-1 font-bold text-gray-900 dark:text-gray-100">{t('dashboard.ready')}</Text>
                     <View className="mb-1 flex-row items-center gap-2">
                       <View className="h-2 w-2 rounded-full bg-[#2ECC71]" />
                       <Text className="text-sm text-gray-600 dark:text-gray-400">
-                        Path: {activePath ?? 'not selected'} · State: {state}
+                        {t('dashboard.path')}: {activePath ?? t('dashboard.notSelected')} · {t('dashboard.state')}: {state}
                       </Text>
                     </View>
                     <Text className="text-xs text-gray-500 dark:text-gray-400">{tips[currentTipIndex]}</Text>
@@ -115,7 +112,7 @@ export function DashboardScreen({
                       activeTab === 'home' ? 'text-[#2ECC71]' : 'text-gray-400'
                     }`}
                   >
-                    Home
+                    {t('dashboard.home')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -128,7 +125,7 @@ export function DashboardScreen({
                       activeTab === 'help' ? 'text-[#2ECC71]' : 'text-gray-400'
                     }`}
                   >
-                    Help
+                    {t('dashboard.help')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -143,7 +140,7 @@ export function DashboardScreen({
                       activeTab === 'profile' ? 'text-[#2ECC71]' : 'text-gray-400'
                     }`}
                   >
-                    Profile
+                    {t('dashboard.profile')}
                   </Text>
                 </TouchableOpacity>
               </View>

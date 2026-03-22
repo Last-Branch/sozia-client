@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, CircleX, Settings, SwitchCamera } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 import { ModalityType, SegmentStatus, type TranscriptSegment } from '../../common/models';
 import { useSessionController } from '../SessionController';
@@ -32,7 +33,8 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
     return unsub;
   }, [store]);
 
-  const [language, setLanguage] = useState<'TR' | 'EN'>('EN');
+  const [outputLanguage, setOutputLanguage] = useState<'TR' | 'EN'>('EN');
+  const { t } = useTranslation();
   const [showSettings, setShowSettings] = useState(false);
   const [textSize, setTextSize] = useState(100);
   const [groupMode, setGroupMode] = useState(false);
@@ -90,7 +92,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
           <View className="z-20 flex-row items-center justify-between bg-black/30 px-6 pt-3 pb-2">
             <Text className="text-xs font-semibold text-white">Sozia · {state}</Text>
             <TouchableOpacity onPress={onBack}>
-              <Text className="text-xs font-semibold text-gray-300">Back</Text>
+              <Text className="text-xs font-semibold text-gray-300">{t('live.back')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -102,7 +104,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                 <View className="mb-3 h-24 w-24 items-center justify-center rounded-full border-2 border-white/20">
                   <View className="h-16 w-16 rounded-full border-2 border-white/30" />
                 </View>
-                <Text className="text-sm font-medium text-white/40">Camera Feed Active</Text>
+                <Text className="text-sm font-medium text-white/40">{t('live.cameraFeed')}</Text>
               </View>
             </View>
 
@@ -111,7 +113,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               <View className="relative">
                 <View className="h-3 w-3 rounded-full bg-[#2ECC71]" />
               </View>
-              <Text className="text-xs font-semibold text-white">Listening & Reading…</Text>
+              <Text className="text-xs font-semibold text-white">{t('live.listening')}</Text>
             </View>
 
             {/* Controls */}
@@ -140,7 +142,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
             {showSettings && (
               <View className="absolute right-6 top-20 z-40 w-72 rounded-3xl border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 p-5">
                 <View className="mb-3 flex-row items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
-                  <Text className="font-bold text-gray-900 dark:text-gray-100">Settings</Text>
+                  <Text className="font-bold text-gray-900 dark:text-gray-100">{t('live.settings')}</Text>
                   <TouchableOpacity onPress={() => setShowSettings(false)}>
                     <ChevronDown size={18} color="#9CA3AF" />
                   </TouchableOpacity>
@@ -148,26 +150,26 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
                 {/* Language */}
                 <View className="mb-4">
-                  <Text className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Output Language</Text>
+                  <Text className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">{t('live.outputLang')}</Text>
                   <View className="inline-flex w-full flex-row rounded-full bg-gray-100 dark:bg-gray-800 p-1">
                     <TouchableOpacity
                       className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold ${
-                        language === 'TR' ? 'bg-[#2ECC71] text-white shadow-md' : 'text-gray-600 dark:text-gray-400'
+                        outputLanguage === 'TR' ? 'bg-[#2ECC71] text-white shadow-md' : 'text-gray-600 dark:text-gray-400'
                       }`}
-                      onPress={() => setLanguage('TR')}
+                      onPress={() => setOutputLanguage('TR')}
                     >
-                      <Text className={language === 'TR' ? 'text-white' : 'text-gray-600 dark:text-gray-400'}>
-                        Turkish (TR)
+                      <Text className={outputLanguage === 'TR' ? 'text-white' : 'text-gray-600 dark:text-gray-400'}>
+                        {t('live.tr')}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold ${
-                        language === 'EN' ? 'bg-[#2ECC71] text-white shadow-md' : 'text-gray-600 dark:text-gray-400'
+                        outputLanguage === 'EN' ? 'bg-[#2ECC71] text-white shadow-md' : 'text-gray-600 dark:text-gray-400'
                       }`}
-                      onPress={() => setLanguage('EN')}
+                      onPress={() => setOutputLanguage('EN')}
                     >
-                      <Text className={language === 'EN' ? 'text-white' : 'text-gray-600 dark:text-gray-400'}>
-                        English (EN)
+                      <Text className={outputLanguage === 'EN' ? 'text-white' : 'text-gray-600 dark:text-gray-400'}>
+                        {t('live.en')}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -176,7 +178,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                 {/* Subtitle Size */}
                 <View className="mb-4">
                   <View className="mb-2 flex-row items-center justify-between">
-                    <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">Subtitle Size</Text>
+                    <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('live.subtitleSize')}</Text>
                     <Text className="text-xs font-bold text-[#2ECC71]">{textSize}%</Text>
                   </View>
                   <SimpleSlider 
@@ -190,8 +192,8 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                 {/* Group mode */}
                 <View className="flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-3">
                   <View>
-                    <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">Group Mode</Text>
-                    <Text className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Track multiple speakers</Text>
+                    <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('live.groupMode')}</Text>
+                    <Text className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{t('live.groupModeDesc')}</Text>
                   </View>
                   <TouchableOpacity
                     className={`h-7 w-12 rounded-full p-1 ${
@@ -235,13 +237,13 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                 {groupMode && (
                   <View className="mb-2 flex-row items-center justify-center gap-2">
                     <View className="h-2.5 w-2.5 rounded-full bg-[#2ECC71]" />
-                    <Text className="text-sm font-bold text-[#2ECC71]">Speaker 1</Text>
+                    <Text className="text-sm font-bold text-[#2ECC71]">{t('live.speaker')} 1</Text>
                   </View>
                 )}
                 <TranscriptView segments={segments} baseFontSize={baseFontSize} />
                 <View className="mt-3 items-center">
                   <Text className="text-xs text-gray-400">
-                    Session {sessionId ?? '—'} · Path {activePath ?? '—'}
+                    {t('live.session')} {sessionId ?? '—'} · {t('live.path')} {activePath ?? '—'}
                   </Text>
                 </View>
               </View>
@@ -273,6 +275,7 @@ function TranscriptView({
   segments: TranscriptSegment[];
   baseFontSize: number;
 }) {
+  const { t } = useTranslation();
   // Show only the last 3 segments to keep the overlay readable.
   const visible = segments.slice(-3);
 
@@ -282,7 +285,7 @@ function TranscriptView({
         className="text-center italic leading-relaxed text-white/40"
         style={{ fontSize: baseFontSize }}
       >
-        Listening…
+        {t('live.waiting')}
       </Text>
     );
   }

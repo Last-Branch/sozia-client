@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Apple, Eye, EyeOff, Lock, Mail, MessageCircle, User } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [language, setLanguage] = useState<'TR' | 'EN'>('EN');
+  const { t, i18n } = useTranslation();
+  const language = i18n.language.toUpperCase() as 'EN' | 'TR';
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/10 via-white dark:via-gray-900 to-[#2ECC71]/5">
@@ -16,11 +18,11 @@ export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: (
         keyboardShouldPersistTaps="handled"
       >
         <View className="flex-1 w-full items-center justify-center px-4 py-8">
-          <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 px-8 py-8 shadow-2xl">
+          <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
             <View className="mb-4 items-end">
               <View className="flex-row rounded-full bg-gray-100 dark:bg-gray-800 p-1">
                 <TouchableOpacity
-                  onPress={() => setLanguage('TR')}
+                  onPress={() => i18n.changeLanguage('tr')}
                   className={`rounded-full px-3 py-2 ${
                     language === 'TR' ? 'bg-[#2ECC71] shadow-sm' : ''
                   }`}
@@ -29,7 +31,7 @@ export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: (
                   <Text className={language === 'TR' ? 'text-white' : 'text-gray-600 dark:text-gray-400'}>TR</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => setLanguage('EN')}
+                  onPress={() => i18n.changeLanguage('en')}
                   className={`rounded-full px-3 py-2 ${
                     language === 'EN' ? 'bg-[#2ECC71] shadow-sm' : ''
                   }`}
@@ -46,18 +48,18 @@ export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: (
               </View>
               <Text className="mb-1 text-5xl font-black tracking-tight text-gray-900 dark:text-gray-100">SOZIA</Text>
               <Text className="text-gray-500 dark:text-gray-400">
-                {language === 'EN' ? 'Create your account' : 'Hesap Olustur'}
+                {t('signup.subtitle')}
               </Text>
             </View>
 
             <View className="mb-4">
               <Text className="mb-2 text-gray-700 dark:text-gray-300">
-                {language === 'EN' ? 'Full Name' : 'Ad Soyad'}
+                {t('signup.fullName')}
               </Text>
               <View className="relative flex-row items-center">
                 <User size={20} color="#9CA3AF" style={{ position: 'absolute', left: 16, zIndex: 1 }} />
                 <TextInput
-                  placeholder={language === 'EN' ? 'John Doe' : 'Ad Soyad'}
+                  placeholder={t('signup.fullNamePlaceholder')}
                   placeholderTextColor="#9CA3AF"
                   className="h-14 w-full rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 pl-12 pr-4 text-base text-gray-900 dark:text-gray-100"
                 />
@@ -65,12 +67,12 @@ export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: (
             </View>
 
             <View className="mb-4">
-              <Text className="mb-2 text-gray-700 dark:text-gray-300">{language === 'EN' ? 'Email' : 'E-posta'}</Text>
+              <Text className="mb-2 text-gray-700 dark:text-gray-300">{t('login.email')}</Text>
               <View className="relative flex-row items-center">
                 <Mail size={20} color="#9CA3AF" style={{ position: 'absolute', left: 16, zIndex: 1 }} />
                 <TextInput
                   keyboardType="email-address"
-                  placeholder={language === 'EN' ? 'your.email@example.com' : 'ornek@email.com'}
+                  placeholder={t('login.emailPlaceholder')}
                   placeholderTextColor="#9CA3AF"
                   className="h-14 w-full rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 pl-12 pr-4 text-base text-gray-900 dark:text-gray-100"
                 />
@@ -79,13 +81,13 @@ export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: (
 
             <View className="mb-4">
               <Text className="mb-2 text-gray-700 dark:text-gray-300">
-                {language === 'EN' ? 'Password' : 'Sifre'}
+                {t('login.password')}
               </Text>
               <View className="relative flex-row items-center">
                 <Lock size={20} color="#9CA3AF" style={{ position: 'absolute', left: 16, zIndex: 1 }} />
                 <TextInput
                   secureTextEntry={!showPassword}
-                  placeholder={language === 'EN' ? 'Enter your password' : 'Sifrenizi girin'}
+                  placeholder={t('login.passwordPlaceholder')}
                   placeholderTextColor="#9CA3AF"
                   className="h-14 w-full rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 pl-12 pr-14 text-base text-gray-900 dark:text-gray-100"
                 />
@@ -106,13 +108,13 @@ export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: (
 
             <View className="mb-6">
               <Text className="mb-2 text-gray-700 dark:text-gray-300">
-                {language === 'EN' ? 'Confirm Password' : 'Sifre Tekrar'}
+                {t('signup.confirmPassword')}
               </Text>
               <View className="relative flex-row items-center">
                 <Lock size={20} color="#9CA3AF" style={{ position: 'absolute', left: 16, zIndex: 1 }} />
                 <TextInput
                   secureTextEntry={!showConfirmPassword}
-                  placeholder={language === 'EN' ? 'Confirm your password' : 'Sifrenizi tekrar girin'}
+                  placeholder={t('signup.confirmPasswordPlaceholder')}
                   placeholderTextColor="#9CA3AF"
                   className="h-14 w-full rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 pl-12 pr-14 text-base text-gray-900 dark:text-gray-100"
                 />
@@ -137,16 +139,16 @@ export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: (
               activeOpacity={0.9}
             >
               <Text className="text-base font-semibold text-white">
-                {language === 'EN' ? 'Create Account' : 'Kayit Ol'}
+                {t('signup.createAccount')}
               </Text>
             </TouchableOpacity>
 
             <View className="mb-4 flex-row items-center">
-              <View className="h-px flex-1 bg-gray-200" />
-              <Text className="px-3 text-sm text-gray-400">
-                {language === 'EN' ? 'or sign up with' : 'veya sununla kaydol'}
+              <View className="h-px flex-1 bg-gray-200 dark:border-gray-700" />
+              <Text className="px-3 text-sm text-gray-400 dark:text-gray-500">
+                {t('signup.orSignUpWith')}
               </Text>
-              <View className="h-px flex-1 bg-gray-200" />
+              <View className="h-px flex-1 bg-gray-200 dark:border-gray-700" />
             </View>
 
             <View className="mb-6 flex-row gap-3">
@@ -161,7 +163,7 @@ export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: (
                 className="h-14 flex-1 flex-row items-center justify-center rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
                 activeOpacity={0.85}
               >
-                <Apple size={20} color="#111827" style={{ marginRight: 8 }} />
+                <Apple size={20} color="#9ca3af" style={{ marginRight: 8 }} />
                 <Text className="text-base text-gray-700 dark:text-gray-300">Apple</Text>
               </TouchableOpacity>
             </View>
@@ -169,11 +171,11 @@ export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: (
             <View className="items-center border-t border-gray-100 dark:border-gray-700 pt-4">
               <View className="flex-row items-center">
                 <Text className="text-gray-600 dark:text-gray-400">
-                  {language === 'EN' ? 'Already have an account? ' : 'Zaten hesabiniz var mi? '}
+                  {t('signup.haveAccount')}
                 </Text>
                 <TouchableOpacity onPress={onBack} hitSlop={8} activeOpacity={0.8}>
                   <Text className="font-semibold text-[#2ECC71]">
-                    {language === 'EN' ? 'Sign In' : 'Giris Yap'}
+                    {t('login.signIn')}
                   </Text>
                 </TouchableOpacity>
               </View>
