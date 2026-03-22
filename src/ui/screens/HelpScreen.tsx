@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../LanguageContext';
 import { ArrowLeft, Camera, ChevronDown, ChevronRight, Hand, MessageCircle, Mic, Shield } from 'lucide-react-native';
 
 export function HelpScreen({ onBack }: { onBack: () => void }) {
-  const { t } = useTranslation();
+  const { t } = useLanguage();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const faq = t('help.faq', { returnObjects: true }) as Array<{ question: string; answer: string }>;

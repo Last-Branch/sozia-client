@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Apple, Eye, EyeOff, Lock, Mail, MessageCircle, User } from 'lucide-react-native';
-import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../LanguageContext';
 
 export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { t, i18n } = useTranslation();
-  const language = i18n.language.toUpperCase() as 'EN' | 'TR';
+  const { t, language, setLanguage } = useLanguage();
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/10 via-white dark:via-gray-900 to-[#2ECC71]/5">
@@ -23,22 +22,20 @@ export function SignUpScreen({ onNext, onBack }: { onNext: () => void; onBack: (
             <View className="mb-4 items-end">
               <View className="flex-row rounded-full bg-gray-100 dark:bg-gray-800 p-1">
                 <TouchableOpacity
-                  onPress={() => i18n.changeLanguage('tr')}
-                  className={`rounded-full px-3 py-2 ${
-                    language === 'TR' ? 'bg-[#2ECC71] shadow-sm' : ''
-                  }`}
+                  onPress={() => setLanguage('TR')}
+                  className="rounded-full px-3 py-2"
+                  style={language === 'TR' ? { backgroundColor: '#2ECC71' } : {}}
                   activeOpacity={0.85}
                 >
-                  <Text className={language === 'TR' ? 'text-white' : 'text-gray-600 dark:text-gray-400'}>TR</Text>
+                  <Text style={language === 'TR' ? { color: '#ffffff', fontWeight: 'bold' } : { color: '#4b5563', fontWeight: 'bold' }}>TR</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => i18n.changeLanguage('en')}
-                  className={`rounded-full px-3 py-2 ${
-                    language === 'EN' ? 'bg-[#2ECC71] shadow-sm' : ''
-                  }`}
+                  onPress={() => setLanguage('EN')}
+                  className="rounded-full px-3 py-2"
+                  style={language === 'EN' ? { backgroundColor: '#2ECC71' } : {}}
                   activeOpacity={0.85}
                 >
-                  <Text className={language === 'EN' ? 'text-white' : 'text-gray-600 dark:text-gray-400'}>EN</Text>
+                  <Text style={language === 'EN' ? { color: '#ffffff', fontWeight: 'bold' } : { color: '#4b5563', fontWeight: 'bold' }}>EN</Text>
                 </TouchableOpacity>
               </View>
             </View>

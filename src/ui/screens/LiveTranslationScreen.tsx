@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, CircleX, Settings, SwitchCamera } from 'lucide-react-native';
-import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../LanguageContext';
 
 import { ModalityType, SegmentStatus, type TranscriptSegment } from '../../common/models';
 import { useSessionController } from '../SessionController';
@@ -34,7 +34,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
   }, [store]);
 
   const [outputLanguage, setOutputLanguage] = useState<'TR' | 'EN'>('EN');
-  const { t } = useTranslation();
+  const { t } = useLanguage();
   const [showSettings, setShowSettings] = useState(false);
   const [textSize, setTextSize] = useState(100);
   const [groupMode, setGroupMode] = useState(false);
@@ -152,22 +152,20 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                   <Text className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">{t('live.outputLang')}</Text>
                   <View className="inline-flex w-full flex-row rounded-full bg-gray-100 dark:bg-gray-800 p-1">
                     <TouchableOpacity
-                      className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold ${
-                        outputLanguage === 'TR' ? 'bg-[#2ECC71] text-white shadow-md' : 'text-gray-600 dark:text-gray-400'
-                      }`}
+                      className="flex-1 rounded-full px-4 py-2.5"
+                      style={outputLanguage === 'TR' ? { backgroundColor: '#2ECC71' } : {}}
                       onPress={() => setOutputLanguage('TR')}
                     >
-                      <Text className={outputLanguage === 'TR' ? 'text-white' : 'text-gray-600 dark:text-gray-400'}>
+                      <Text style={outputLanguage === 'TR' ? { color: '#ffffff', fontWeight: 'bold', textAlign: 'center' } : { color: '#4b5563', fontWeight: 'bold', textAlign: 'center' }}>
                         {t('live.tr')}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold ${
-                        outputLanguage === 'EN' ? 'bg-[#2ECC71] text-white shadow-md' : 'text-gray-600 dark:text-gray-400'
-                      }`}
+                      className="flex-1 rounded-full px-4 py-2.5"
+                      style={outputLanguage === 'EN' ? { backgroundColor: '#2ECC71' } : {}}
                       onPress={() => setOutputLanguage('EN')}
                     >
-                      <Text className={outputLanguage === 'EN' ? 'text-white' : 'text-gray-600 dark:text-gray-400'}>
+                      <Text style={outputLanguage === 'EN' ? { color: '#ffffff', fontWeight: 'bold', textAlign: 'center' } : { color: '#4b5563', fontWeight: 'bold', textAlign: 'center' }}>
                         {t('live.en')}
                       </Text>
                     </TouchableOpacity>
@@ -273,7 +271,7 @@ function TranscriptView({
   segments: TranscriptSegment[];
   baseFontSize: number;
 }) {
-  const { t } = useTranslation();
+  const { t } = useLanguage();
   // Show only the last 3 segments to keep the overlay readable.
   const visible = segments.slice(-3);
 

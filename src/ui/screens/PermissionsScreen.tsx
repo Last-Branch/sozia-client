@@ -2,10 +2,10 @@ import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, MessageCircle, Mic } from 'lucide-react-native';
-import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../LanguageContext';
 
 export function PermissionsScreen({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
-  const { t } = useTranslation();
+  const { t } = useLanguage();
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">

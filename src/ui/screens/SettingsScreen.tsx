@@ -2,16 +2,15 @@ import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
-import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../LanguageContext';
 import { ArrowLeft, ChevronRight, FileText, Globe, MessageCircle, Moon } from 'lucide-react-native';
 
 export function SettingsScreen({ onBack }: { onBack: () => void }) {
-  const { t, i18n } = useTranslation();
+  const { t, language, setLanguage } = useLanguage();
   const { colorScheme, setColorScheme } = useColorScheme();
   const darkMode = colorScheme === 'dark';
   const toggleDarkMode = () => setColorScheme(darkMode ? 'light' : 'dark');
   const [showPrivacyDetails, setShowPrivacyDetails] = useState(false);
-  const language = i18n.language.toUpperCase() as 'EN' | 'TR';
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
@@ -43,16 +42,13 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
             {['TR', 'EN'].map((option) => (
               <TouchableOpacity
                 key={option}
-                className={`flex-1 rounded-2xl px-3 py-3 ${
-                  language === option ? 'bg-[#2ECC71] shadow-sm' : 'bg-white dark:bg-gray-800'
-                }`}
-                onPress={() => i18n.changeLanguage(option.toLowerCase())}
+                className="flex-1 rounded-2xl px-3 py-3"
+                style={language === option ? { backgroundColor: '#2ECC71' } : { backgroundColor: darkMode ? '#1f2937' : '#ffffff' }}
+                onPress={() => setLanguage(option as 'EN' | 'TR')}
                 activeOpacity={0.85}
               >
                 <Text
-                  className={`text-center text-sm font-semibold ${
-                    language === option ? 'text-white' : 'text-gray-700 dark:text-gray-300'
-                  }`}
+                  style={language === option ? { color: '#ffffff', fontWeight: '600', textAlign: 'center' } : { color: darkMode ? '#d1d5db' : '#374151', fontWeight: '600', textAlign: 'center' }}
                 >
                   {option === 'TR' ? t('settings.tr') : t('settings.en')}
                 </Text>

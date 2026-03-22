@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CircleCheckBig, CircleHelp, CircleUser, Hand, House, Mic } from 'lucide-react-native';
-import { useTranslation } from 'react-i18next';
+import { useLanguage } from '../LanguageContext';
 
 import { ModalityPath } from '../../common/models';
 import { useSessionController } from '../SessionController';
@@ -17,7 +17,7 @@ export function DashboardScreen({
   onOpenHelp: () => void;
 }) {
   const { state, activePath, startSession } = useSessionController();
-  const { t } = useTranslation();
+  const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'home' | 'help' | 'profile'>('home');
   const [currentTipIndex, setCurrentTipIndex] = useState(0);

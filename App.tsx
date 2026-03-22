@@ -3,7 +3,7 @@ import React from 'react';
 import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-import './src/ui/i18n';
+import { LanguageProvider } from './src/ui/LanguageContext';
 import { SessionControllerProvider } from './src/ui/SessionController';
 import { DashboardScreen } from './src/ui/screens/DashboardScreen';
 import { HelpScreen } from './src/ui/screens/HelpScreen';
@@ -20,8 +20,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SessionControllerProvider>
-        <SafeAreaView className="flex-1 w-full self-stretch bg-white dark:bg-gray-900">
+      <LanguageProvider>
+        <SessionControllerProvider>
+          <SafeAreaView className="flex-1 w-full self-stretch bg-white dark:bg-gray-900">
           {route === 'login' && (
             <LoginScreen
               onSignIn={() => setRoute('dashboard')}
@@ -58,7 +59,8 @@ export default function App() {
 
           <StatusBar style="auto" />
         </SafeAreaView>
-      </SessionControllerProvider>
+        </SessionControllerProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }
