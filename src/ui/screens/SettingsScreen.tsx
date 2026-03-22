@@ -108,18 +108,6 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
         </TouchableOpacity>
 
         <View className="mt-8">
-          <Text className="mb-4 pl-1 text-sm font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-            {t('settings.currentPrefs')}
-          </Text>
-          <View className="rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-5 shadow-sm">
-            <Text className="mb-2 text-sm text-gray-600 dark:text-gray-400">
-              {t('settings.langPref')}: {language === 'EN' ? t('settings.en') : t('settings.tr')}
-            </Text>
-            <Text className="text-sm text-gray-600 dark:text-gray-400">
-              {t('settings.themePref')}: {darkMode ? t('settings.darkEnabled') : t('settings.lightEnabled')}
-            </Text>
-          </View>
-
           <View className="items-center pt-4">
             <View className="mb-2 h-16 w-16 items-center justify-center rounded-[24px] bg-[#2ECC71]/10">
               <MessageCircle size={32} color="#2ECC71" />
