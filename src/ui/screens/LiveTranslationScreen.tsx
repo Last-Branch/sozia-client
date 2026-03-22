@@ -82,7 +82,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
   }
 
   return (
-    <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white to-[#2ECC71]/5">
+    <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
       <ScrollView className="flex-1 w-full" contentContainerStyle={{ flexGrow: 1 }}>
         <View className="flex-1 w-full items-center justify-center px-4 py-8">
           <View className="h-[680px] w-full max-w-sm rounded-[32px] border-[12px] border-gray-800 bg-black shadow-2xl overflow-hidden">
@@ -138,9 +138,9 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
             {/* Settings popover */}
             {showSettings && (
-              <View className="absolute right-6 top-20 z-40 w-72 rounded-3xl border border-gray-200 bg-white/95 p-5">
-                <View className="mb-3 flex-row items-center justify-between border-b border-gray-200 pb-2">
-                  <Text className="font-bold text-gray-900">Settings</Text>
+              <View className="absolute right-6 top-20 z-40 w-72 rounded-3xl border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 p-5">
+                <View className="mb-3 flex-row items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                  <Text className="font-bold text-gray-900 dark:text-gray-100">Settings</Text>
                   <TouchableOpacity onPress={() => setShowSettings(false)}>
                     <ChevronDown size={18} color="#9CA3AF" />
                   </TouchableOpacity>
@@ -148,25 +148,25 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
                 {/* Language */}
                 <View className="mb-4">
-                  <Text className="mb-2 text-sm font-semibold text-gray-900">Output Language</Text>
-                  <View className="inline-flex w-full flex-row rounded-full bg-gray-100 p-1">
+                  <Text className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Output Language</Text>
+                  <View className="inline-flex w-full flex-row rounded-full bg-gray-100 dark:bg-gray-800 p-1">
                     <TouchableOpacity
                       className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold ${
-                        language === 'TR' ? 'bg-[#2ECC71] text-white shadow-md' : 'text-gray-600'
+                        language === 'TR' ? 'bg-[#2ECC71] text-white shadow-md' : 'text-gray-600 dark:text-gray-400'
                       }`}
                       onPress={() => setLanguage('TR')}
                     >
-                      <Text className={language === 'TR' ? 'text-white' : 'text-gray-600'}>
+                      <Text className={language === 'TR' ? 'text-white' : 'text-gray-600 dark:text-gray-400'}>
                         Turkish (TR)
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold ${
-                        language === 'EN' ? 'bg-[#2ECC71] text-white shadow-md' : 'text-gray-600'
+                        language === 'EN' ? 'bg-[#2ECC71] text-white shadow-md' : 'text-gray-600 dark:text-gray-400'
                       }`}
                       onPress={() => setLanguage('EN')}
                     >
-                      <Text className={language === 'EN' ? 'text-white' : 'text-gray-600'}>
+                      <Text className={language === 'EN' ? 'text-white' : 'text-gray-600 dark:text-gray-400'}>
                         English (EN)
                       </Text>
                     </TouchableOpacity>
@@ -175,19 +175,19 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
                 {/* Text size (simple preset buttons for RN) */}
                 <View className="mb-4">
-                  <Text className="mb-2 text-sm font-semibold text-gray-900">Text Size</Text>
+                  <Text className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">Text Size</Text>
                   <View className="flex-row justify-between">
                     {[80, 100, 130].map((size) => (
                       <TouchableOpacity
                         key={size}
                         className={`flex-1 items-center rounded-full px-3 py-2 ${
-                          textSize === size ? 'bg-[#2ECC71] shadow-md' : 'bg-gray-100'
+                          textSize === size ? 'bg-[#2ECC71] shadow-md' : 'bg-gray-100 dark:bg-gray-800'
                         } mx-1`}
                         onPress={() => setTextSize(size)}
                       >
                         <Text
                           className={`text-xs font-semibold ${
-                            textSize === size ? 'text-white' : 'text-gray-700'
+                            textSize === size ? 'text-white' : 'text-gray-700 dark:text-gray-300'
                           }`}
                         >
                           {size}%
@@ -198,19 +198,19 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                 </View>
 
                 {/* Group mode */}
-                <View className="flex-row items-center justify-between border-t border-gray-200 pt-3">
+                <View className="flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-3">
                   <View>
-                    <Text className="text-sm font-semibold text-gray-900">Group Mode</Text>
-                    <Text className="mt-0.5 text-xs text-gray-500">Track multiple speakers</Text>
+                    <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">Group Mode</Text>
+                    <Text className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Track multiple speakers</Text>
                   </View>
                   <TouchableOpacity
                     className={`h-7 w-12 rounded-full p-1 ${
-                      groupMode ? 'bg-[#2ECC71]' : 'bg-gray-200'
+                      groupMode ? 'bg-[#2ECC71]' : 'bg-gray-200 dark:bg-gray-600'
                     }`}
                     onPress={() => setGroupMode((v) => !v)}
                   >
                     <View
-                      className={`h-5 w-5 rounded-full bg-white ${
+                      className={`h-5 w-5 rounded-full bg-white dark:bg-gray-800 ${
                         groupMode ? 'ml-5' : 'ml-0'
                       }`}
                     />

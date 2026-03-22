@@ -78,35 +78,35 @@ export function HelpScreen({ onBack }: { onBack: () => void }) {
   const faq = language === 'EN' ? FAQ_EN : FAQ_TR;
 
   return (
-    <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white to-[#2ECC71]/5">
+    <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
       <ScrollView className="flex-1 w-full" contentContainerStyle={{ flexGrow: 1 }}>
         <View className="flex-1 w-full items-center px-4 py-8">
-          <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 bg-white shadow-2xl">
+          <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
 
             {/* Header */}
-            <View className="flex-row items-center justify-between border-b border-gray-100 px-6 pt-5 pb-4">
+            <View className="flex-row items-center justify-between border-b border-gray-100 dark:border-gray-700 px-6 pt-5 pb-4">
               <View className="flex-row items-center gap-3">
                 <TouchableOpacity
-                  className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
+                  className="h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
                   onPress={onBack}
                   hitSlop={8}
                 >
                   <ArrowLeft size={18} color="#374151" />
                 </TouchableOpacity>
-                <Text className="text-3xl font-black text-gray-900">Help</Text>
+                <Text className="text-3xl font-black text-gray-900 dark:text-gray-100">Help</Text>
               </View>
-              <View className="flex-row rounded-full bg-gray-100 p-1">
+              <View className="flex-row rounded-full bg-gray-100 dark:bg-gray-800 p-1">
                 <TouchableOpacity
                   onPress={() => setLanguage('TR')}
                   className={`px-3 py-1 rounded-full ${language === 'TR' ? 'bg-[#2ECC71]' : ''}`}
                 >
-                  <Text className={language === 'TR' ? 'text-white font-semibold' : 'text-gray-600'}>TR</Text>
+                  <Text className={language === 'TR' ? 'text-white font-semibold' : 'text-gray-600 dark:text-gray-400'}>TR</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setLanguage('EN')}
                   className={`px-3 py-1 rounded-full ${language === 'EN' ? 'bg-[#2ECC71]' : ''}`}
                 >
-                  <Text className={language === 'EN' ? 'text-white font-semibold' : 'text-gray-600'}>EN</Text>
+                  <Text className={language === 'EN' ? 'text-white font-semibold' : 'text-gray-600 dark:text-gray-400'}>EN</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -114,19 +114,19 @@ export function HelpScreen({ onBack }: { onBack: () => void }) {
             <View className="px-6 py-6">
 
               {/* Quick guide */}
-              <Text className="mb-3 font-black text-gray-900">
+              <Text className="mb-3 font-black text-gray-900 dark:text-gray-100">
                 {language === 'EN' ? 'Quick Guide' : 'Hızlı Kılavuz'}
               </Text>
               <View className="mb-6 gap-3">
-                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 bg-gray-50 p-4">
+                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
                   <View className="h-10 w-10 items-center justify-center rounded-2xl bg-[#2ECC71]/10">
                     <Mic size={20} color="#2ECC71" />
                   </View>
                   <View className="flex-1">
-                    <Text className="mb-0.5 font-bold text-gray-900">
+                    <Text className="mb-0.5 font-bold text-gray-900 dark:text-gray-100">
                       {language === 'EN' ? 'Speech Mode' : 'Konuşma Modu'}
                     </Text>
-                    <Text className="text-xs leading-5 text-gray-500">
+                    <Text className="text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {language === 'EN'
                         ? 'Tap "Start Lip Reading" on the dashboard. Grant microphone and camera access. Speak clearly facing the camera.'
                         : '"Dudak Okumayı Başlat" düğmesine basın. Mikrofon ve kamera erişimine izin verin. Kameraya bakarak net konuşun.'}
@@ -134,15 +134,15 @@ export function HelpScreen({ onBack }: { onBack: () => void }) {
                   </View>
                 </View>
 
-                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 bg-gray-50 p-4">
+                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
                   <View className="h-10 w-10 items-center justify-center rounded-2xl bg-[#1E8449]/10">
                     <Hand size={20} color="#1E8449" />
                   </View>
                   <View className="flex-1">
-                    <Text className="mb-0.5 font-bold text-gray-900">
+                    <Text className="mb-0.5 font-bold text-gray-900 dark:text-gray-100">
                       {language === 'EN' ? 'Sign Language Mode' : 'İşaret Dili Modu'}
                     </Text>
-                    <Text className="text-xs leading-5 text-gray-500">
+                    <Text className="text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {language === 'EN'
                         ? 'Tap "Start Sign Language". Keep your hands centred and visible. Ensure good lighting.'
                         : '"İşaret Dilini Başlat" düğmesine basın. Ellerinizi ortalı ve görünür tutun. İyi aydınlatma sağlayın.'}
@@ -150,15 +150,15 @@ export function HelpScreen({ onBack }: { onBack: () => void }) {
                   </View>
                 </View>
 
-                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 bg-gray-50 p-4">
+                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
                   <View className="h-10 w-10 items-center justify-center rounded-2xl bg-blue-500/10">
                     <Camera size={20} color="#2563EB" />
                   </View>
                   <View className="flex-1">
-                    <Text className="mb-0.5 font-bold text-gray-900">
+                    <Text className="mb-0.5 font-bold text-gray-900 dark:text-gray-100">
                       {language === 'EN' ? 'Best Conditions' : 'En İyi Koşullar'}
                     </Text>
-                    <Text className="text-xs leading-5 text-gray-500">
+                    <Text className="text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {language === 'EN'
                         ? 'Well-lit environment, camera at eye level, minimal background noise, stable internet connection.'
                         : 'İyi aydınlatılmış ortam, kamera göz hizasında, minimum arka plan gürültüsü, kararlı internet bağlantısı.'}
@@ -166,15 +166,15 @@ export function HelpScreen({ onBack }: { onBack: () => void }) {
                   </View>
                 </View>
 
-                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 bg-gray-50 p-4">
-                  <View className="h-10 w-10 items-center justify-center rounded-2xl bg-purple-500/10">
+                <View className="flex-row items-start gap-4 rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
+                  <View className="h-10 w-10 items-center justify-center rounded-2xl bg-purple-50 dark:bg-purple-900/200/10">
                     <Shield size={20} color="#7C3AED" />
                   </View>
                   <View className="flex-1">
-                    <Text className="mb-0.5 font-bold text-gray-900">
+                    <Text className="mb-0.5 font-bold text-gray-900 dark:text-gray-100">
                       {language === 'EN' ? 'Privacy' : 'Gizlilik'}
                     </Text>
-                    <Text className="text-xs leading-5 text-gray-500">
+                    <Text className="text-xs leading-5 text-gray-500 dark:text-gray-400">
                       {language === 'EN'
                         ? 'Raw audio and video never leave your device. Only anonymised numerical data is transmitted.'
                         : 'Ham ses ve video hiçbir zaman cihazınızı terk etmez. Yalnızca anonimleştirilmiş sayısal veriler iletilir.'}
@@ -184,19 +184,19 @@ export function HelpScreen({ onBack }: { onBack: () => void }) {
               </View>
 
               {/* FAQ */}
-              <Text className="mb-3 font-black text-gray-900">
+              <Text className="mb-3 font-black text-gray-900 dark:text-gray-100">
                 {language === 'EN' ? 'Frequently Asked Questions' : 'Sık Sorulan Sorular'}
               </Text>
               <View className="gap-2">
                 {faq.map((item, i) => (
                   <TouchableOpacity
                     key={i}
-                    className="overflow-hidden rounded-3xl border border-gray-100 bg-gray-50"
+                    className="overflow-hidden rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60"
                     onPress={() => setOpenIndex(openIndex === i ? null : i)}
                     activeOpacity={0.85}
                   >
                     <View className="flex-row items-center justify-between px-4 py-4">
-                      <Text className="flex-1 pr-3 text-sm font-semibold text-gray-900">
+                      <Text className="flex-1 pr-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
                         {item.question}
                       </Text>
                       {openIndex === i ? (
@@ -206,8 +206,8 @@ export function HelpScreen({ onBack }: { onBack: () => void }) {
                       )}
                     </View>
                     {openIndex === i && (
-                      <View className="border-t border-gray-200 px-4 pb-4 pt-3">
-                        <Text className="text-sm leading-6 text-gray-600">{item.answer}</Text>
+                      <View className="border-t border-gray-200 dark:border-gray-700 px-4 pb-4 pt-3">
+                        <Text className="text-sm leading-6 text-gray-600 dark:text-gray-400">{item.answer}</Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -219,7 +219,7 @@ export function HelpScreen({ onBack }: { onBack: () => void }) {
                 <View className="mb-3 h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-[#2ECC71] to-[#27AE60] shadow-lg">
                   <MessageCircle size={28} color="#fff" />
                 </View>
-                <Text className="text-lg font-black text-gray-900">SOZIA</Text>
+                <Text className="text-lg font-black text-gray-900 dark:text-gray-100">SOZIA</Text>
                 <Text className="text-xs text-gray-400">
                   {language === 'EN' ? 'Assistive Communication · v1.0.0' : 'Yardımcı İletişim · v1.0.0'}
                 </Text>

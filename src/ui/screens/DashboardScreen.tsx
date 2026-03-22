@@ -35,14 +35,14 @@ export function DashboardScreen({
   }, []);
 
   return (
-    <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white to-[#2ECC71]/5">
+    <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
       <ScrollView className="flex-1 w-full" contentContainerStyle={{ flexGrow: 1 }}>
         <View className="flex-1 w-full items-center px-4 py-8">
-          <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 bg-white shadow-2xl">
+          <View className="w-full max-w-sm overflow-hidden rounded-[32px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
             <View className="flex-row items-center justify-between px-6 pt-6 pb-4">
-              <Text className="text-3xl font-black text-gray-900">Hello!</Text>
+              <Text className="text-3xl font-black text-gray-900 dark:text-gray-100">Hello!</Text>
               <TouchableOpacity
-                className="h-10 w-10 items-center justify-center rounded-full bg-gray-100"
+                className="h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
                 onPress={onOpenSettings}
               >
                 <CircleUser size={20} color="#374151" />
@@ -86,24 +86,24 @@ export function DashboardScreen({
             </View>
 
             <View className="px-6 pb-4">
-              <View className="rounded-3xl border border-gray-100 bg-gray-50 p-4">
+              <View className="rounded-3xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
                 <View className="flex-row items-start gap-3">
                   <CircleCheckBig size={24} color="#2ECC71" />
                   <View className="flex-1">
-                    <Text className="mb-1 font-bold text-gray-900">Ready to Start?</Text>
+                    <Text className="mb-1 font-bold text-gray-900 dark:text-gray-100">Ready to Start?</Text>
                     <View className="mb-1 flex-row items-center gap-2">
                       <View className="h-2 w-2 rounded-full bg-[#2ECC71]" />
-                      <Text className="text-sm text-gray-600">
+                      <Text className="text-sm text-gray-600 dark:text-gray-400">
                         Path: {activePath ?? 'not selected'} · State: {state}
                       </Text>
                     </View>
-                    <Text className="text-xs text-gray-500">{tips[currentTipIndex]}</Text>
+                    <Text className="text-xs text-gray-500 dark:text-gray-400">{tips[currentTipIndex]}</Text>
                   </View>
                 </View>
               </View>
             </View>
 
-            <View className="border-t border-gray-200 bg-white px-6 py-3">
+            <View className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-3">
               <View className="flex-row items-center justify-around">
                 <TouchableOpacity
                   onPress={() => setActiveTab('home')}
