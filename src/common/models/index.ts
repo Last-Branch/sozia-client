@@ -91,6 +91,30 @@ export interface PipelineHealth {
 }
 
 /**
+ * A batch of audio feature vectors ready for transmission to the inference server.
+ * Produced by AudioChunker from raw MFCCFrames; sent over WebSocket by TransmissionManager.
+ *
+ * Privacy note: contains only anonymized numerical feature data — no raw audio.
+ */
+export interface AudioFeatureChunk {
+  /** UUID v4 of the active session. */
+  sessionId: string;
+  /** Milliseconds since session start; taken from the first frame in the batch. */
+  timestampMs: number;
+  /**
+   * Array of feature vectors — one per captured frame.
+   * For 'mfcc': each inner array has 13 coefficients.
+   */
+  features: number[][];
+  /** Identifies the feature extraction method. */
+  featureType: 'mfcc' | 'landmarks';
+  /** Sample rate of the underlying audio signal in Hz. */
+  sampleRateHz: number;
+  /** Wall-clock duration covered by this chunk in milliseconds. */
+  chunkDurationMs: number;
+}
+
+/**
  * The primary output of the system — a time-aligned piece of transcript text with metadata.
  * Produced by the server, streamed to the client, stored locally, and rendered by the UI.
  */

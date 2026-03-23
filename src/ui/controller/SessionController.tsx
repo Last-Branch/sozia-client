@@ -1,6 +1,7 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { ModalityPath, SessionState } from '../../common/models';
+import { AudioChunker, ExpoAudioPipeline } from '../../pipeline/audio';
 import { TranscriptStore } from '../../store';
 
 export type SessionControllerValue = {
@@ -62,8 +63,15 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   // Cleared at the start of each new session and on stop.
   const store = useMemo(() => new TranscriptStore(), []);
 
+  // Audio pipeline and chunker — stable across renders, one instance per provider.
+  const audioPipeline = useRef(new ExpoAudioPipeline());
+  const audioChunker = useRef(new AudioChunker());
+
   const stateRef = useRef(state);
   stateRef.current = state;
+
+  const activePathRef = useRef(activePath);
+  activePathRef.current = activePath;
 
   const getState = useCallback(() => stateRef.current, []);
 
@@ -75,6 +83,12 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       setSessionId(newSessionId);
       setActivePath(path);
 
+      if (path === ModalityPath.SPEECH) {
+        await audioPipeline.current.start(newSessionId);
+        audioChunker.current.start(newSessionId);
+        audioPipeline.current.onFrame((frame) => audioChunker.current.push(frame));
+      }
+
       setState(SessionState.RUNNING);
     } catch (e) {
       setState(SessionState.ERROR);
@@ -83,19 +97,45 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   }, [store]);
 
   const pauseSession = useCallback(() => {
-    setState((prev) => (prev === SessionState.RUNNING ? SessionState.PAUSED : prev));
+    if (stateRef.current !== SessionState.RUNNING) return;
+    if (activePathRef.current === ModalityPath.SPEECH) {
+      audioPipeline.current.pause();
+    }
+    setState(SessionState.PAUSED);
   }, []);
 
   const resumeSession = useCallback(() => {
-    setState((prev) => (prev === SessionState.PAUSED ? SessionState.RUNNING : prev));
+    if (stateRef.current !== SessionState.PAUSED) return;
+    if (activePathRef.current === ModalityPath.SPEECH) {
+      audioPipeline.current.resume();
+    }
+    setState(SessionState.RUNNING);
   }, []);
 
   const stopSession = useCallback(() => {
+    audioPipeline.current.stop();
+    audioChunker.current.stop();
     setState(SessionState.IDLE);
     setSessionId(null);
     setActivePath(null);
     store.clear();
   }, [store]);
+
+  // Poll audio pipeline health every second while a SPEECH session is active.
+  // Transitions RUNNING → DEGRADED if the pipeline becomes unavailable.
+  useEffect(() => {
+    if (activePath !== ModalityPath.SPEECH) return;
+    if (state !== SessionState.RUNNING && state !== SessionState.DEGRADED) return;
+
+    const interval = setInterval(() => {
+      const health = audioPipeline.current.getHealth();
+      if (!health.available && stateRef.current === SessionState.RUNNING) {
+        setState(SessionState.DEGRADED);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [state, activePath]);
 
   const value = useMemo<SessionControllerValue>(
     () => ({
