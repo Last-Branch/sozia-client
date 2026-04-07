@@ -38,5 +38,12 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Local developer notes (not for version control)
+# Claude
+.claude/
 CLAUDE.md
+
+# Reports
+reports/
+
+# Playwright
+.playwright-mcp/
