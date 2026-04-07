@@ -35,11 +35,6 @@ export class ExpoAudioPipeline implements IAudioPipeline {
   async start(sessionId: string): Promise<void> {
     if (this.available || this.paused) return;
 
-    const { granted } = await Audio.requestPermissionsAsync();
-    if (!granted) {
-      throw new Error('Microphone permission denied');
-    }
-
     await Audio.setAudioModeAsync({
       allowsRecordingIOS: true,
       playsInSilentModeIOS: true,

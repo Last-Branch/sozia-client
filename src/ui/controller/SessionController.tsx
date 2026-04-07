@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 import { ModalityPath, SessionState } from '../../common/models';
 import { AudioChunker, ExpoAudioPipeline } from '../../pipeline/audio';
+import { DeviceManager, ExpoDeviceEnumerator } from '../../device';
 import { TranscriptStore } from '../../store';
 
 export type SessionControllerValue = {
@@ -63,9 +64,13 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   // Cleared at the start of each new session and on stop.
   const store = useMemo(() => new TranscriptStore(), []);
 
-  // Audio pipeline and chunker — stable across renders, one instance per provider.
+  // Audio pipeline, chunker, and device manager — stable across renders, one instance per provider.
+  // audioPipeline.current is safe to pass here: useRef returns the same MutableRefObject on every
+  // render, so .current at construction time refers to the single ExpoAudioPipeline instance that
+  // DeviceManager and SessionController both hold — no stale-closure risk.
   const audioPipeline = useRef(new ExpoAudioPipeline());
   const audioChunker = useRef(new AudioChunker());
+  const deviceManager = useRef(new DeviceManager(new ExpoDeviceEnumerator(), audioPipeline.current));
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -84,7 +89,8 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       setActivePath(path);
 
       if (path === ModalityPath.SPEECH) {
-        await audioPipeline.current.start(newSessionId);
+        await deviceManager.current.activateMicrophone();
+        await deviceManager.current.startAudioPipeline(newSessionId);
         audioChunker.current.start(newSessionId);
         audioPipeline.current.onFrame((frame) => audioChunker.current.push(frame));
       }
@@ -113,7 +119,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   }, []);
 
   const stopSession = useCallback(() => {
-    audioPipeline.current.stop();
+    deviceManager.current.stopAllPipelines();
     audioChunker.current.stop();
     setState(SessionState.IDLE);
     setSessionId(null);
