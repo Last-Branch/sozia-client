@@ -10,7 +10,7 @@ import type { TranscriptSegment } from '../common/models';
  * not found, the FINAL is appended as a new entry.
  *
  * Collaborators: {@link TranscriptExporter} reads snapshots from this store.
- * The UI `TranscriptView` subscribes via {@link onUpdate} to re-render on
+ * The UI `TranscriptView` subscribes via {@link subscribe} to re-render on
  * every change.
  *
  * Thread/concurrency: JavaScript single-threaded — all mutations are
@@ -18,26 +18,22 @@ import type { TranscriptSegment } from '../common/models';
  */
 export class TranscriptStore {
   private segments: TranscriptSegment[] = [];
+  private segmentIndex = new Map<string, number>();
   private listeners = new Set<(segments: TranscriptSegment[]) => void>();
 
   /**
-   * Add a new segment to the timeline.
-   *
-   * If `segment.replacesSegmentId` is non-null, the store first attempts to
-   * replace the referenced segment in-place. If the referenced segment is not
-   * found (e.g., already cleared), the segment is appended at the end.
-   *
-   * The timeline is kept sorted by `timestampMs` after every append.
+   * Core method. If `segment.replacesSegmentId` is non-null, finds and
+   * replaces the target segment. Otherwise, appends. Notifies all listeners.
    *
    * @param segment - The transcript segment to add or use as a replacement.
    */
-  append(segment: TranscriptSegment): void {
+  receiveSegment(segment: TranscriptSegment): void {
     if (segment.replacesSegmentId !== null) {
-      const idx = this.segments.findIndex(
-        (s) => s.segmentId === segment.replacesSegmentId
-      );
-      if (idx !== -1) {
+      const idx = this.segmentIndex.get(segment.replacesSegmentId);
+      if (idx !== undefined && idx < this.segments.length && this.segments[idx].segmentId === segment.replacesSegmentId) {
+        this.segmentIndex.delete(segment.replacesSegmentId);
         this.segments[idx] = segment;
+        this.segmentIndex.set(segment.segmentId, idx);
         this._notify();
         return;
       }
@@ -45,6 +41,7 @@ export class TranscriptStore {
 
     this.segments.push(segment);
     this.segments.sort((a, b) => a.timestampMs - b.timestampMs);
+    this._rebuildIndex();
     this._notify();
   }
 
@@ -54,17 +51,29 @@ export class TranscriptStore {
    */
   clear(): void {
     this.segments = [];
+    this.segmentIndex.clear();
     this._notify();
   }
 
   /**
-   * Returns a shallow copy of the current segment list, ordered by `timestampMs`.
-   * Safe to iterate without holding a lock.
+   * Returns a read-only copy of the current segment list, ordered by `timestampMs`.
    *
    * @returns Ordered array of transcript segments.
    */
-  getAll(): TranscriptSegment[] {
+  getSegments(): TranscriptSegment[] {
     return [...this.segments];
+  }
+
+  /**
+   * Looks up a segment by ID.
+   *
+   * @param segmentId - The UUID of the segment to find.
+   * @returns The segment if found, or null.
+   */
+  getSegmentById(segmentId: string): TranscriptSegment | null {
+    const idx = this.segmentIndex.get(segmentId);
+    if (idx === undefined) return null;
+    return this.segments[idx] ?? null;
   }
 
   /**
@@ -75,20 +84,26 @@ export class TranscriptStore {
   }
 
   /**
-   * Register a callback that fires whenever the timeline changes (append or clear).
+   * Register a callback that fires whenever the timeline changes.
    * Returns an unsubscribe function; call it to stop receiving updates.
-   * Multiple listeners may be registered simultaneously.
    *
-   * @param callback - Receives the full ordered segment list on every change.
+   * @param listener - Receives the full ordered segment list on every change.
    * @returns Unsubscribe function.
    */
-  onUpdate(callback: (segments: TranscriptSegment[]) => void): () => void {
-    this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
+  subscribe(listener: (segments: TranscriptSegment[]) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   }
 
   private _notify(): void {
-    const snapshot = this.getAll();
+    const snapshot = this.getSegments();
     this.listeners.forEach((cb) => cb(snapshot));
+  }
+
+  private _rebuildIndex(): void {
+    this.segmentIndex.clear();
+    for (let i = 0; i < this.segments.length; i++) {
+      this.segmentIndex.set(this.segments[i].segmentId, i);
+    }
   }
 }

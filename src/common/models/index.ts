@@ -107,7 +107,7 @@ export interface AudioFeatureChunk {
    */
   features: number[][];
   /** Identifies the feature extraction method. */
-  featureType: 'mfcc' | 'landmarks';
+  featureType: 'mfcc' | 'mel_spectrogram';
   /** Sample rate of the underlying audio signal in Hz. */
   sampleRateHz: number;
   /** Wall-clock duration covered by this chunk in milliseconds. */
