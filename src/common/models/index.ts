@@ -1,150 +1,125 @@
 /**
  * Shared models for Sozia client/server wire compatibility.
- *
- * Source: Sozia Low-Level Design (LLD), Section 3.1 (sozia.common).
- * Note: This module must remain free of runtime logic.
+ * Each DTO documents field name, type, unit, and invariant per LLD §1.2.5.
  */
 
-/**
- * Represents the lifecycle state of a transcription session, driven by SessionController
- * (client) and observed by the UI.
- */
 export enum SessionState {
-  /** Application is running; no active session. */
   IDLE = 'IDLE',
-  /**
-   * User has pressed Start. System is warming up models, allocating resources, and
-   * establishing the WebSocket connection.
-   */
   INITIALIZING = 'INITIALIZING',
-  /** Active session. Feature streams are flowing; transcript segments are being produced. */
   RUNNING = 'RUNNING',
-  /**
-   * User has paused the session. Capture and inference are suspended; the WebSocket
-   * connection remains open.
-   */
   PAUSED = 'PAUSED',
-  /**
-   * One modality within the active path is unavailable; the system continues with the
-   * remaining modality.
-   */
   DEGRADED = 'DEGRADED',
-  /** Unrecoverable failure; user is prompted to restart. */
   ERROR = 'ERROR',
 }
 
-/**
- * Identifies which inference pipeline path is active for the session.
- * The system is modal-exclusive — only one path is active at a time.
- */
 export enum ModalityPath {
-  /** ASR (Whisper) + Lip-Reading */
   SPEECH = 'SPEECH',
-  /** TSL Recognition + Gloss-to-Text (LLM) */
   SIGN = 'SIGN',
 }
 
-/**
- * Identifies the specific inference modality that produced a result.
- * Used for source labelling in transcript segments and for fusion logic.
- */
 export enum ModalityType {
-  /** Automatic Speech Recognition (Whisper or equivalent). */
   ASR = 'ASR',
-  /** Visual speech recognition from lip landmarks. */
   LIP_READING = 'LIP_READING',
-  /** Turkish Sign Language gesture classification (outputs gloss). */
   TSL_RECOGNITION = 'TSL_RECOGNITION',
-  /** LLM-based conversion of gloss sequence to natural-language Turkish. */
   GLOSS_TO_TEXT = 'GLOSS_TO_TEXT',
 }
 
-/** Indicates whether a transcript segment is tentative (may be revised) or finalised. */
 export enum SegmentStatus {
-  /** Preliminary result; may be replaced by a FINAL segment. */
   PARTIAL = 'PARTIAL',
-  /** Fused / post-processed result; will not be revised further. */
   FINAL = 'FINAL',
 }
 
-/**
- * Reports the real-time health of a client-side pipeline.
- * Sent upstream periodically so the server can apply degraded-mode logic.
- */
+/** Real-time health of a client-side pipeline (LLD §3.1.2). */
 export interface PipelineHealth {
-  /** UUID v4 of the active session (non-empty). */
+  /** UUID v4. Non-empty. */
   sessionId: string;
-  /** Which pipeline the report describes. */
+  /** Which pipeline this report describes. */
   pipeline: 'audio' | 'video';
-  /**
-   * False if the pipeline cannot produce features (device lost, permission denied, etc.).
-   */
+  /** false if the pipeline cannot produce features (device lost, permission denied, etc.). */
   available: boolean;
-  /** Frames per second (video only). Null for audio. */
+  /** Frames per second. Video pipeline only; null for audio. */
   fps: number | null;
-  /** Signal-to-noise ratio in dB (audio only). Null for video. */
+  /** Signal-to-noise ratio in dB. Audio pipeline only; null for video. */
   snr: number | null;
-  /** Whether a face is detected (video only). Null for audio. */
+  /** Whether a face is currently detected. Video pipeline only; null for audio. */
   faceDetected: boolean | null;
-  /** Milliseconds since session start (>= 0). */
+  /** Milliseconds since session start. ≥ 0. */
   lastUpdatedMs: number;
 }
 
-/**
- * A batch of audio feature vectors ready for transmission to the inference server.
- * Produced by AudioChunker from raw MFCCFrames; sent over WebSocket by TransmissionManager.
- *
- * Privacy note: contains only anonymized numerical feature data — no raw audio.
- */
-export interface AudioFeatureChunk {
-  /** UUID v4 of the active session. */
+/** Single timestamped frame of body landmarks (LLD §3.1.2). */
+export interface LandmarkFrame {
+  /** UUID v4. Non-empty. */
   sessionId: string;
-  /** Milliseconds since session start; taken from the first frame in the batch. */
+  /** Milliseconds since session start. ≥ 0, monotonically increasing within a session. */
   timestampMs: number;
-  /**
-   * Array of feature vectors — one per captured frame.
-   * For 'mfcc': each inner array has 13 coefficients.
-   */
+  /** 478 points, each [x, y, z] normalised to [0.0, 1.0]. null if not detected. */
+  faceLandmarks: number[][] | null;
+  /** 21 points, each [x, y, z]. null if not detected. */
+  leftHandLandmarks: number[][] | null;
+  /** 21 points, each [x, y, z]. null if not detected. */
+  rightHandLandmarks: number[][] | null;
+  /** 33 points, each [x, y, z]. null if not detected. */
+  poseLandmarks: number[][] | null;
+}
+
+/** Timestamped chunk of preprocessed audio features (LLD §3.1.2). */
+export interface AudioFeatureChunk {
+  /** UUID v4. Non-empty. */
+  sessionId: string;
+  /** Milliseconds since session start. ≥ 0. */
+  timestampMs: number;
+  /** 2D array [T, D] — T temporal frames, D feature dimensions. T ≥ 1, D ≥ 1. */
   features: number[][];
+<<<<<<< feature/video-pipeline-landmark-extractor
+  /** Must match the server's expected input format. */
+  featureType: 'mfcc' | 'mel_spectrogram';
+  /** Positive integer in Hertz (e.g., 16 000). */
+=======
   /** Identifies the feature extraction method. */
   featureType: 'mfcc' | 'mel_spectrogram';
   /** Sample rate of the underlying audio signal in Hz. */
+>>>>>>> dev
   sampleRateHz: number;
-  /** Wall-clock duration covered by this chunk in milliseconds. */
+  /** Duration in milliseconds. > 0; typical 500–2 000 ms. */
   chunkDurationMs: number;
 }
 
-/**
- * The primary output of the system — a time-aligned piece of transcript text with metadata.
- * Produced by the server, streamed to the client, stored locally, and rendered by the UI.
- */
-export interface TranscriptSegment {
-  /** Globally unique UUID v4. */
-  segmentId: string;
-  /** UUID v4; must match the active session. */
-  sessionId: string;
-  /** PARTIAL segments may be revised; FINAL segments are never revised. */
-  status: SegmentStatus;
-  /**
-   * Display-ready text.
-   * - For PARTIAL sign segments: raw gloss (e.g., "MERHABA DÜNYA")
-   * - For FINAL segments: natural-language Turkish.
-   */
+/** Output of a single inference engine (LLD §3.1.2). Server-side, consumed by FusionOrchestrator. */
+export interface ModalityResult {
+  modalityType: ModalityType;
+  /** UTF-8. May be empty if inference produced no output (e.g., silence). */
   text: string;
-  /** Primary modality that produced this text. */
-  source: ModalityType;
-  /** Fused confidence score in [0.0, 1.0]. */
+  /** [0.0, 1.0]. 0.0 = no confidence; 1.0 = maximum. */
   confidence: number;
-  /** Position in subtitle timeline; milliseconds since session start. */
+  /** Milliseconds since session start. Corresponds to the input feature's timestamp. */
   timestampMs: number;
-  /** Duration spanned by this segment in milliseconds. */
+  /** Duration in milliseconds of the segment this result covers. */
   durationMs: number;
-  /** Wall-clock creation time on the server; Unix epoch milliseconds. */
-  createdAtMs: number;
-  /**
-   * If non-null, this segment revises the segment with the given ID.
-   * Client-side stores must replace the referenced PARTIAL segment when possible.
-   */
-  replacesSegmentId: string | null;
+  /** Wall-clock inference time in milliseconds. Used for latency budget monitoring. */
+  inferenceLatencyMs: number;
 }
 
+/** Time-aligned transcript text with metadata (LLD §3.1.2). */
+export interface TranscriptSegment {
+  /** UUID v4. Globally unique. */
+  segmentId: string;
+  /** UUID v4. Matches the active session. */
+  sessionId: string;
+  /** A FINAL segment is never revised. */
+  status: SegmentStatus;
+  /** Display-ready UTF-8 text. For PARTIAL sign segments this is raw gloss; for FINAL it is natural-language Turkish. */
+  text: string;
+  /** The primary modality that produced this text. */
+  source: ModalityType;
+  /** [0.0, 1.0]. Fused confidence score. */
+  confidence: number;
+  /** Milliseconds since session start. Position in the subtitle timeline. */
+  timestampMs: number;
+  /** Duration in milliseconds. */
+  durationMs: number;
+  /** Unix epoch milliseconds. Server-assigned creation time. */
+  createdAtMs: number;
+  /** UUID v4 of the segment this one replaces, or null. */
+  replacesSegmentId: string | null;
+}
