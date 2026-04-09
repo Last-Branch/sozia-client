@@ -27,6 +27,8 @@ export function buildSessionActions(accessor: SessionStateAccessor): SessionActi
     const hasUnavailable = updated.some((r) => !r.available);
     if (hasUnavailable && state === SessionState.RUNNING) {
       accessor.setState(SessionState.DEGRADED);
+    } else if (!hasUnavailable && state === SessionState.DEGRADED) {
+      accessor.setState(SessionState.RUNNING);
     }
   }
 

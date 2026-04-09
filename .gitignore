@@ -48,3 +48,6 @@ reports/
 
 # Playwright
 .playwright-mcp/
+
+# GitHub
+github-reviews/

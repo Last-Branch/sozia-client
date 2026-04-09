@@ -1,12 +1,17 @@
 import React from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
+import type { PipelineHealth, SessionState } from '../../../common/models';
 import { useLanguage } from '../../context/LanguageContext';
-import { useSessionController } from '../../controller/SessionController';
 import { getStatusBanner } from './helpers';
 
-export function StatusBar() {
-  const { state, healthReports, stopSession } = useSessionController();
+interface StatusBarProps {
+  state: SessionState;
+  healthReports: PipelineHealth[];
+  onRestart: () => void;
+}
+
+export function StatusBar({ state, healthReports, onRestart }: StatusBarProps) {
   const { t } = useLanguage();
   const banner = getStatusBanner(state, healthReports);
 
@@ -25,7 +30,7 @@ export function StatusBar() {
       {banner.showRestart && (
         <TouchableOpacity
           className="ml-3 rounded-full bg-white/20 px-3 py-1"
-          onPress={stopSession}
+          onPress={onRestart}
         >
           <Text className={`text-xs font-semibold ${banner.text}`}>
             {t('health.restart')}

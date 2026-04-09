@@ -119,12 +119,13 @@ export function DashboardScreen({
               <TouchableOpacity
                 className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#2ECC71] p-8 shadow-xl ${!isIdle ? 'opacity-50' : ''}`}
                 disabled={!isIdle}
-                onPress={() => {
-                  onOpenLive();
-                  if (isIdle) {
-                    startSession(ModalityPath.SPEECH).catch((e: unknown) => {
-                      if (__DEV__) console.warn('Session start failed (SPEECH)', e);
-                    });
+                onPress={async () => {
+                  if (!isIdle) return;
+                  try {
+                    await startSession(ModalityPath.SPEECH);
+                    onOpenLive();
+                  } catch (e: unknown) {
+                    if (__DEV__) console.warn('Session start failed (SPEECH)', e);
                   }
                 }}
               >
@@ -138,12 +139,13 @@ export function DashboardScreen({
               <TouchableOpacity
                 className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#1E8449] p-8 shadow-xl ${!isIdle ? 'opacity-50' : ''}`}
                 disabled={!isIdle}
-                onPress={() => {
-                  onOpenLive();
-                  if (isIdle) {
-                    startSession(ModalityPath.SIGN).catch((e: unknown) => {
-                      if (__DEV__) console.warn('Session start failed (SIGN)', e);
-                    });
+                onPress={async () => {
+                  if (!isIdle) return;
+                  try {
+                    await startSession(ModalityPath.SIGN);
+                    onOpenLive();
+                  } catch (e: unknown) {
+                    if (__DEV__) console.warn('Session start failed (SIGN)', e);
                   }
                 }}
               >

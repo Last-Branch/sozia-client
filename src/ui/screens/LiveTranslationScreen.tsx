@@ -12,7 +12,7 @@ import type { MockTranscriptSource as MockTranscriptSourceType } from '../testin
 
 
 export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
-  const { state, sessionId, activePath, stopSession, pauseSession, resumeSession, store } = useSessionController();
+  const { state, sessionId, activePath, healthReports, stopSession, pauseSession, resumeSession, store } = useSessionController();
 
   const [outputLanguage, setOutputLanguage] = useState<'TR' | 'EN'>('EN');
   const { t } = useLanguage();
@@ -59,7 +59,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
             </TouchableOpacity>
           </View>
 
-          <StatusBar />
+          <StatusBar state={state} healthReports={healthReports} onRestart={stopSession} />
 
           <View className="relative flex-1">
             {/* Camera background */}
