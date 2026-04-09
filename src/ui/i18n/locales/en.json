@@ -128,7 +128,46 @@
       "back": "Back",
       "session": "Session",
       "path": "Path",
-      "waiting": "Listening…"
+      "waiting": "Listening…",
+      "demo": "Demo",
+      "demoDesc": "Simulate transcript flow",
+      "pause": "Pause",
+      "resume": "Resume",
+      "clearTranscript": "Clear",
+      "modality": "Input Mode",
+      "listening": "Listening",
+      "reading": "Reading"
+    },
+    "device": {
+      "selectMicrophone": "Select Microphone",
+      "selectCamera": "Select Camera",
+      "noDevicesFound": "No devices found",
+      "default": "Default",
+      "setupDevices": "Setup Devices"
+    },
+    "modality": {
+      "speech": "Speech",
+      "sign": "Sign Language",
+      "toggleDisabled": "Cannot change mode during active session"
+    },
+    "health": {
+      "sessionActive": "Session active",
+      "warming": "Warming up models…",
+      "sessionPaused": "Session paused",
+      "sessionError": "Session error — please restart.",
+      "cameraObstructed": "Camera may be obstructed",
+      "microphoneUnavailable": "Microphone unavailable",
+      "lowSignalQuality": "Low signal quality",
+      "noFaceDetected": "No face detected",
+      "degraded": "Running in degraded mode",
+      "restart": "Restart"
+    },
+    "transcript": {
+      "sourceASR": "ASR",
+      "sourceLIP": "LIP",
+      "sourceTSL": "TSL",
+      "sourceFused": "FUSED",
+      "lowConfidence": "Low confidence"
     }
   }
 }

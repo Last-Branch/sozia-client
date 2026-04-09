@@ -128,7 +128,46 @@
       "back": "Geri",
       "session": "Oturum",
       "path": "Yol",
-      "waiting": "Dinleniyor…"
+      "waiting": "Dinleniyor…",
+      "demo": "Demo",
+      "demoDesc": "Transkript akışını simüle et",
+      "pause": "Duraklat",
+      "resume": "Devam Et",
+      "clearTranscript": "Temizle",
+      "modality": "Giriş Modu",
+      "listening": "Dinliyor",
+      "reading": "Okuyor"
+    },
+    "device": {
+      "selectMicrophone": "Mikrofon Seçin",
+      "selectCamera": "Kamera Seçin",
+      "noDevicesFound": "Cihaz bulunamadı",
+      "default": "Varsayılan",
+      "setupDevices": "Cihaz Ayarları"
+    },
+    "modality": {
+      "speech": "Konuşma",
+      "sign": "İşaret Dili",
+      "toggleDisabled": "Aktif oturum sırasında mod değiştirilemez"
+    },
+    "health": {
+      "sessionActive": "Oturum etkin",
+      "warming": "Modeller hazırlanıyor…",
+      "sessionPaused": "Oturum duraklatıldı",
+      "sessionError": "Oturum hatası — lütfen yeniden başlatın.",
+      "cameraObstructed": "Kamera engellenmiş olabilir",
+      "microphoneUnavailable": "Mikrofon kullanılamıyor",
+      "lowSignalQuality": "Düşük sinyal kalitesi",
+      "noFaceDetected": "Yüz algılanmadı",
+      "degraded": "Düşük performanslı modda çalışıyor",
+      "restart": "Yeniden Başlat"
+    },
+    "transcript": {
+      "sourceASR": "ASR",
+      "sourceLIP": "DUD",
+      "sourceTSL": "TİD",
+      "sourceFused": "BİRLEŞİK",
+      "lowConfidence": "Düşük güven"
     }
   }
 }
