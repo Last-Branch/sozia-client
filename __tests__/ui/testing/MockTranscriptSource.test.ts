@@ -38,7 +38,7 @@ describe('MockTranscriptSource', () => {
   it('emits a PARTIAL segment after the first interval', () => {
     source.start();
     jest.advanceTimersByTime(2000);
-    const segments = store.getAll();
+    const segments = store.getSegments();
     expect(segments.length).toBeGreaterThanOrEqual(1);
     expect(segments[0].status).toBe(SegmentStatus.PARTIAL);
     expect(segments[0].sessionId).toBe('test-session');
@@ -48,11 +48,11 @@ describe('MockTranscriptSource', () => {
     source.start();
     // First tick: PARTIAL
     jest.advanceTimersByTime(2000);
-    const partialId = store.getAll()[0].segmentId;
+    const partialId = store.getSegments()[0].segmentId;
 
     // Second tick: FINAL replacing the partial
     jest.advanceTimersByTime(1500);
-    const segments = store.getAll();
+    const segments = store.getSegments();
     const finalSeg = segments.find((s) => s.status === SegmentStatus.FINAL);
     expect(finalSeg).toBeDefined();
     expect(finalSeg!.replacesSegmentId).toBe(partialId);
@@ -61,11 +61,11 @@ describe('MockTranscriptSource', () => {
   it('stops emitting after stop is called', () => {
     source.start();
     jest.advanceTimersByTime(2000);
-    const countAfterFirst = store.getAll().length;
+    const countAfterFirst = store.getSegments().length;
 
     source.stop();
     jest.advanceTimersByTime(10000);
-    expect(store.getAll().length).toBe(countAfterFirst);
+    expect(store.getSegments().length).toBe(countAfterFirst);
   });
 
   it('varies source modality across emissions', () => {
@@ -74,7 +74,7 @@ describe('MockTranscriptSource', () => {
     for (let i = 0; i < 12; i++) {
       jest.advanceTimersByTime(2000);
     }
-    const sources = store.getAll().map((s) => s.source);
+    const sources = store.getSegments().map((s) => s.source);
     const uniqueSources = new Set(sources);
     expect(uniqueSources.size).toBeGreaterThan(1);
   });
@@ -84,7 +84,7 @@ describe('MockTranscriptSource', () => {
     for (let i = 0; i < 20; i++) {
       jest.advanceTimersByTime(2000);
     }
-    const hasLowConfidence = store.getAll().some((s) => s.confidence < 0.5);
+    const hasLowConfidence = store.getSegments().some((s) => s.confidence < 0.5);
     expect(hasLowConfidence).toBe(true);
   });
 
@@ -92,6 +92,6 @@ describe('MockTranscriptSource', () => {
     source.start();
     source.start();
     jest.advanceTimersByTime(2000);
-    expect(store.getAll().length).toBe(1);
+    expect(store.getSegments().length).toBe(1);
   });
 });
