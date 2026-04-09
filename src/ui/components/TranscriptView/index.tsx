@@ -19,8 +19,8 @@ export function TranscriptView({ store, fontSize }: TranscriptViewProps) {
   const isAtBottomRef = useRef(true);
 
   useEffect(() => {
-    setSegments(store.getAll());
-    const unsub = store.onUpdate((updated) => {
+    setSegments(store.getSegments());
+    const unsub = store.subscribe((updated) => {
       setSegments(updated);
     });
     return unsub;
