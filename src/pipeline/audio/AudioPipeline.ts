@@ -36,7 +36,9 @@ export interface IAudioPipeline {
   /**
    * Begin microphone capture and MFCC extraction for the given session.
    * Resolves once the pipeline is ready to emit frames.
-   * Rejects if microphone permission is denied or the device is unavailable.
+   * Rejects if the device is unavailable.
+   *
+   * @param sessionId - UUID v4 of the active session.
    */
   start(sessionId: string): Promise<void>;
 

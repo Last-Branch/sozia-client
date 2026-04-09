@@ -1,92 +1,78 @@
-import type { TranscriptSegment } from '../common/models';
-import type { TranscriptStore } from './TranscriptStore';
+import { File } from 'expo-file-system/next';
 
-/** Plain-text export options. */
-export interface TextExportOptions {
-  /**
-   * If true, each line is prefixed with a `[mm:ss.ms]` timestamp.
-   * Defaults to true.
-   */
-  includeTimestamps?: boolean;
-}
+import { SegmentStatus, type TranscriptSegment } from '../common/models';
 
 /**
- * Exports the contents of a {@link TranscriptStore} to portable formats.
+ * Exports a transcript timeline to a local file.
  *
- * Reads a snapshot from the store at export time — mutations after the call
- * return do not affect the export output.
+ * Stateless utility — accepts a segment snapshot and a target path per call.
+ * Does not hold a reference to TranscriptStore.
  *
- * Collaborators: reads from {@link TranscriptStore}.
+ * Collaborators: reads from {@link TranscriptStore} via caller-provided snapshot.
  *
  * Thread/concurrency: stateless and safe to call from any async context.
  */
 export class TranscriptExporter {
-  private readonly store: TranscriptStore;
-
   /**
-   * @param store - The transcript store to export from.
-   */
-  constructor(store: TranscriptStore) {
-    this.store = store;
-  }
-
-  /**
-   * Export all FINAL segments as a plain-text string, one segment per line.
-   * PARTIAL segments are excluded — only committed, fused text is exported.
+   * Export segments as a plain-text file, one segment per line.
    *
-   * @param options - Optional formatting controls.
-   * @returns UTF-8 plain text. Empty string if no FINAL segments exist.
+   * Only FINAL segments are included, except when the last segment in the
+   * timeline is still PARTIAL — it is kept to ensure the final context is
+   * not lost (per LLD Section 3.2.6).
    *
-   * @example
-   * const text = exporter.exportAsText({ includeTimestamps: true });
-   * // "[00:01.320] Merhaba, nasılsın?\n[00:03.750] İyiyim, teşekkür ederim."
+   * @param segments - Ordered transcript segments to export.
+   * @param filePath - Absolute path for the output file.
    */
-  exportAsText(options: TextExportOptions = {}): string {
-    const { includeTimestamps = true } = options;
-    const finals = this._finalSegments();
-
-    return finals
-      .map((s) => {
-        if (includeTimestamps) {
-          return `[${TranscriptExporter._formatTimestamp(s.timestampMs)}] ${s.text}`;
-        }
-        return s.text;
-      })
+  async exportAsText(segments: TranscriptSegment[], filePath: string): Promise<void> {
+    const included = this._finalsPlusTrailingPartial(segments);
+    const text = included
+      .map((s) => `[${TranscriptExporter._formatTimestamp(s.timestampMs)}] ${s.text}`)
       .join('\n');
+    const file = new File(filePath);
+    file.write(text);
   }
 
   /**
-   * Export all segments (PARTIAL and FINAL) as a JSON string.
+   * Export all segments (PARTIAL and FINAL) as a JSON file.
    * Includes all metadata fields, suitable for debugging or archival.
    *
-   * @returns JSON string containing an array of {@link TranscriptSegment} objects.
-   *
-   * @example
-   * const json = exporter.exportAsJson();
-   * // '[{"segmentId":"...","status":"FINAL","text":"Merhaba",...}]'
+   * @param segments - Ordered transcript segments to export.
+   * @param filePath - Absolute path for the output file.
    */
-  exportAsJson(): string {
-    return JSON.stringify(this.store.getAll(), null, 2);
+  async exportAsJson(segments: TranscriptSegment[], filePath: string): Promise<void> {
+    const json = JSON.stringify(segments, null, 2);
+    const file = new File(filePath);
+    file.write(json);
   }
 
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
 
-  private _finalSegments(): TranscriptSegment[] {
-    return this.store.getAll().filter((s) => s.status === 'FINAL');
+  /**
+   * Returns all FINAL segments, plus the trailing PARTIAL if the last segment
+   * in the timeline hasn't been finalized yet.
+   */
+  private _finalsPlusTrailingPartial(segments: TranscriptSegment[]): TranscriptSegment[] {
+    const finals = segments.filter((s) => s.status === SegmentStatus.FINAL);
+    if (segments.length > 0) {
+      const last = segments[segments.length - 1];
+      if (last.status === SegmentStatus.PARTIAL) {
+        finals.push(last);
+      }
+    }
+    return finals;
   }
 
   /**
-   * Formats a session-relative millisecond timestamp as `mm:ss.ms`.
+   * Formats a session-relative millisecond timestamp as `HH:MM:SS`.
    * @param ms - Milliseconds since session start.
-   * @returns Formatted string, e.g. `"01:23.456"`.
    */
   private static _formatTimestamp(ms: number): string {
     const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    const millis = ms % 1000;
-    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(millis).padStart(3, '0')}`;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   }
 }

@@ -71,9 +71,15 @@ export interface AudioFeatureChunk {
   timestampMs: number;
   /** 2D array [T, D] — T temporal frames, D feature dimensions. T ≥ 1, D ≥ 1. */
   features: number[][];
+<<<<<<< feature/video-pipeline-landmark-extractor
   /** Must match the server's expected input format. */
   featureType: 'mfcc' | 'mel_spectrogram';
   /** Positive integer in Hertz (e.g., 16 000). */
+=======
+  /** Identifies the feature extraction method. */
+  featureType: 'mfcc' | 'mel_spectrogram';
+  /** Sample rate of the underlying audio signal in Hz. */
+>>>>>>> dev
   sampleRateHz: number;
   /** Duration in milliseconds. > 0; typical 500–2 000 ms. */
   chunkDurationMs: number;

@@ -3,6 +3,41 @@
  */
 import { ModalityType, SegmentStatus, type TranscriptSegment } from '../../../src/common/models';
 import { TranscriptStore } from '../../../src/store/TranscriptStore';
+
+describe('TranscriptStore contract (methods used by TranscriptView)', () => {
+  it('getSegments returns current segments', () => {
+    const store = new TranscriptStore();
+    expect(typeof store.getSegments).toBe('function');
+    expect(store.getSegments()).toEqual([]);
+  });
+
+  it('subscribe fires callback and returns unsubscribe', () => {
+    const store = new TranscriptStore();
+    const cb = jest.fn();
+    const unsub = store.subscribe(cb);
+    expect(typeof unsub).toBe('function');
+
+    store.receiveSegment({
+      segmentId: 'x',
+      sessionId: 's',
+      status: SegmentStatus.FINAL,
+      text: 'hi',
+      source: ModalityType.ASR,
+      confidence: 0.9,
+      timestampMs: 1,
+      durationMs: 100,
+      createdAtMs: 1,
+      replacesSegmentId: null,
+    });
+
+    expect(cb).toHaveBeenCalledTimes(1);
+    expect(cb.mock.calls[0][0]).toHaveLength(1);
+
+    unsub();
+    store.clear();
+    expect(cb).toHaveBeenCalledTimes(1);
+  });
+});
 import {
   mapSourceLabel,
   buildTranscriptRows,

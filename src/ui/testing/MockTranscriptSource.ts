@@ -86,7 +86,7 @@ export class MockTranscriptSource {
         createdAtMs: now,
         replacesSegmentId: null,
       };
-      this.store.append(segment);
+      this.store.receiveSegment(segment);
       this.pendingPartialId = id;
       this.scheduleNext(FINAL_DELAY_MS);
     } else {
@@ -102,7 +102,7 @@ export class MockTranscriptSource {
         createdAtMs: now,
         replacesSegmentId: this.pendingPartialId,
       };
-      this.store.append(segment);
+      this.store.receiveSegment(segment);
       this.pendingPartialId = null;
       this.lineIdx++;
       this.scheduleNext(PARTIAL_INTERVAL_MS);
