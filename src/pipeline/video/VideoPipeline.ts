@@ -1,4 +1,5 @@
 import type { LandmarkFrame, PipelineHealth } from '../../common/models';
+import type { TransmissionManager } from '../../transmission';
 import {
   LandmarkExtractor,
   type RawVideoFrame,
@@ -10,11 +11,6 @@ const DEFAULT_TARGET_FPS = 30;
 /** Opaque camera handle. Concrete camera APIs are hidden behind this shape. */
 export interface RawMediaHandle {
   getFrame?: () => RawVideoFrame | null;
-}
-
-export interface TransmissionManager {
-  sendFeatures(features: LandmarkFrame): void;
-  sendHealth(health: PipelineHealth): void;
 }
 
 export interface IVideoPipeline {

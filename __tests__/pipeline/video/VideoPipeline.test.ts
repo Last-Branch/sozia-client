@@ -8,7 +8,8 @@ import {
   type RawVideoFrame,
 } from '../../../src/pipeline/video/LandmarkExtractor';
 import { TrackingHealthMonitor } from '../../../src/pipeline/video/TrackingHealthMonitor';
-import { VideoPipeline, type RawMediaHandle, type TransmissionManager } from '../../../src/pipeline/video/VideoPipeline';
+import { VideoPipeline, type RawMediaHandle } from '../../../src/pipeline/video/VideoPipeline';
+import type { TransmissionManager } from '../../../src/transmission';
 import type { LandmarkFrame } from '../../../src/common/models';
 
 class MockBackend implements LandmarkExtractionBackend {
