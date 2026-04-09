@@ -41,6 +41,7 @@ Thumbs.db
 # Claude
 .claude/
 CLAUDE.md
+.mcp.json
 
 # Reports
 reports/
