@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CircleCheckBig, CircleHelp, CircleUser, Hand, House, Mic } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, CircleCheckBig, CircleHelp, CircleUser, Hand, House, Mic } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
 
-import { ModalityPath } from '../../common/models';
+import { ModalityPath, SessionState } from '../../common/models';
+import type { DeviceHandle } from '../../device/DeviceHandle';
+import { DeviceSelector } from '../components/DeviceSelector';
 import { useSessionController } from '../controller/SessionController';
 
 export function DashboardScreen({
@@ -16,11 +18,35 @@ export function DashboardScreen({
   onOpenSettings: () => void;
   onOpenHelp: () => void;
 }) {
-  const { state, activePath, startSession } = useSessionController();
+  const { state, activePath, startSession, enumerateDevices, selectMicrophone, selectCamera } = useSessionController();
   const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'home' | 'help' | 'profile'>('home');
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
+  const [deviceSetupOpen, setDeviceSetupOpen] = useState(false);
+  const [devices, setDevices] = useState<DeviceHandle[]>([]);
+  const [selectedMicId, setSelectedMicId] = useState('');
+  const [selectedCamId, setSelectedCamId] = useState('');
+
+  const isIdle = state === SessionState.IDLE;
+
+  const loadDevices = useCallback(async () => {
+    const list = await enumerateDevices();
+    setDevices(list);
+    const defaultMic = list.find((d) => d.kind === 'audioinput' && d.isDefault);
+    const defaultCam = list.find((d) => d.kind === 'videoinput' && d.isDefault);
+    if (defaultMic && !selectedMicId) setSelectedMicId(defaultMic.deviceId);
+    if (defaultCam && !selectedCamId) setSelectedCamId(defaultCam.deviceId);
+  }, [enumerateDevices, selectedMicId, selectedCamId]);
+
+  useEffect(() => {
+    if (deviceSetupOpen && devices.length === 0) {
+      loadDevices();
+    }
+  }, [deviceSetupOpen, devices.length, loadDevices]);
+
+  const mics = devices.filter((d) => d.kind === 'audioinput');
+  const cameras = devices.filter((d) => d.kind === 'videoinput');
 
   const tips = t('dashboard.tips', { returnObjects: true }) as string[];
 
@@ -29,7 +55,7 @@ export function DashboardScreen({
       setCurrentTipIndex((prev) => (prev + 1) % tips.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [tips.length]);
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
@@ -50,14 +76,57 @@ export function DashboardScreen({
               </TouchableOpacity>
             </View>
 
+            {/* Device Setup */}
+            <View className="px-6 pb-2">
+              <TouchableOpacity
+                className="flex-row items-center justify-between rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3"
+                onPress={() => setDeviceSetupOpen((v) => !v)}
+              >
+                <Text className="font-semibold text-gray-900 dark:text-gray-100">
+                  {t('device.setupDevices')}
+                </Text>
+                {deviceSetupOpen
+                  ? <ChevronUp size={18} color="#9CA3AF" />
+                  : <ChevronDown size={18} color="#9CA3AF" />}
+              </TouchableOpacity>
+              {deviceSetupOpen && (
+                <View className="mt-2 gap-4 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 p-4">
+                  <View>
+                    <Text className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {t('device.selectMicrophone')}
+                    </Text>
+                    <DeviceSelector
+                      devices={mics}
+                      selectedDeviceId={selectedMicId}
+                      onSelect={(id) => { setSelectedMicId(id); selectMicrophone(id); }}
+                    />
+                  </View>
+                  <View>
+                    <Text className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {t('device.selectCamera')}
+                    </Text>
+                    <DeviceSelector
+                      devices={cameras}
+                      selectedDeviceId={selectedCamId}
+                      onSelect={(id) => { setSelectedCamId(id); selectCamera(id); }}
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+
             <View className="gap-6 px-6 pb-6">
               <TouchableOpacity
-                className="relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#2ECC71] p-8 shadow-xl"
+                className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#2ECC71] p-8 shadow-xl ${!isIdle ? 'opacity-50' : ''}`}
+                disabled={!isIdle}
                 onPress={async () => {
-                  if (state === 'IDLE') {
+                  if (!isIdle) return;
+                  try {
                     await startSession(ModalityPath.SPEECH);
+                    onOpenLive();
+                  } catch (e: unknown) {
+                    if (__DEV__) console.warn('Session start failed (SPEECH)', e);
                   }
-                  onOpenLive();
                 }}
               >
                 <View className="mb-4 h-24 w-24 items-center justify-center rounded-full bg-white/20">
@@ -68,12 +137,16 @@ export function DashboardScreen({
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#1E8449] p-8 shadow-xl"
+                className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#1E8449] p-8 shadow-xl ${!isIdle ? 'opacity-50' : ''}`}
+                disabled={!isIdle}
                 onPress={async () => {
-                  if (state === 'IDLE') {
+                  if (!isIdle) return;
+                  try {
                     await startSession(ModalityPath.SIGN);
+                    onOpenLive();
+                  } catch (e: unknown) {
+                    if (__DEV__) console.warn('Session start failed (SIGN)', e);
                   }
-                  onOpenLive();
                 }}
               >
                 <View className="mb-4 h-24 w-24 items-center justify-center rounded-full bg-white/20">

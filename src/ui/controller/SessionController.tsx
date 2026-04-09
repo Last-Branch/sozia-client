@@ -1,22 +1,31 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { ModalityPath, SessionState } from '../../common/models';
+import { ModalityPath, SessionState, type PipelineHealth } from '../../common/models';
+import type { DeviceHandle } from '../../device';
 import { AudioChunker, ExpoAudioPipeline } from '../../pipeline/audio';
 import { DeviceManager, ExpoDeviceEnumerator } from '../../device';
 import { TranscriptStore } from '../../store';
+import { Configuration, type IConfigurationManager } from '../../config';
+import { buildSessionActions } from './sessionActions';
 
 export type SessionControllerValue = {
   sessionId: string | null;
   state: SessionState;
   activePath: ModalityPath | null;
-  /** Shared transcript timeline for the active session. */
   store: TranscriptStore;
+  healthReports: PipelineHealth[];
+  config: IConfigurationManager;
 
   startSession: (path: ModalityPath) => Promise<void>;
   pauseSession: () => void;
   resumeSession: () => void;
   stopSession: () => void;
   getState: () => SessionState;
+  onPipelineHealthChanged: (health: PipelineHealth) => void;
+  onConnectionLost: () => void;
+  enumerateDevices: () => Promise<DeviceHandle[]>;
+  selectMicrophone: (id: string) => void;
+  selectCamera: (id: string) => void;
 };
 
 const SessionControllerContext = createContext<SessionControllerValue | null>(null);
@@ -59,9 +68,8 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [state, setState] = useState<SessionState>(SessionState.IDLE);
   const [activePath, setActivePath] = useState<ModalityPath | null>(null);
+  const [healthReports, setHealthReports] = useState<PipelineHealth[]>([]);
 
-  // Stable store instance — lives for the lifetime of the provider.
-  // Cleared at the start of each new session and on stop.
   const store = useMemo(() => new TranscriptStore(), []);
 
   // Audio pipeline, chunker, and device manager — stable across renders, one instance per provider.
@@ -71,6 +79,12 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   const audioPipeline = useRef(new ExpoAudioPipeline());
   const audioChunker = useRef(new AudioChunker());
   const deviceManager = useRef(new DeviceManager(new ExpoDeviceEnumerator(), audioPipeline.current));
+  const config = useRef<IConfigurationManager>(new Configuration());
+
+  // Load persisted configuration on mount.
+  useEffect(() => {
+    void config.current.load();
+  }, []);
 
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -78,7 +92,36 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   const activePathRef = useRef(activePath);
   activePathRef.current = activePath;
 
+  const healthReportsRef = useRef(healthReports);
+  healthReportsRef.current = healthReports;
+
   const getState = useCallback(() => stateRef.current, []);
+
+  const actions = useMemo(
+    () =>
+      buildSessionActions({
+        getState: () => stateRef.current,
+        setState,
+        getHealthReports: () => healthReportsRef.current,
+        setHealthReports,
+      }),
+    []
+  );
+
+  const enumerateDevices = useCallback(
+    () => deviceManager.current.enumerateDevices(),
+    []
+  );
+
+  const selectMicrophone = useCallback(
+    (id: string) => deviceManager.current.selectMicrophone(id),
+    []
+  );
+
+  const selectCamera = useCallback(
+    (id: string) => deviceManager.current.selectCamera(id),
+    []
+  );
 
   const startSession = useCallback(async (path: ModalityPath) => {
     try {
@@ -89,10 +132,16 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       setActivePath(path);
 
       if (path === ModalityPath.SPEECH) {
+        const savedMicId = config.current.get('selectedMicId');
+        if (savedMicId) deviceManager.current.selectMicrophone(savedMicId);
         await deviceManager.current.activateMicrophone();
         await deviceManager.current.startAudioPipeline(newSessionId);
         audioChunker.current.start(newSessionId);
         audioPipeline.current.onFrame((frame) => audioChunker.current.push(frame));
+      } else if (path === ModalityPath.SIGN) {
+        const savedCameraId = config.current.get('selectedCameraId');
+        if (savedCameraId) deviceManager.current.selectCamera(savedCameraId);
+        await deviceManager.current.activateCamera();
       }
 
       setState(SessionState.RUNNING);
@@ -133,15 +182,18 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     if (activePath !== ModalityPath.SPEECH) return;
     if (state !== SessionState.RUNNING && state !== SessionState.DEGRADED) return;
 
+    let mounted = true;
     const interval = setInterval(() => {
+      if (!mounted) return;
       const health = audioPipeline.current.getHealth();
-      if (!health.available && stateRef.current === SessionState.RUNNING) {
-        setState(SessionState.DEGRADED);
-      }
+      actions.onPipelineHealthChanged(health);
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [state, activePath]);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [state, activePath, actions]);
 
   const value = useMemo<SessionControllerValue>(
     () => ({
@@ -149,13 +201,20 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       state,
       activePath,
       store,
+      healthReports,
+      config: config.current,
       startSession,
       pauseSession,
       resumeSession,
       stopSession,
       getState,
+      onPipelineHealthChanged: actions.onPipelineHealthChanged,
+      onConnectionLost: actions.onConnectionLost,
+      enumerateDevices,
+      selectMicrophone,
+      selectCamera,
     }),
-    [activePath, getState, pauseSession, resumeSession, sessionId, startSession, state, stopSession, store]
+    [actions, activePath, enumerateDevices, getState, healthReports, pauseSession, resumeSession, selectCamera, selectMicrophone, sessionId, startSession, state, stopSession, store]
   );
 
   return <SessionControllerContext.Provider value={value}>{children}</SessionControllerContext.Provider>;
