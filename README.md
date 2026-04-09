@@ -40,13 +40,12 @@ npm run android
 npm run ios
 npm run web
 npm run test
+npm run lint
 ```
 
 ## Tests
 
-This repo currently includes unit tests for core TypeScript logic under `__tests__/`.
-
-Run all tests with:
+Unit tests live under `__tests__/` mirroring the `src/` structure (`.ts` only, no `.tsx`).
 
 ```bash
 npm run test
@@ -54,9 +53,9 @@ npm run test
 
 ## Notes
 
-- No `.env` file is required right now.
-- This repo currently contains the frontend/demo implementation.
-- Some flows still use placeholder data while backend integration is not yet connected.
+- No `.env` file is required.
+- Backend integration is not yet connected — all transcript data is local/demo.
+- Some flows use placeholder data while the backend is pending.
 
 ## Troubleshooting
 
