@@ -39,17 +39,33 @@ npm run start
 npm run android
 npm run ios
 npm run web
-npm run test
-npm run lint
+npm run typecheck   # TypeScript type checking
+npm run lint        # ESLint
+npm run test        # Jest unit tests
+npm run check       # typecheck + lint + test (run before committing)
 ```
 
-## Tests
+## Checks
 
-Unit tests live under `__tests__/` mirroring the `src/` structure (`.ts` only, no `.tsx`).
+Run all checks before committing:
 
 ```bash
-npm run test
+npm run check
 ```
+
+This runs `typecheck → lint → test` in order, stopping on the first failure.
+
+To run individually:
+
+```bash
+npm run typecheck                                      # tsc --noEmit
+npm run lint                                           # ESLint
+npm run test                                           # all unit tests
+npx jest __tests__/store/TranscriptStore.test.ts       # single file
+npx jest --testNamePattern="export"                    # by test name
+```
+
+Unit tests live under `__tests__/` mirroring the `src/` structure (`.ts` only, no `.tsx`).
 
 ## Notes
 
