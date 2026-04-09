@@ -6,6 +6,4 @@ export {
 } from './LandmarkExtractor';
 export { TrackingHealthMonitor } from './TrackingHealthMonitor';
 export { VideoPipeline, type IVideoPipeline, type RawMediaHandle } from './VideoPipeline';
-export type { TransmissionManager } from '../../transmission';
 export type { LandmarkFrame } from '../../common/models';
-

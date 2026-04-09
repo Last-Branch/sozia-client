@@ -9,7 +9,6 @@ import {
 } from '../../../src/pipeline/video/LandmarkExtractor';
 import { TrackingHealthMonitor } from '../../../src/pipeline/video/TrackingHealthMonitor';
 import { VideoPipeline, type RawMediaHandle } from '../../../src/pipeline/video/VideoPipeline';
-import type { TransmissionManager } from '../../../src/transmission';
 import type { LandmarkFrame } from '../../../src/common/models';
 
 class MockBackend implements LandmarkExtractionBackend {
@@ -76,11 +75,6 @@ describe('TrackingHealthMonitor', () => {
 });
 
 describe('VideoPipeline lifecycle', () => {
-  const txMock = (): TransmissionManager => ({
-    sendFeatures: jest.fn(),
-    sendHealth: jest.fn(),
-  });
-
   beforeEach(() => {
     jest.useFakeTimers();
   });
@@ -92,30 +86,26 @@ describe('VideoPipeline lifecycle', () => {
   it('throws when extractor is not ready', () => {
     const backend = new MockBackend(false);
     const pipeline = new VideoPipeline(new LandmarkExtractor(backend));
-    expect(() => pipeline.start('s1', {}, txMock())).toThrow('Landmark extractor is not ready');
+    expect(() => pipeline.start('s1', {})).toThrow('Landmark extractor is not ready');
   });
 
-  it('sends features and health via TransmissionManager', () => {
+  it('extracts landmarks and reports healthy while running', () => {
     const backend = new MockBackend(true);
     const extractor = new LandmarkExtractor(backend);
     const pipeline = new VideoPipeline(extractor, new TrackingHealthMonitor(5000), 10);
 
-    let ts = 1000;
     const handle: RawMediaHandle = {
-      getFrame: () => ({ timestampMs: (ts += 100), width: 640, height: 480, data: null }),
+      getFrame: () => ({ timestampMs: Date.now(), width: 640, height: 480, data: null }),
     };
 
-    const tx = txMock();
-    pipeline.start('session-video-1', handle, tx);
+    pipeline.start('session-video-1', handle);
     jest.advanceTimersByTime(350);
 
-    expect(tx.sendFeatures).toHaveBeenCalled();
-    expect(tx.sendHealth).toHaveBeenCalled();
-
-    const firstFeature = (tx.sendFeatures as jest.Mock).mock.calls[0][0] as LandmarkFrame;
-    expect(firstFeature.sessionId).toBe('session-video-1');
-    expect(firstFeature.faceLandmarks).toBeDefined();
-    expect(pipeline.getHealth().pipeline).toBe('video');
+    const health = pipeline.getHealth();
+    expect(health.pipeline).toBe('video');
+    expect(health.sessionId).toBe('session-video-1');
+    expect(health.available).toBe(true);
+    expect(health.faceDetected).toBe(true);
 
     pipeline.stop();
   });
@@ -124,7 +114,7 @@ describe('VideoPipeline lifecycle', () => {
     const backend = new MockBackend(true);
     const pipeline = new VideoPipeline(new LandmarkExtractor(backend), new TrackingHealthMonitor(5000), 10);
 
-    pipeline.start('s1', {}, txMock());
+    pipeline.start('s1', {});
     jest.advanceTimersByTime(120);
     expect(pipeline.getHealth().available).toBe(true);
 
@@ -140,24 +130,22 @@ describe('VideoPipeline lifecycle', () => {
   it('stop clears session and disables pipeline', () => {
     const backend = new MockBackend(true);
     const pipeline = new VideoPipeline(new LandmarkExtractor(backend), new TrackingHealthMonitor(5000), 10);
-    pipeline.start('s1', {}, txMock());
+    pipeline.start('s1', {});
     pipeline.stop();
     const health = pipeline.getHealth();
     expect(health.sessionId).toBe('');
     expect(health.available).toBe(false);
   });
 
-  it('does not call sendFeatures when backend emits null', () => {
+  it('reports unavailable health when backend emits null', () => {
     const backend = new MockBackend(true);
     backend.setEmit(false);
     const pipeline = new VideoPipeline(new LandmarkExtractor(backend), new TrackingHealthMonitor(5000), 10);
 
-    const tx = txMock();
-    pipeline.start('s1', {}, tx);
+    pipeline.start('s1', {});
     jest.advanceTimersByTime(350);
 
-    expect(tx.sendHealth).toHaveBeenCalled();
-    expect(tx.sendFeatures).not.toHaveBeenCalled();
+    expect(pipeline.getHealth().available).toBe(false);
 
     pipeline.stop();
   });
