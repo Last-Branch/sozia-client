@@ -41,9 +41,13 @@ Thumbs.db
 # Claude
 .claude/
 CLAUDE.md
+.mcp.json
 
 # Reports
 reports/
 
 # Playwright
 .playwright-mcp/
+
+# GitHub
+github-reviews/

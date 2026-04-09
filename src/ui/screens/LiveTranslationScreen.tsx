@@ -1,38 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronDown, CircleX, Settings, SwitchCamera } from 'lucide-react-native';
+import { Camera, ChevronDown, CircleX, PauseCircle, PlayCircle, Settings, SwitchCamera } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
 
-import { ModalityType, SegmentStatus, type TranscriptSegment } from '../../common/models';
+import { ModalityPath, SessionState } from '../../common/models';
 import { StatusBar } from '../components/StatusBar';
+import { TranscriptView } from '../components/TranscriptView';
 import { useSessionController } from '../controller/SessionController';
+import type { MockTranscriptSource as MockTranscriptSourceType } from '../testing/MockTranscriptSource';
 
-// ---------------------------------------------------------------------------
-// DEV-only test data
-// ---------------------------------------------------------------------------
-
-const DEV_LINES = [
-  { partial: 'Merhaba, bugün size nasıl…', final: 'Merhaba, bugün size nasıl yardımcı olabilirim?' },
-  { partial: 'Evet, anlıyorum sizi…', final: 'Evet, sizi anlıyorum. Devam edebilirsiniz.' },
-  { partial: 'Teşekkür ederim…', final: 'Çok teşekkür ederim, iyi günler.' },
-];
-
-let _devIdCounter = 0;
-function devId() { return `dev-${++_devIdCounter}`; }
-
-// ---------------------------------------------------------------------------
 
 export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
-  const { state, sessionId, activePath, stopSession, store } = useSessionController();
-
-  const [segments, setSegments] = useState<TranscriptSegment[]>([]);
-
-  useEffect(() => {
-    setSegments(store.getAll());
-    const unsub = store.onUpdate((s) => setSegments(s));
-    return unsub;
-  }, [store]);
+  const { state, sessionId, activePath, healthReports, stopSession, pauseSession, resumeSession, store } = useSessionController();
 
   const [outputLanguage, setOutputLanguage] = useState<'TR' | 'EN'>('EN');
   const { t } = useLanguage();
@@ -42,47 +22,30 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
   const baseFontSize = (textSize / 100) * 30;
 
-  // DEV inject: cycles through lines, partial → final → next line
-  const devStep = useRef<{ lineIdx: number; partialId: string | null }>({ lineIdx: 0, partialId: null });
+  // Demo mode: MockTranscriptSource (dev-only, dynamically imported)
+  const [demoActive, setDemoActive] = useState(false);
+  const demoSource = useRef<MockTranscriptSourceType | null>(null);
 
-  function handleDevInject() {
-    const { lineIdx, partialId } = devStep.current;
-    const line = DEV_LINES[lineIdx % DEV_LINES.length];
-    const now = Date.now();
-
-    if (partialId === null) {
-      // Step 1: inject PARTIAL
-      const id = devId();
-      store.append({
-        segmentId: id,
-        sessionId: sessionId ?? 'dev',
-        status: SegmentStatus.PARTIAL,
-        text: line.partial,
-        source: ModalityType.ASR,
-        confidence: 0.72,
-        timestampMs: now,
-        durationMs: 500,
-        createdAtMs: now,
-        replacesSegmentId: null,
-      });
-      devStep.current = { lineIdx, partialId: id };
+  function toggleDemo() {
+    if (demoActive) {
+      demoSource.current?.stop();
+      demoSource.current = null;
+      setDemoActive(false);
     } else {
-      // Step 2: upgrade to FINAL
-      store.append({
-        segmentId: devId(),
-        sessionId: sessionId ?? 'dev',
-        status: SegmentStatus.FINAL,
-        text: line.final,
-        source: ModalityType.ASR,
-        confidence: 0.91,
-        timestampMs: now,
-        durationMs: 800,
-        createdAtMs: now,
-        replacesSegmentId: partialId,
+      import('../testing/MockTranscriptSource').then(({ MockTranscriptSource }) => {
+        const src = new MockTranscriptSource(store, sessionId ?? 'demo');
+        demoSource.current = src;
+        src.start();
+        setDemoActive(true);
       });
-      devStep.current = { lineIdx: lineIdx + 1, partialId: null };
     }
   }
+
+  useEffect(() => {
+    return () => {
+      demoSource.current?.stop();
+    };
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
@@ -96,26 +59,21 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
             </TouchableOpacity>
           </View>
 
-          <StatusBar />
+          <StatusBar state={state} healthReports={healthReports} onRestart={stopSession} />
 
           <View className="relative flex-1">
             {/* Camera background */}
             <View className="absolute inset-0 items-center justify-center bg-gray-800">
               <View className="absolute inset-0 bg-black/40" />
-              <View className="z-0 items-center">
-                <View className="mb-3 h-24 w-24 items-center justify-center rounded-full border-2 border-white/20">
-                  <View className="h-16 w-16 rounded-full border-2 border-white/30" />
-                </View>
-                <Text className="text-sm font-medium text-white/40">{t('live.cameraFeed')}</Text>
-              </View>
+              <Camera size={48} color="rgba(255,255,255,0.5)" />
             </View>
 
-            {/* Active indicator */}
-            <View className="absolute left-6 top-6 z-30 flex-row items-center gap-2 rounded-full border border-white/20 bg-black/60 px-4 py-2.5">
-              <View className="relative">
-                <View className="h-3 w-3 rounded-full bg-[#2ECC71]" />
-              </View>
-              <Text className="text-xs font-semibold text-white">{t('live.listening')}</Text>
+            {/* Active indicator — sits below the controls row */}
+            <View className="absolute left-6 top-20 z-30 flex-row items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 py-1.5">
+              <View className="h-2.5 w-2.5 rounded-full bg-[#2ECC71]" />
+              <Text className="text-xs font-semibold text-white">
+                {activePath === ModalityPath.SIGN ? t('live.reading') : t('live.listening')}
+              </Text>
             </View>
 
             {/* Controls */}
@@ -130,6 +88,21 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                 <Settings size={20} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity
+                className="h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/60"
+                onPress={() => {
+                  if (state === SessionState.PAUSED) {
+                    resumeSession();
+                  } else {
+                    pauseSession();
+                  }
+                }}
+              >
+                {state === SessionState.PAUSED
+                  ? <PlayCircle size={22} color="#fff" />
+                  : <PauseCircle size={22} color="#fff" />
+                }
+              </TouchableOpacity>
+              <TouchableOpacity
                 className="h-12 w-12 items-center justify-center rounded-full border-2 border-red-400 bg-red-500"
                 onPress={() => {
                   stopSession();
@@ -140,15 +113,19 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               </TouchableOpacity>
             </View>
 
-            {/* Settings popover */}
+            {/* Settings popover — anchored above subtitle box so it always fits */}
             {showSettings && (
-              <View className="absolute right-6 top-20 z-40 w-72 rounded-3xl border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95 p-5">
-                <View className="mb-3 flex-row items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+              <View className="absolute right-6 bottom-[170px] z-40 w-72 rounded-3xl border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95">
+                {/* Fixed header */}
+                <View className="flex-row items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-4">
                   <Text className="font-bold text-gray-900 dark:text-gray-100">{t('live.settings')}</Text>
                   <TouchableOpacity onPress={() => setShowSettings(false)}>
                     <ChevronDown size={18} color="#9CA3AF" />
                   </TouchableOpacity>
                 </View>
+
+                {/* Scrollable body */}
+                <ScrollView className="max-h-36 px-5 py-3" showsVerticalScrollIndicator={false}>
 
                 {/* Language */}
                 <View className="mb-4">
@@ -190,7 +167,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                 </View>
 
                 {/* Group mode */}
-                <View className="flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-3">
+                <View className="mb-4 flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-3">
                   <View>
                     <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('live.groupMode')}</Text>
                     <Text className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{t('live.groupModeDesc')}</Text>
@@ -208,39 +185,43 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                     />
                   </TouchableOpacity>
                 </View>
+
+                </ScrollView>
+
+                {/* Fixed footer: Clear transcript */}
+                <View className="border-t border-gray-200 dark:border-gray-700 px-5 py-3">
+                  <TouchableOpacity
+                    className="items-center rounded-2xl border border-red-300 dark:border-red-700 py-2"
+                    onPress={() => store.clear()}
+                  >
+                    <Text className="text-sm font-semibold text-red-500">{t('live.clearTranscript')}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
-            {/* DEV: inject test segments */}
-            {__DEV__ && (
-              <View className="absolute bottom-44 left-0 right-0 z-40 flex-row items-center justify-center gap-2 px-4">
-                <TouchableOpacity
-                  className="rounded-full bg-yellow-400/90 px-4 py-2"
-                  onPress={handleDevInject}
-                >
-                  <Text className="text-xs font-bold text-black">
-                    {devStep.current.partialId === null ? '+ Partial' : '→ Final'}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="rounded-full bg-white/20 px-4 py-2"
-                  onPress={() => { store.clear(); devStep.current = { lineIdx: 0, partialId: null }; }}
-                >
-                  <Text className="text-xs font-bold text-white">Clear</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Subtitle overlay */}
-            <View className="absolute bottom-0 left-0 right-0 z-30 flex-col justify-end pb-6">
-              <View className="mx-4 rounded-3xl border-t-2 border-white/20 bg-black/75 px-6 py-8">
+            <View className="absolute bottom-0 left-0 right-0 z-30" pointerEvents="box-none">
+              {/* Subtitle box — max-h-56 caps growth so it never reaches the top controls */}
+              <View className="mx-4 mb-6 max-h-56 rounded-3xl border-t-2 border-white/20 bg-black/75 px-6 py-4">
+                {__DEV__ && (
+                  <View className="mb-2 flex-row items-center justify-center">
+                    <TouchableOpacity
+                      className={`rounded-full px-3 py-1 ${demoActive ? 'bg-red-400/90' : 'bg-blue-400/90'}`}
+                      onPress={toggleDemo}
+                    >
+                      <Text className="text-xs font-bold text-white">
+                        {demoActive ? 'Stop Demo' : t('live.demo')}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
                 {groupMode && (
                   <View className="mb-2 flex-row items-center justify-center gap-2">
                     <View className="h-2.5 w-2.5 rounded-full bg-[#2ECC71]" />
                     <Text className="text-sm font-bold text-[#2ECC71]">{t('live.speaker')} 1</Text>
                   </View>
                 )}
-                <TranscriptView segments={segments} baseFontSize={baseFontSize} />
+                <TranscriptView store={store} fontSize={baseFontSize} />
                 <View className="mt-3 items-center">
                   <Text className="text-xs text-gray-400">
                     {t('live.session')} {sessionId ?? '—'} · {t('live.path')} {activePath ?? '—'}
@@ -252,61 +233,6 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
         </View>
       </View>
     </SafeAreaView>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// TranscriptView
-// ---------------------------------------------------------------------------
-
-/**
- * Renders the last few transcript segments inside the subtitle overlay.
- *
- * Visual contract (LLD Trade-off 3):
- * - FINAL segments: bold white — committed, fused text.
- * - PARTIAL segments: italic, muted white — tentative, may be revised.
- * - Empty timeline: shows a waiting prompt so the user knows the session is live.
- */
-function TranscriptView({
-  segments,
-  baseFontSize,
-}: {
-  segments: TranscriptSegment[];
-  baseFontSize: number;
-}) {
-  const { t } = useLanguage();
-  // Show only the last 3 segments to keep the overlay readable.
-  const visible = segments.slice(-3);
-
-  if (visible.length === 0) {
-    return (
-      <Text
-        className="text-center italic leading-relaxed text-white/40"
-        style={{ fontSize: baseFontSize }}
-      >
-        {t('live.waiting')}
-      </Text>
-    );
-  }
-
-  return (
-    <View className="gap-1">
-      {visible.map((seg) => {
-        const isPartial = seg.status === SegmentStatus.PARTIAL;
-        return (
-          <Text
-            key={seg.segmentId}
-            className={[
-              'text-center leading-relaxed',
-              isPartial ? 'italic text-white/50' : 'font-bold text-white',
-            ].join(' ')}
-            style={{ fontSize: baseFontSize }}
-          >
-            {seg.text}
-          </Text>
-        );
-      })}
-    </View>
   );
 }
 
