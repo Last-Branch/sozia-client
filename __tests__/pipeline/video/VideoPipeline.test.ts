@@ -28,10 +28,10 @@ class MockBackend implements LandmarkExtractionBackend {
     return {
       sessionId: '',
       timestampMs: _rawInput.timestampMs,
-      faceLandmarks: [[0.1, 0.2, 0.3] as [number, number, number]],
+      faceLandmarks: [[0.1, 0.2, 0.3]],
       leftHandLandmarks: null,
       rightHandLandmarks: null,
-      poseLandmarks: [[0.4, 0.5, 0.6] as [number, number, number]],
+      poseLandmarks: [[0.4, 0.5, 0.6]],
     };
   }
 
@@ -64,6 +64,14 @@ describe('TrackingHealthMonitor', () => {
     expect(health.available).toBe(true);
     expect(health.snr).toBeNull();
   });
+
+  it('reports faceDetected=false when landmarks are null', () => {
+    const monitor = new TrackingHealthMonitor(5000);
+    monitor.update(null);
+
+    const health = monitor.getHealth('s1');
+    expect(health.faceDetected).toBe(false);
+  });
 });
 
 describe('VideoPipeline lifecycle', () => {
@@ -80,13 +88,13 @@ describe('VideoPipeline lifecycle', () => {
     jest.useRealTimers();
   });
 
-  it('throws when extractor is not ready', async () => {
+  it('throws when extractor is not ready', () => {
     const backend = new MockBackend(false);
     const pipeline = new VideoPipeline(new LandmarkExtractor(backend));
     expect(() => pipeline.start('s1', {}, txMock())).toThrow('Landmark extractor is not ready');
   });
 
-  it('emits landmark frames while running', async () => {
+  it('sends features and health via TransmissionManager', () => {
     const backend = new MockBackend(true);
     const extractor = new LandmarkExtractor(backend);
     const pipeline = new VideoPipeline(extractor, new TrackingHealthMonitor(5000), 10);
@@ -96,19 +104,22 @@ describe('VideoPipeline lifecycle', () => {
       getFrame: () => ({ timestampMs: (ts += 100), width: 640, height: 480, data: null }),
     };
 
-    const received: LandmarkFrame[] = [];
-    pipeline.onFrame((f) => received.push(f));
-
     const tx = txMock();
     pipeline.start('session-video-1', handle, tx);
     jest.advanceTimersByTime(350);
 
-    expect(received.length).toBeGreaterThan(0);
-    expect(received[0].sessionId).toBe('session-video-1');
+    expect(tx.sendFeatures).toHaveBeenCalled();
+    expect(tx.sendHealth).toHaveBeenCalled();
+
+    const firstFeature = (tx.sendFeatures as jest.Mock).mock.calls[0][0] as LandmarkFrame;
+    expect(firstFeature.sessionId).toBe('session-video-1');
+    expect(firstFeature.faceLandmarks).toBeDefined();
     expect(pipeline.getHealth().pipeline).toBe('video');
+
+    pipeline.stop();
   });
 
-  it('pause/resume toggles availability', async () => {
+  it('pause/resume toggles availability', () => {
     const backend = new MockBackend(true);
     const pipeline = new VideoPipeline(new LandmarkExtractor(backend), new TrackingHealthMonitor(5000), 10);
 
@@ -121,9 +132,11 @@ describe('VideoPipeline lifecycle', () => {
 
     pipeline.resume();
     expect(pipeline.getHealth().available).toBe(true);
+
+    pipeline.stop();
   });
 
-  it('stop clears session and disables pipeline', async () => {
+  it('stop clears session and disables pipeline', () => {
     const backend = new MockBackend(true);
     const pipeline = new VideoPipeline(new LandmarkExtractor(backend), new TrackingHealthMonitor(5000), 10);
     pipeline.start('s1', {}, txMock());
@@ -132,5 +145,19 @@ describe('VideoPipeline lifecycle', () => {
     expect(health.sessionId).toBe('');
     expect(health.available).toBe(false);
   });
-});
 
+  it('does not call sendFeatures when backend emits null', () => {
+    const backend = new MockBackend(true);
+    backend.setEmit(false);
+    const pipeline = new VideoPipeline(new LandmarkExtractor(backend), new TrackingHealthMonitor(5000), 10);
+
+    const tx = txMock();
+    pipeline.start('s1', {}, tx);
+    jest.advanceTimersByTime(350);
+
+    expect(tx.sendHealth).toHaveBeenCalled();
+    expect(tx.sendFeatures).not.toHaveBeenCalled();
+
+    pipeline.stop();
+  });
+});

@@ -23,7 +23,6 @@ export interface IVideoPipeline {
   resume(): void;
   stop(): void;
   getHealth(): PipelineHealth;
-  onFrame(callback: (frame: LandmarkFrame) => void): () => void;
 }
 
 /**
@@ -41,7 +40,6 @@ export class VideoPipeline implements IVideoPipeline {
   private cameraHandle: RawMediaHandle | null = null;
   private transmissionManager: TransmissionManager | null = null;
   private frameTimer: ReturnType<typeof setInterval> | null = null;
-  private listeners = new Set<(frame: LandmarkFrame) => void>();
 
   constructor(
     extractor: LandmarkExtractor = new LandmarkExtractor(),
@@ -83,7 +81,6 @@ export class VideoPipeline implements IVideoPipeline {
 
   stop(): void {
     this.stopLoop();
-    this.listeners.clear();
     this.isRunning = false;
     this.paused = false;
     this.sessionId = '';
@@ -111,11 +108,6 @@ export class VideoPipeline implements IVideoPipeline {
     };
   }
 
-  onFrame(callback: (frame: LandmarkFrame) => void): () => void {
-    this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
-  }
-
   private startLoop(): void {
     const intervalMs = Math.max(1, Math.round(1000 / this.targetFps));
     this.frameTimer = setInterval(() => {
@@ -127,7 +119,6 @@ export class VideoPipeline implements IVideoPipeline {
       this.transmissionManager?.sendHealth(this.getHealth());
       if (landmarkFrame) {
         this.transmissionManager?.sendFeatures(landmarkFrame);
-        this.listeners.forEach((cb) => cb(landmarkFrame));
       }
     }, intervalMs);
   }

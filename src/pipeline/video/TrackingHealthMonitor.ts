@@ -26,7 +26,7 @@ export class TrackingHealthMonitor {
     const entry: RecentFrame = {
       timestampMs: ts,
       detected: landmarks !== null,
-      faceDetected: landmarks?.faceLandmarks !== null,
+      faceDetected: landmarks !== null && landmarks.faceLandmarks !== null,
     };
 
     this.recentFrames.push(entry);
