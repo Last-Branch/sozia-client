@@ -12,7 +12,8 @@
     "types": [
       "nativewind/types",
       "react-native",
-      "expo"
+      "expo",
+      "jest"
     ],
     "baseUrl": ".",
     "paths": {
@@ -25,7 +26,8 @@
     "App.tsx",
     "index.ts",
     "src",
-    "nativewind-env.d.ts"
+    "nativewind-env.d.ts",
+    "__tests__"
   ],
   "extends": "expo/tsconfig.base"
 }
