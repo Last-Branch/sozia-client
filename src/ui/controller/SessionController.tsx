@@ -8,6 +8,7 @@ import { DeviceManager, ExpoDeviceEnumerator } from '../../device';
 import { TranscriptStore } from '../../store';
 import { TransmissionManager } from '../../transmission';
 import { Configuration, type IConfigurationManager } from '../../config';
+import { AudioChunker } from '../../pipeline/audio';
 import { buildSessionActions } from './sessionActions';
 
 export type SessionControllerValue = {
@@ -75,6 +76,11 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   const store = useMemo(() => new TranscriptStore(), []);
 
   const deviceManager = useRef(new DeviceManager(new ExpoDeviceEnumerator(), new ExpoAudioPipeline(), new VideoPipeline()));
+  // TODO(audio-team): This chunker ref is used solely to propagate vadSensitivity from Configuration
+  // on mount. It should be removed once IAudioPipeline exposes getVoiceActivityDetector() directly,
+  // at which point deviceManager.current.getAudioPipeline().getVoiceActivityDetector() is the
+  // correct path. Until then, this standalone instance mirrors the default VAD settings.
+  const audioChunker = useRef(new AudioChunker());
   const config = useRef<IConfigurationManager>(new Configuration());
   const transmissionManager = useRef<TransmissionManager | null>(null);
 
