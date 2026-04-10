@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Platform, ScrollView, Text, View } from 'react-native';
 import { AlertTriangle } from 'lucide-react-native';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -16,7 +16,7 @@ export function TranscriptView({ store, fontSize }: TranscriptViewProps) {
   const { t } = useLanguage();
   const [segments, setSegments] = useState<TranscriptSegment[]>([]);
   const scrollRef = useRef<ScrollView>(null);
-  const isAtBottomRef = useRef(true);
+  const autoScrollRef = useRef(true);
 
   useEffect(() => {
     setSegments(store.getSegments());
@@ -25,12 +25,6 @@ export function TranscriptView({ store, fontSize }: TranscriptViewProps) {
     });
     return unsub;
   }, [store]);
-
-  useEffect(() => {
-    if (isAtBottomRef.current && scrollRef.current) {
-      scrollRef.current.scrollToEnd({ animated: true });
-    }
-  }, [segments]);
 
   const rows = buildTranscriptRows(segments);
 
@@ -48,13 +42,32 @@ export function TranscriptView({ store, fontSize }: TranscriptViewProps) {
   return (
     <ScrollView
       ref={scrollRef}
-      className="flex-1"
-      onScroll={(e) => {
-        const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
-        const SCROLL_BOTTOM_THRESHOLD = 20;
-        const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - SCROLL_BOTTOM_THRESHOLD;
-        isAtBottomRef.current = atBottom;
+      style={{ maxHeight: 140 }}
+      onContentSizeChange={() => {
+        if (autoScrollRef.current && scrollRef.current) {
+          scrollRef.current.scrollToEnd({ animated: true });
+        }
       }}
+      onScrollBeginDrag={() => {
+        autoScrollRef.current = false;
+      }}
+      onScrollEndDrag={(e) => {
+        const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+        const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 20;
+        autoScrollRef.current = atBottom;
+      }}
+      onMomentumScrollEnd={(e) => {
+        const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+        const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 20;
+        autoScrollRef.current = atBottom;
+      }}
+      {...(Platform.OS === 'web' ? {
+        onScroll: (e: { nativeEvent: { layoutMeasurement: { height: number }; contentOffset: { y: number }; contentSize: { height: number } } }) => {
+          const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+          const atBottom = contentOffset.y + layoutMeasurement.height >= contentSize.height - 20;
+          autoScrollRef.current = atBottom;
+        },
+      } : {})}
       scrollEventThrottle={100}
     >
       <View className="gap-2 p-2">

@@ -6,6 +6,7 @@ node_modules/
 .expo-shared/
 web-build/
 dist/
+expo-go-android-screenshots/
 
 # logs
 logs/
