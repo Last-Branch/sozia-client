@@ -113,9 +113,9 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               </TouchableOpacity>
             </View>
 
-            {/* Settings popover — anchored above subtitle box so it always fits */}
+            {/* Settings popover — anchored below the controls row */}
             {showSettings && (
-              <View className="absolute right-6 bottom-[170px] z-40 w-72 rounded-3xl border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95">
+              <View className="absolute right-6 top-20 z-40 w-72 rounded-3xl border border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-800/95">
                 {/* Fixed header */}
                 <View className="flex-row items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-4">
                   <Text className="font-bold text-gray-900 dark:text-gray-100">{t('live.settings')}</Text>
