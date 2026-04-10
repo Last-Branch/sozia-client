@@ -81,9 +81,13 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   const deviceManager = useRef(new DeviceManager(new ExpoDeviceEnumerator(), audioPipeline.current));
   const config = useRef<IConfigurationManager>(new Configuration());
 
-  // Load persisted configuration on mount.
+  // Load persisted configuration on mount, then apply settings that gate pipeline behaviour.
   useEffect(() => {
-    void config.current.load();
+    void config.current.load().then(() => {
+      audioChunker.current
+        .getVoiceActivityDetector()
+        .setSensitivity(config.current.get('vadSensitivity'));
+    });
   }, []);
 
   const stateRef = useRef(state);

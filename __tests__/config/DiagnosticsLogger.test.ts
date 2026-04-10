@@ -34,6 +34,7 @@ function makeConfig(enabled: boolean): IConfigurationManager {
     serverUrl: 'wss://...',
     maxReconnectAttempts: 5,
     diagnosticsEnabled: enabled,
+    vadSensitivity: 'medium',
   };
 
   return {

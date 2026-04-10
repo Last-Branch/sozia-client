@@ -12,6 +12,7 @@ export interface AppConfig {
   serverUrl: string;
   maxReconnectAttempts: number;
   diagnosticsEnabled: boolean;
+  vadSensitivity: 'low' | 'medium' | 'high';
 }
 
 export interface IConfigurationManager {
@@ -38,6 +39,7 @@ const DEFAULT_CONFIG: AppConfig = {
   serverUrl: 'wss://...',
   maxReconnectAttempts: 5,
   diagnosticsEnabled: false,
+  vadSensitivity: 'medium',
 };
 
 function getBrowserStorage(): KeyValueStorage | null {
@@ -76,6 +78,10 @@ function mergeWithDefaults(raw: unknown): AppConfig {
       : DEFAULT_CONFIG.serverUrl,
     maxReconnectAttempts: clampNumber(input.maxReconnectAttempts, DEFAULT_CONFIG.maxReconnectAttempts, 0, 50),
     diagnosticsEnabled: input.diagnosticsEnabled === true,
+    vadSensitivity:
+      input.vadSensitivity === 'low' || input.vadSensitivity === 'high'
+        ? input.vadSensitivity
+        : 'medium',
   };
 }
 
