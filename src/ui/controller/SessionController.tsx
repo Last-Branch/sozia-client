@@ -78,9 +78,13 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   const config = useRef<IConfigurationManager>(new Configuration());
   const transmissionManager = useRef<TransmissionManager | null>(null);
 
-  // Load persisted configuration on mount.
+  // Load persisted configuration on mount, then apply settings that gate pipeline behaviour.
   useEffect(() => {
-    void config.current.load();
+    void config.current.load().then(() => {
+      audioChunker.current
+        .getVoiceActivityDetector()
+        .setSensitivity(config.current.get('vadSensitivity'));
+    });
   }, []);
 
   const stateRef = useRef(state);

@@ -1,5 +1,7 @@
 import type { AudioFeatureChunk } from '../../common/models';
 import type { MFCCFrame } from './AudioPipeline';
+import { AudioFeatureExtractor } from './AudioFeatureExtractor';
+import { VoiceActivityDetector } from './VoiceActivityDetector';
 
 /** Duration in ms of each captured frame — must match ExpoAudioPipeline.FRAME_INTERVAL_MS. */
 const FRAME_INTERVAL_MS = 25;
@@ -7,6 +9,11 @@ const FRAME_INTERVAL_MS = 25;
 /**
  * Accumulates MFCCFrames from the audio pipeline and emits AudioFeatureChunks
  * at regular intervals for transmission to the inference server.
+ *
+ * The chunker owns the VAD and feature-extractor stages: each completed frame
+ * batch is first gated by VoiceActivityDetector — silent windows are dropped
+ * before they ever become chunks — and then passed through AudioFeatureExtractor
+ * to produce the transmission-ready AudioFeatureChunk.
  *
  * Collaborators: ExpoAudioPipeline (produces frames), TransmissionManager (consumes chunks).
  *
@@ -26,22 +33,32 @@ export class AudioChunker {
 
   private framesPerChunk: number;
   private buffer: MFCCFrame[] = [];
-  private sessionId = '';
   private listeners = new Set<(chunk: AudioFeatureChunk) => void>();
+  private vad: VoiceActivityDetector;
+  private extractor: AudioFeatureExtractor;
 
   /**
    * @param chunkDurationMs - Duration of each chunk (default: 500 ms).
    * @param sampleRateHz - Audio sample rate (default: 16 000 Hz).
+   * @param vad - Voice activity detector used to drop silent windows.
+   * @param extractor - Feature extractor that builds the AudioFeatureChunk.
    */
-  constructor(chunkDurationMs = 500, sampleRateHz = 16000) {
+  constructor(
+    chunkDurationMs = 500,
+    sampleRateHz = 16000,
+    vad: VoiceActivityDetector = new VoiceActivityDetector(),
+    extractor: AudioFeatureExtractor = new AudioFeatureExtractor(sampleRateHz),
+  ) {
     this.chunkDurationMs = chunkDurationMs;
     this.sampleRateHz = sampleRateHz;
     this.framesPerChunk = Math.round(chunkDurationMs / FRAME_INTERVAL_MS);
+    this.vad = vad;
+    this.extractor = extractor;
   }
 
   start(sessionId: string): void {
-    this.sessionId = sessionId;
     this.buffer = [];
+    this.extractor.init(sessionId);
   }
 
   push(frame: MFCCFrame): void {
@@ -53,7 +70,7 @@ export class AudioChunker {
 
   stop(): void {
     this.buffer = [];
-    this.sessionId = '';
+    this.extractor.teardown();
   }
 
   /**
@@ -65,18 +82,18 @@ export class AudioChunker {
     return () => this.listeners.delete(callback);
   }
 
+  /** Exposes the internal VAD so higher layers can adjust sensitivity from Configuration. */
+  getVoiceActivityDetector(): VoiceActivityDetector {
+    return this.vad;
+  }
+
   // ---------------------------------------------------------------------------
 
   private _flush(): void {
     const frames = this.buffer.splice(0, this.framesPerChunk);
-    const chunk: AudioFeatureChunk = {
-      sessionId: this.sessionId,
-      timestampMs: frames[0].timestampMs,
-      features: frames.map((f) => f.coefficients),
-      featureType: 'mfcc',
-      sampleRateHz: this.sampleRateHz,
-      chunkDurationMs: frames.length * FRAME_INTERVAL_MS,
-    };
+    if (!this.vad.isSpeechPresent(frames)) return;
+    const chunk = this.extractor.extract(frames);
+    if (chunk === null) return;
     this.listeners.forEach((cb) => cb(chunk));
   }
 }
