@@ -1,5 +1,5 @@
 import type { LandmarkFrame, PipelineHealth } from '../../common/models';
-import { TransmissionManager } from '../../transmission';
+import type { TransmissionManager } from '../../transmission/TransmissionManager';
 import {
   LandmarkExtractor,
   type RawVideoFrame,
@@ -24,6 +24,7 @@ export interface IVideoPipeline {
 /**
  * Client-side video capture and landmark extraction loop.
  * Emits anonymized landmarks only; raw frames never leave this package.
+ * Sends assembled LandmarkFrames to TransmissionManager if one is provided.
  */
 export class VideoPipeline implements IVideoPipeline {
   private readonly extractor: LandmarkExtractor;

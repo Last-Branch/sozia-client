@@ -10,9 +10,8 @@ import {
 import { TrackingHealthMonitor } from '../../../src/pipeline/video/TrackingHealthMonitor';
 import { VideoPipeline, type RawMediaHandle } from '../../../src/pipeline/video/VideoPipeline';
 import type { LandmarkFrame } from '../../../src/common/models';
-import type { TransmissionManager } from '../../../src/transmission';
 
-function makeMockTx(): jest.Mocked<Pick<TransmissionManager, 'sendFeatures'>> {
+function makeMockTx(): { sendFeatures: jest.Mock } {
   return { sendFeatures: jest.fn() };
 }
 
@@ -155,12 +154,12 @@ describe('VideoPipeline lifecycle', () => {
     pipeline.stop();
   });
 
-  it('sends extracted landmark frames via TransmissionManager', () => {
+  it('delivers extracted landmark frames to tx.sendFeatures', () => {
     const backend = new MockBackend(true);
     const pipeline = new VideoPipeline(new LandmarkExtractor(backend), new TrackingHealthMonitor(5000), 10);
     const tx = makeMockTx();
 
-    pipeline.start('s1', {}, tx as unknown as TransmissionManager);
+    pipeline.start('s1', {}, tx as never);
     jest.advanceTimersByTime(350);
     pipeline.stop();
 
@@ -170,13 +169,13 @@ describe('VideoPipeline lifecycle', () => {
     expect(arg.faceLandmarks).toBeDefined();
   });
 
-  it('does not send null frames via TransmissionManager', () => {
+  it('does not deliver null frames to tx.sendFeatures', () => {
     const backend = new MockBackend(true);
     backend.setEmit(false);
     const pipeline = new VideoPipeline(new LandmarkExtractor(backend), new TrackingHealthMonitor(5000), 10);
     const tx = makeMockTx();
 
-    pipeline.start('s1', {}, tx as unknown as TransmissionManager);
+    pipeline.start('s1', {}, tx as never);
     jest.advanceTimersByTime(350);
     pipeline.stop();
 

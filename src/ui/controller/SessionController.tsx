@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 import { ModalityPath, SessionState, type PipelineHealth } from '../../common/models';
 import type { DeviceHandle } from '../../device';
-import { AudioChunker, ExpoAudioPipeline } from '../../pipeline/audio';
+import { ExpoAudioPipeline } from '../../pipeline/audio';
 import { VideoPipeline } from '../../pipeline/video';
 import { DeviceManager, ExpoDeviceEnumerator } from '../../device';
 import { TranscriptStore } from '../../store';
@@ -74,14 +74,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
   const store = useMemo(() => new TranscriptStore(), []);
 
-  // Audio pipeline, chunker, and device manager — stable across renders, one instance per provider.
-  // audioPipeline.current is safe to pass here: useRef returns the same MutableRefObject on every
-  // render, so .current at construction time refers to the single ExpoAudioPipeline instance that
-  // DeviceManager and SessionController both hold — no stale-closure risk.
-  const audioPipeline = useRef(new ExpoAudioPipeline());
-  const audioChunker = useRef(new AudioChunker());
-  const videoPipeline = useRef(new VideoPipeline());
-  const deviceManager = useRef(new DeviceManager(new ExpoDeviceEnumerator(), audioPipeline.current));
+  const deviceManager = useRef(new DeviceManager(new ExpoDeviceEnumerator(), new ExpoAudioPipeline(), new VideoPipeline()));
   const config = useRef<IConfigurationManager>(new Configuration());
   const transmissionManager = useRef<TransmissionManager | null>(null);
 
@@ -140,8 +133,6 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
         if (savedMicId) deviceManager.current.selectMicrophone(savedMicId);
         await deviceManager.current.activateMicrophone();
         await deviceManager.current.startAudioPipeline(newSessionId);
-        audioChunker.current.start(newSessionId);
-        audioPipeline.current.onFrame((frame) => audioChunker.current.push(frame));
       } else if (path === ModalityPath.SIGN) {
         const savedCameraId = config.current.get('selectedCameraId');
         if (savedCameraId) deviceManager.current.selectCamera(savedCameraId);
@@ -158,9 +149,9 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       );
 
       if (path === ModalityPath.SPEECH) {
-        audioChunker.current.onChunk((chunk) => transmissionManager.current?.sendFeatures(chunk));
+        deviceManager.current.onAudioChunk((chunk) => transmissionManager.current?.sendFeatures(chunk));
       } else if (path === ModalityPath.SIGN) {
-        videoPipeline.current.start(newSessionId, {}, transmissionManager.current);
+        await deviceManager.current.startVideoPipeline(newSessionId, {}, transmissionManager.current ?? undefined);
       }
 
       // Connect in the background — the 50-frame send buffer holds frames
@@ -177,28 +168,18 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
   const pauseSession = useCallback(() => {
     if (stateRef.current !== SessionState.RUNNING) return;
-    if (activePathRef.current === ModalityPath.SPEECH) {
-      audioPipeline.current.pause();
-    } else if (activePathRef.current === ModalityPath.SIGN) {
-      videoPipeline.current.pause();
-    }
+    deviceManager.current.pauseAllPipelines();
     setState(SessionState.PAUSED);
   }, []);
 
   const resumeSession = useCallback(() => {
     if (stateRef.current !== SessionState.PAUSED) return;
-    if (activePathRef.current === ModalityPath.SPEECH) {
-      audioPipeline.current.resume();
-    } else if (activePathRef.current === ModalityPath.SIGN) {
-      videoPipeline.current.resume();
-    }
+    deviceManager.current.resumeAllPipelines();
     setState(SessionState.RUNNING);
   }, []);
 
   const stopSession = useCallback(() => {
     deviceManager.current.stopAllPipelines();
-    audioChunker.current.stop();
-    videoPipeline.current.stop();
     transmissionManager.current?.disconnect();
     transmissionManager.current = null;
     setState(SessionState.IDLE);
@@ -216,7 +197,26 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     let mounted = true;
     const interval = setInterval(() => {
       if (!mounted) return;
-      const health = audioPipeline.current.getHealth();
+      const health = deviceManager.current.getAudioHealth();
+      actions.onPipelineHealthChanged(health);
+    }, 1000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [state, activePath, actions]);
+
+  // Poll video pipeline health every second while a SIGN session is active.
+  // Transitions RUNNING → DEGRADED if tracking becomes unavailable.
+  useEffect(() => {
+    if (activePath !== ModalityPath.SIGN) return;
+    if (state !== SessionState.RUNNING && state !== SessionState.DEGRADED) return;
+
+    let mounted = true;
+    const interval = setInterval(() => {
+      if (!mounted) return;
+      const health = deviceManager.current.getVideoHealth();
       actions.onPipelineHealthChanged(health);
     }, 1000);
 
@@ -256,4 +256,3 @@ export function useSessionController(): SessionControllerValue {
   if (!ctx) throw new Error('useSessionController must be used within SessionControllerProvider');
   return ctx;
 }
-
