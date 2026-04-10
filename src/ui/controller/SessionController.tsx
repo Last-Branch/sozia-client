@@ -3,8 +3,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { ModalityPath, SessionState, type PipelineHealth } from '../../common/models';
 import type { DeviceHandle } from '../../device';
 import { AudioChunker, ExpoAudioPipeline } from '../../pipeline/audio';
+import { VideoPipeline } from '../../pipeline/video';
 import { DeviceManager, ExpoDeviceEnumerator } from '../../device';
 import { TranscriptStore } from '../../store';
+import { TransmissionManager } from '../../transmission';
 import { Configuration, type IConfigurationManager } from '../../config';
 import { buildSessionActions } from './sessionActions';
 
@@ -78,8 +80,10 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   // DeviceManager and SessionController both hold — no stale-closure risk.
   const audioPipeline = useRef(new ExpoAudioPipeline());
   const audioChunker = useRef(new AudioChunker());
+  const videoPipeline = useRef(new VideoPipeline());
   const deviceManager = useRef(new DeviceManager(new ExpoDeviceEnumerator(), audioPipeline.current));
   const config = useRef<IConfigurationManager>(new Configuration());
+  const transmissionManager = useRef<TransmissionManager | null>(null);
 
   // Load persisted configuration on mount.
   useEffect(() => {
@@ -144,17 +148,39 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
         await deviceManager.current.activateCamera();
       }
 
+      const serverUrl = config.current.get('serverUrl') ?? 'ws://localhost:8080';
+      const maxReconnectAttempts = config.current.get('maxReconnectAttempts') ?? 5;
+      transmissionManager.current = new TransmissionManager(
+        serverUrl,
+        store,
+        actions.onConnectionLost,
+        maxReconnectAttempts,
+      );
+
+      if (path === ModalityPath.SPEECH) {
+        audioChunker.current.onChunk((chunk) => transmissionManager.current?.sendFeatures(chunk));
+      } else if (path === ModalityPath.SIGN) {
+        videoPipeline.current.start(newSessionId, {}, transmissionManager.current);
+      }
+
+      // Connect in the background — the 50-frame send buffer holds frames
+      // produced during the connection window. onConnectionLost handles failure.
+      void transmissionManager.current.connect(newSessionId, path)
+        .catch(() => { actions.onConnectionLost(); });
+
       setState(SessionState.RUNNING);
     } catch (e) {
       setState(SessionState.ERROR);
       throw e;
     }
-  }, [store]);
+  }, [store, actions]);
 
   const pauseSession = useCallback(() => {
     if (stateRef.current !== SessionState.RUNNING) return;
     if (activePathRef.current === ModalityPath.SPEECH) {
       audioPipeline.current.pause();
+    } else if (activePathRef.current === ModalityPath.SIGN) {
+      videoPipeline.current.pause();
     }
     setState(SessionState.PAUSED);
   }, []);
@@ -163,6 +189,8 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     if (stateRef.current !== SessionState.PAUSED) return;
     if (activePathRef.current === ModalityPath.SPEECH) {
       audioPipeline.current.resume();
+    } else if (activePathRef.current === ModalityPath.SIGN) {
+      videoPipeline.current.resume();
     }
     setState(SessionState.RUNNING);
   }, []);
@@ -170,6 +198,9 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   const stopSession = useCallback(() => {
     deviceManager.current.stopAllPipelines();
     audioChunker.current.stop();
+    videoPipeline.current.stop();
+    transmissionManager.current?.disconnect();
+    transmissionManager.current = null;
     setState(SessionState.IDLE);
     setSessionId(null);
     setActivePath(null);
