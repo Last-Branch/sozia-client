@@ -11,6 +11,8 @@
  */
 
 import { AudioChunker } from '../../../src/pipeline/audio/AudioChunker';
+import { VoiceActivityDetector } from '../../../src/pipeline/audio/VoiceActivityDetector';
+import { AudioFeatureExtractor } from '../../../src/pipeline/audio/AudioFeatureExtractor';
 import type { MFCCFrame } from '../../../src/pipeline/audio/AudioPipeline';
 import type { AudioFeatureChunk } from '../../../src/common/models';
 
@@ -212,5 +214,95 @@ describe('AudioChunker', () => {
 
     expect(chunks).toHaveLength(1);
     expect(chunks[0].sessionId).toBe('session-2');
+  });
+
+  // -- VAD + FeatureExtractor wiring ---------------------------------------
+
+  describe('VAD gating', () => {
+    it('drops chunks whose frames are classified as silence', () => {
+      const silentVad: VoiceActivityDetector = {
+        isSpeechPresent: () => false,
+        setSensitivity: () => {},
+        getSensitivity: () => 'medium',
+      } as unknown as VoiceActivityDetector;
+
+      const silentChunker = new AudioChunker(500, 16000, silentVad);
+      silentChunker.start('session-silent');
+
+      const chunks: AudioFeatureChunk[] = [];
+      silentChunker.onChunk((c) => chunks.push(c));
+
+      pushFrames(silentChunker, 20);
+
+      expect(chunks).toHaveLength(0);
+      silentChunker.stop();
+    });
+
+    it('emits when VAD reports speech present', () => {
+      const speechVad: VoiceActivityDetector = {
+        isSpeechPresent: () => true,
+        setSensitivity: () => {},
+        getSensitivity: () => 'medium',
+      } as unknown as VoiceActivityDetector;
+
+      const speechChunker = new AudioChunker(500, 16000, speechVad);
+      speechChunker.start('session-speech');
+
+      const chunks: AudioFeatureChunk[] = [];
+      speechChunker.onChunk((c) => chunks.push(c));
+
+      pushFrames(speechChunker, 20);
+
+      expect(chunks).toHaveLength(1);
+      speechChunker.stop();
+    });
+
+    it('exposes the internal VAD for sensitivity configuration', () => {
+      const vad = new VoiceActivityDetector();
+      const c = new AudioChunker(500, 16000, vad);
+
+      expect(c.getVoiceActivityDetector()).toBe(vad);
+    });
+  });
+
+  describe('feature extractor wiring', () => {
+    it('delegates chunk construction to the injected extractor', () => {
+      const extractor = new AudioFeatureExtractor();
+      const extractSpy = jest.spyOn(extractor, 'extract');
+
+      const c = new AudioChunker(500, 16000, new VoiceActivityDetector(), extractor);
+      c.start('session-extract');
+
+      const chunks: AudioFeatureChunk[] = [];
+      c.onChunk((ch) => chunks.push(ch));
+
+      pushFrames(c, 20);
+
+      expect(extractSpy).toHaveBeenCalledTimes(1);
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0].sessionId).toBe('session-extract');
+      c.stop();
+    });
+
+    it('emits nothing before start() because the extractor is not ready', () => {
+      const c = new AudioChunker();
+      const chunks: AudioFeatureChunk[] = [];
+      c.onChunk((ch) => chunks.push(ch));
+
+      pushFrames(c, 20);
+
+      expect(chunks).toHaveLength(0);
+    });
+
+    it('tears down the extractor on stop()', () => {
+      const extractor = new AudioFeatureExtractor();
+      const c = new AudioChunker(500, 16000, new VoiceActivityDetector(), extractor);
+
+      c.start('session-teardown');
+      expect(extractor.isReady()).toBe(true);
+
+      c.stop();
+      expect(extractor.isReady()).toBe(false);
+    });
   });
 });
