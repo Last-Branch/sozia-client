@@ -38,6 +38,7 @@
     "babel-preset-expo": "~54.0.10",
     "expo": "~54.0.33",
     "expo-av": "^16.0.8",
+    "expo-camera": "~17.0.10",
     "expo-status-bar": "~3.0.9",
     "lucide-react-native": "^0.577.0",
     "nativewind": "^4.2.3",

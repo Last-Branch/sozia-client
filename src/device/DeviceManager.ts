@@ -9,6 +9,7 @@
  */
 
 import { Audio } from 'expo-av';
+import { Camera as ExpoCamera } from 'expo-camera';
 import type { AudioFeatureChunk, PipelineHealth } from '../common/models';
 import type { IAudioPipeline } from '../pipeline/audio';
 import type { IVideoPipeline, RawMediaHandle } from '../pipeline/video';
@@ -68,11 +69,18 @@ export class DeviceManager {
   }
 
   /**
-   * Marks the camera as available for pipeline use.
-   * Real permission request (via expo-camera) will replace this once that package
-   * is added and the concrete camera capture pipeline is implemented.
+   * Requests camera permission from the OS via expo-camera.
+   * Sets `isCameraAvailable()` to true on success.
+   * Throws with an actionable message if permission is denied.
    */
   async activateCamera(): Promise<void> {
+    const { granted } = await ExpoCamera.requestCameraPermissionsAsync();
+    if (!granted) {
+      this.cameraAvailable = false;
+      throw new Error(
+        'Camera permission denied. Grant camera access in device settings to use sign language recognition.'
+      );
+    }
     this.cameraAvailable = true;
   }
 
@@ -192,7 +200,7 @@ export class DeviceManager {
     return this.micAvailable;
   }
 
-  /** True if camera is ready. Always false until the video pipeline is implemented. */
+  /** True if camera permission was granted and `activateCamera()` succeeded. */
   isCameraAvailable(): boolean {
     return this.cameraAvailable;
   }

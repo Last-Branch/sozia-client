@@ -45,7 +45,9 @@ interface ReadyResolver {
   reject: (err: Error) => void;
 }
 
-const MAX_BUFFER_SIZE = 50;
+// At a combined 12 Hz (audio 2 Hz + video 10 Hz), 200 frames covers ~16 s —
+// safely past the 10 s connect timeout with room to spare.
+const MAX_BUFFER_SIZE = 200;
 const CONNECT_TIMEOUT_MS = 10_000;
 
 // ---------------------------------------------------------------------------
@@ -184,22 +186,7 @@ export class TransmissionManager {
         return;
       }
 
-      this.socket.onopen = () => {
-        this._sendRaw(this.serializer.sessionInit(this.sessionId!, this.activePath!));
-        // Buffer is flushed once the server sends "ready" (see _handleMessage).
-      };
-
-      this.socket.onmessage = (event) => {
-        this._handleMessage(event.data);
-      };
-
-      this.socket.onclose = () => {
-        this._handleClose();
-      };
-
-      this.socket.onerror = () => {
-        // onclose follows onerror; handle reconnect there.
-      };
+      this._attachSocketHandlers(this.socket);
     });
   }
 
@@ -213,22 +200,31 @@ export class TransmissionManager {
     }
 
     this.socket = socket;
+    this._attachSocketHandlers(socket);
+  }
 
-    this.socket.onopen = () => {
-      // Re-establish session context, then flush any queued frames.
+  /**
+   * Wires onopen / onmessage / onclose / onerror onto a freshly created socket.
+   * Used by both the initial connect and every reconnect attempt so both paths
+   * gate the buffer flush on the server's "ready" ack (see _handleMessage).
+   */
+  private _attachSocketHandlers(socket: WebSocketInstance): void {
+    socket.onopen = () => {
       this._sendRaw(this.serializer.sessionInit(this.sessionId!, this.activePath!));
-      this._flushBuffer();
+      // Buffer is flushed once the server sends "ready" (see _handleMessage).
     };
 
-    this.socket.onmessage = (event) => {
+    socket.onmessage = (event) => {
       this._handleMessage(event.data);
     };
 
-    this.socket.onclose = () => {
+    socket.onclose = () => {
       this._handleClose();
     };
 
-    this.socket.onerror = () => {};
+    socket.onerror = () => {
+      // onclose follows onerror; handle reconnect there.
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -246,6 +242,10 @@ export class TransmissionManager {
   private _buffer(data: string): void {
     if (this.sendBuffer.length >= MAX_BUFFER_SIZE) {
       this.sendBuffer.shift(); // drop oldest to stay within cap
+      console.warn(
+        `TransmissionManager: send buffer full (${MAX_BUFFER_SIZE}); oldest frame dropped. ` +
+        'Check server connectivity.'
+      );
     }
     this.sendBuffer.push(data);
   }
@@ -280,10 +280,12 @@ export class TransmissionManager {
 
           const { resolve } = this.readyResolver;
           this.readyResolver = null;
-
-          this._flushBuffer();
           resolve();
         }
+
+        // Always flush here — both the initial connect and every reconnect
+        // gate the buffer flush on the server's ready ack.
+        this._flushBuffer();
       }
     } catch {
       // Malformed JSON — ignore.

@@ -17,7 +17,14 @@ jest.mock('expo-av', () => ({
   },
 }));
 
+jest.mock('expo-camera', () => ({
+  Camera: {
+    requestCameraPermissionsAsync: jest.fn(),
+  },
+}));
+
 import { Audio } from 'expo-av';
+import { Camera as ExpoCamera } from 'expo-camera';
 import { DeviceManager } from '../../src/device/DeviceManager';
 import type { IDeviceEnumerator } from '../../src/device/DeviceEnumerator';
 import type { DeviceHandle } from '../../src/device/DeviceHandle';
@@ -27,6 +34,7 @@ import type { AudioFeatureChunk, PipelineHealth } from '../../src/common/models'
 import type { TransmissionManager } from '../../src/transmission/TransmissionManager';
 
 const mockRequestPermissions = Audio.requestPermissionsAsync as jest.Mock;
+const mockRequestCameraPermissions = ExpoCamera.requestCameraPermissionsAsync as jest.Mock;
 
 // ---------------------------------------------------------------------------
 // MockDeviceEnumerator
@@ -260,13 +268,12 @@ describe('DeviceManager.activateMicrophone()', () => {
 // ---------------------------------------------------------------------------
 
 describe('DeviceManager.activateCamera()', () => {
-  it('TP-CLIENT-DEVICE-004a: resolves without throwing', async () => {
-    const manager = new DeviceManager(new MockDeviceEnumerator());
-
-    await expect(manager.activateCamera()).resolves.toBeUndefined();
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('TP-CLIENT-DEVICE-004b: isCameraAvailable() returns true after activateCamera()', async () => {
+  it('TP-CLIENT-DEVICE-004a: isCameraAvailable() returns true after permission is granted', async () => {
+    mockRequestCameraPermissions.mockResolvedValue({ granted: true, status: 'granted' });
     const manager = new DeviceManager(new MockDeviceEnumerator());
 
     await manager.activateCamera();
@@ -274,13 +281,40 @@ describe('DeviceManager.activateCamera()', () => {
     expect(manager.isCameraAvailable()).toBe(true);
   });
 
-  it('TP-CLIENT-DEVICE-004c: isCameraAvailable() resets to false after stopAllPipelines()', async () => {
+  it('TP-CLIENT-DEVICE-004b: throws with an actionable message when permission is denied', async () => {
+    mockRequestCameraPermissions.mockResolvedValue({ granted: false, status: 'denied' });
+    const manager = new DeviceManager(new MockDeviceEnumerator());
+
+    await expect(manager.activateCamera()).rejects.toThrow(/camera/i);
+  });
+
+  it('TP-CLIENT-DEVICE-004c: isCameraAvailable() remains false when permission is denied', async () => {
+    mockRequestCameraPermissions.mockResolvedValue({ granted: false, status: 'denied' });
+    const manager = new DeviceManager(new MockDeviceEnumerator());
+
+    await manager.activateCamera().catch(() => {});
+
+    expect(manager.isCameraAvailable()).toBe(false);
+  });
+
+  it('TP-CLIENT-DEVICE-004d: isCameraAvailable() resets to false after stopAllPipelines()', async () => {
+    mockRequestCameraPermissions.mockResolvedValue({ granted: true, status: 'granted' });
     const manager = new DeviceManager(new MockDeviceEnumerator());
     await manager.activateCamera();
 
     manager.stopAllPipelines();
 
     expect(manager.isCameraAvailable()).toBe(false);
+  });
+
+  it('TP-CLIENT-DEVICE-004e: returns a Promise', () => {
+    mockRequestCameraPermissions.mockResolvedValue({ granted: true, status: 'granted' });
+    const manager = new DeviceManager(new MockDeviceEnumerator());
+
+    const result = manager.activateCamera();
+
+    expect(result).toBeInstanceOf(Promise);
+    return result;
   });
 });
 
@@ -326,6 +360,11 @@ describe('DeviceManager.startAudioPipeline()', () => {
 // ---------------------------------------------------------------------------
 
 describe('DeviceManager.startVideoPipeline()', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRequestCameraPermissions.mockResolvedValue({ granted: true, status: 'granted' });
+  });
+
   it('TP-CLIENT-DEVICE-006a: throws when camera has not been activated', async () => {
     const pipeline = new MockVideoPipeline();
     const manager = new DeviceManager(new MockDeviceEnumerator(), null, pipeline);
@@ -357,6 +396,11 @@ describe('DeviceManager.startVideoPipeline()', () => {
 // ---------------------------------------------------------------------------
 
 describe('DeviceManager.getVideoHealth()', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRequestCameraPermissions.mockResolvedValue({ granted: true, status: 'granted' });
+  });
+
   it('TP-CLIENT-DEVICE-009a: returns a zeroed health object when no video pipeline is configured', () => {
     const manager = new DeviceManager(new MockDeviceEnumerator());
 

@@ -270,13 +270,13 @@ describe('TransmissionManager', () => {
       expect(flushed.timestampMs).toBe(42);
     });
 
-    it('drops the oldest entry when buffer exceeds 50 items', async () => {
+    it('drops the oldest entry when buffer exceeds 200 items', async () => {
       const { manager } = makeManager();
       const promise = manager.connect('session-1', ModalityPath.SPEECH);
       const ws = FakeWebSocket.lastInstance!;
 
-      // Push 51 chunks — chunk #0 should be dropped
-      for (let i = 0; i < 51; i++) {
+      // Push 201 chunks — chunk #0 should be dropped
+      for (let i = 0; i < 201; i++) {
         manager.sendFeatures(makeChunk(i));
       }
 
@@ -284,11 +284,11 @@ describe('TransmissionManager', () => {
       ws.simulateReady();
       await promise;
 
-      // session_init (1) + 50 buffered chunks (chunk 0 dropped)
+      // session_init (1) + 200 buffered chunks (chunk 0 dropped)
       const buffered = ws.sentMessages.slice(1);
-      expect(buffered).toHaveLength(50);
+      expect(buffered).toHaveLength(200);
       expect(JSON.parse(buffered[0]).timestampMs).toBe(1); // chunk 0 dropped
-      expect(JSON.parse(buffered[49]).timestampMs).toBe(50);
+      expect(JSON.parse(buffered[199]).timestampMs).toBe(200);
     });
   });
 
@@ -436,7 +436,7 @@ describe('TransmissionManager', () => {
       expect(initMsg.sessionId).toBe('session-1');
     });
 
-    it('flushes buffer immediately after session_init on reconnect', async () => {
+    it('flushes buffer after ready ack on reconnect (not on open)', async () => {
       const { manager } = makeManager();
       const ws1 = await connectManager(manager);
 
@@ -447,7 +447,13 @@ describe('TransmissionManager', () => {
       const ws2 = FakeWebSocket.lastInstance!;
       ws2.simulateOpen();
 
-      // session_init + buffered chunk
+      // only session_init sent so far — buffer not yet flushed
+      expect(ws2.sentMessages).toHaveLength(1);
+      expect(JSON.parse(ws2.sentMessages[0]).type).toBe('session_init');
+
+      ws2.simulateReady();
+
+      // now session_init + buffered chunk
       expect(ws2.sentMessages).toHaveLength(2);
       const flushed = JSON.parse(ws2.sentMessages[1]);
       expect(flushed.type).toBe('audio_feature_chunk');
