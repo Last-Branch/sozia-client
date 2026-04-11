@@ -13,7 +13,8 @@
  */
 
 import type { IAudioPipeline, MFCCFrame } from '../../../src/pipeline/audio';
-import type { PipelineHealth } from '../../../src/common/models';
+import type { SensitivityLevel } from '../../../src/pipeline/audio';
+import type { AudioFeatureChunk, PipelineHealth } from '../../../src/common/models';
 
 // ---------------------------------------------------------------------------
 // MockAudioPipeline — a minimal, synchronous stand-in used only in tests.
@@ -23,7 +24,9 @@ class MockAudioPipeline implements IAudioPipeline {
   private sessionId = '';
   private available = false;
   private lastUpdatedMs = 0;
-  private listeners: Set<(frame: MFCCFrame) => void> = new Set();
+  private frameListeners: Set<(frame: MFCCFrame) => void> = new Set();
+  private chunkListeners: Set<(chunk: AudioFeatureChunk) => void> = new Set();
+  private sensitivity: SensitivityLevel = 'medium';
 
   async start(sessionId: string): Promise<void> {
     this.sessionId = sessionId;
@@ -42,7 +45,8 @@ class MockAudioPipeline implements IAudioPipeline {
   stop(): void {
     this.sessionId = '';
     this.available = false;
-    this.listeners.clear();
+    this.frameListeners.clear();
+    this.chunkListeners.clear();
   }
 
   getHealth(): PipelineHealth {
@@ -58,13 +62,32 @@ class MockAudioPipeline implements IAudioPipeline {
   }
 
   onFrame(callback: (frame: MFCCFrame) => void): () => void {
-    this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
+    this.frameListeners.add(callback);
+    return () => this.frameListeners.delete(callback);
+  }
+
+  onChunk(callback: (chunk: AudioFeatureChunk) => void): () => void {
+    this.chunkListeners.add(callback);
+    return () => this.chunkListeners.delete(callback);
+  }
+
+  setVadSensitivity(level: SensitivityLevel): void {
+    this.sensitivity = level;
   }
 
   /** Test helper: emit a frame to all registered listeners. */
   _emit(frame: MFCCFrame): void {
-    this.listeners.forEach((cb) => cb(frame));
+    this.frameListeners.forEach((cb) => cb(frame));
+  }
+
+  /** Test helper: read the current sensitivity state (test assertions only). */
+  _getSensitivity(): SensitivityLevel {
+    return this.sensitivity;
+  }
+
+  /** Test helper: emit a chunk to all registered chunk listeners. */
+  _emitChunk(chunk: AudioFeatureChunk): void {
+    this.chunkListeners.forEach((cb) => cb(chunk));
   }
 }
 
@@ -250,5 +273,83 @@ describe('IAudioPipeline.onFrame()', () => {
     pipeline._emit(makeMockFrame());
 
     expect(received).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Chunk subscription and VAD sensitivity contract
+// ---------------------------------------------------------------------------
+
+function makeMockChunk(): AudioFeatureChunk {
+  return {
+    sessionId: 'session-001',
+    timestampMs: 0,
+    features: Array.from({ length: 20 }, () =>
+      Array.from({ length: 13 }, (_, i) => i * 0.1),
+    ),
+    featureType: 'mfcc',
+    sampleRateHz: 16000,
+    chunkDurationMs: 500,
+  };
+}
+
+describe('IAudioPipeline.onChunk()', () => {
+  let pipeline: MockAudioPipeline;
+
+  beforeEach(() => {
+    pipeline = new MockAudioPipeline();
+  });
+
+  it('returns an unsubscribe function', async () => {
+    await pipeline.start('session-001');
+    const unsub = pipeline.onChunk(() => {});
+    expect(typeof unsub).toBe('function');
+    unsub();
+  });
+
+  it('delivers emitted chunks to registered listeners', async () => {
+    await pipeline.start('session-001');
+    const received: AudioFeatureChunk[] = [];
+    pipeline.onChunk((c) => received.push(c));
+
+    const chunk = makeMockChunk();
+    pipeline._emitChunk(chunk);
+
+    expect(received).toHaveLength(1);
+    expect(received[0]).toEqual(chunk);
+  });
+
+  it('stops delivering chunks after unsubscribe', async () => {
+    await pipeline.start('session-001');
+    const received: AudioFeatureChunk[] = [];
+    const unsub = pipeline.onChunk((c) => received.push(c));
+
+    pipeline._emitChunk(makeMockChunk());
+    unsub();
+    pipeline._emitChunk(makeMockChunk());
+
+    expect(received).toHaveLength(1);
+  });
+
+  it('clears chunk listeners on stop()', async () => {
+    await pipeline.start('session-001');
+    const received: AudioFeatureChunk[] = [];
+    pipeline.onChunk((c) => received.push(c));
+
+    pipeline.stop();
+    pipeline._emitChunk(makeMockChunk());
+
+    expect(received).toHaveLength(0);
+  });
+});
+
+describe('IAudioPipeline.setVadSensitivity()', () => {
+  it('records the sensitivity level the caller passes in', () => {
+    const pipeline = new MockAudioPipeline();
+    pipeline.setVadSensitivity('high');
+    expect(pipeline._getSensitivity()).toBe('high');
+
+    pipeline.setVadSensitivity('low');
+    expect(pipeline._getSensitivity()).toBe('low');
   });
 });

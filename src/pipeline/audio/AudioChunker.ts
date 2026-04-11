@@ -87,6 +87,11 @@ export class AudioChunker {
     return this.vad;
   }
 
+  /** Removes all chunk listeners. Used by the owning pipeline when tearing down. */
+  clearListeners(): void {
+    this.listeners.clear();
+  }
+
   // ---------------------------------------------------------------------------
 
   private _flush(): void {

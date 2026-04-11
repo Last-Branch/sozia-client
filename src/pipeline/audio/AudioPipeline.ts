@@ -1,4 +1,5 @@
-import type { PipelineHealth } from '../../common/models';
+import type { AudioFeatureChunk, PipelineHealth } from '../../common/models';
+import type { SensitivityLevel } from './VoiceActivityDetector';
 
 /**
  * A single frame of extracted audio features, produced by the audio pipeline
@@ -73,4 +74,22 @@ export interface IAudioPipeline {
    * Multiple listeners may be registered simultaneously.
    */
   onFrame(callback: (frame: MFCCFrame) => void): () => void;
+
+  /**
+   * Register a callback to receive assembled AudioFeatureChunks — the
+   * transmission-ready output of the VAD + feature-extraction stages that
+   * the pipeline drives internally. Silent windows are gated out before
+   * reaching this callback.
+   *
+   * Returns an unsubscribe function; multiple listeners may be registered
+   * simultaneously. Subscriptions are cleared by stop().
+   */
+  onChunk(callback: (chunk: AudioFeatureChunk) => void): () => void;
+
+  /**
+   * Adjust the sensitivity of the internal voice activity detector so
+   * callers can wire Configuration.vadSensitivity through a single entry
+   * point on the pipeline rather than reaching into its internals.
+   */
+  setVadSensitivity(level: SensitivityLevel): void;
 }

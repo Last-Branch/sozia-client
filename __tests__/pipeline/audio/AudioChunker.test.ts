@@ -216,6 +216,20 @@ describe('AudioChunker', () => {
     expect(chunks[0].sessionId).toBe('session-2');
   });
 
+  it('drops all listeners when clearListeners() is called', () => {
+    let received = 0;
+    chunker.onChunk(() => {
+      received += 1;
+    });
+
+    pushFrames(chunker, 20);
+    expect(received).toBe(1);
+
+    chunker.clearListeners();
+    pushFrames(chunker, 20, 20 * 25);
+    expect(received).toBe(1);
+  });
+
   // -- VAD + FeatureExtractor wiring ---------------------------------------
 
   describe('VAD gating', () => {

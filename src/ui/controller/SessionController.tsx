@@ -2,7 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 import { ModalityPath, SessionState, type PipelineHealth } from '../../common/models';
 import type { DeviceHandle } from '../../device';
-import { AudioChunker, ExpoAudioPipeline } from '../../pipeline/audio';
+import { ExpoAudioPipeline } from '../../pipeline/audio';
 import { DeviceManager, ExpoDeviceEnumerator } from '../../device';
 import { TranscriptStore } from '../../store';
 import { Configuration, type IConfigurationManager } from '../../config';
@@ -72,21 +72,18 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
   const store = useMemo(() => new TranscriptStore(), []);
 
-  // Audio pipeline, chunker, and device manager — stable across renders, one instance per provider.
+  // Audio pipeline and device manager — stable across renders, one instance per provider.
   // audioPipeline.current is safe to pass here: useRef returns the same MutableRefObject on every
   // render, so .current at construction time refers to the single ExpoAudioPipeline instance that
   // DeviceManager and SessionController both hold — no stale-closure risk.
   const audioPipeline = useRef(new ExpoAudioPipeline());
-  const audioChunker = useRef(new AudioChunker());
   const deviceManager = useRef(new DeviceManager(new ExpoDeviceEnumerator(), audioPipeline.current));
   const config = useRef<IConfigurationManager>(new Configuration());
 
   // Load persisted configuration on mount, then apply settings that gate pipeline behaviour.
   useEffect(() => {
     void config.current.load().then(() => {
-      audioChunker.current
-        .getVoiceActivityDetector()
-        .setSensitivity(config.current.get('vadSensitivity'));
+      audioPipeline.current.setVadSensitivity(config.current.get('vadSensitivity'));
     });
   }, []);
 
@@ -140,8 +137,6 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
         if (savedMicId) deviceManager.current.selectMicrophone(savedMicId);
         await deviceManager.current.activateMicrophone();
         await deviceManager.current.startAudioPipeline(newSessionId);
-        audioChunker.current.start(newSessionId);
-        audioPipeline.current.onFrame((frame) => audioChunker.current.push(frame));
       } else if (path === ModalityPath.SIGN) {
         const savedCameraId = config.current.get('selectedCameraId');
         if (savedCameraId) deviceManager.current.selectCamera(savedCameraId);
@@ -173,7 +168,6 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
   const stopSession = useCallback(() => {
     deviceManager.current.stopAllPipelines();
-    audioChunker.current.stop();
     setState(SessionState.IDLE);
     setSessionId(null);
     setActivePath(null);

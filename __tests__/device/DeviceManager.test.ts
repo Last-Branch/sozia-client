@@ -21,8 +21,8 @@ import { Audio } from 'expo-av';
 import { DeviceManager } from '../../src/device/DeviceManager';
 import type { IDeviceEnumerator } from '../../src/device/DeviceEnumerator';
 import type { DeviceHandle } from '../../src/device/DeviceHandle';
-import type { IAudioPipeline, MFCCFrame } from '../../src/pipeline/audio';
-import type { PipelineHealth } from '../../src/common/models';
+import type { IAudioPipeline, MFCCFrame, SensitivityLevel } from '../../src/pipeline/audio';
+import type { AudioFeatureChunk, PipelineHealth } from '../../src/common/models';
 
 const mockRequestPermissions = Audio.requestPermissionsAsync as jest.Mock;
 
@@ -96,6 +96,15 @@ class MockAudioPipeline implements IAudioPipeline {
 
   onFrame(_callback: (frame: MFCCFrame) => void): () => void {
     return () => {};
+  }
+
+  onChunk(_callback: (chunk: AudioFeatureChunk) => void): () => void {
+    return () => {};
+  }
+
+  setVadSensitivity(_level: SensitivityLevel): void {
+    // no-op for the device manager mock — sensitivity plumbing is exercised
+    // in the audio pipeline tests, not here.
   }
 }
 
