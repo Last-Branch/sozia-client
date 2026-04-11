@@ -28,9 +28,14 @@ import { Camera as ExpoCamera } from 'expo-camera';
 import { DeviceManager } from '../../src/device/DeviceManager';
 import type { IDeviceEnumerator } from '../../src/device/DeviceEnumerator';
 import type { DeviceHandle } from '../../src/device/DeviceHandle';
-import type { IAudioPipeline, MFCCFrame } from '../../src/pipeline/audio';
+import type {
+  IAudioPipeline,
+  MFCCFrame,
+  RawAudioHandle,
+  SensitivityLevel,
+} from '../../src/pipeline/audio';
 import type { IVideoPipeline, RawMediaHandle } from '../../src/pipeline/video';
-import type { AudioFeatureChunk, PipelineHealth } from '../../src/common/models';
+import type { PipelineHealth } from '../../src/common/models';
 import type { TransmissionManager } from '../../src/transmission/TransmissionManager';
 
 const mockRequestPermissions = Audio.requestPermissionsAsync as jest.Mock;
@@ -69,13 +74,20 @@ class MockAudioPipeline implements IAudioPipeline {
   private available = false;
   startCalled = false;
   startCalledWith = '';
+  startCalledWithTx: TransmissionManager | undefined = undefined;
   stopCalled = false;
+  lastVadSensitivity: SensitivityLevel | null = null;
 
-  async start(sessionId: string): Promise<void> {
+  async start(
+    sessionId: string,
+    _micHandle: RawAudioHandle = {},
+    tx?: TransmissionManager,
+  ): Promise<void> {
     this.sessionId = sessionId;
     this.available = true;
     this.startCalled = true;
     this.startCalledWith = sessionId;
+    this.startCalledWithTx = tx;
   }
 
   pause(): void {
@@ -108,8 +120,8 @@ class MockAudioPipeline implements IAudioPipeline {
     return () => {};
   }
 
-  onChunk(_callback: (chunk: AudioFeatureChunk) => void): () => void {
-    return () => {};
+  setVadSensitivity(level: SensitivityLevel): void {
+    this.lastVadSensitivity = level;
   }
 }
 
@@ -339,6 +351,17 @@ describe('DeviceManager.startAudioPipeline()', () => {
     expect(pipeline.startCalledWith).toBe('sess-abc');
   });
 
+  it('TP-CLIENT-DEVICE-005d: forwards the TransmissionManager to the pipeline', async () => {
+    const pipeline = new MockAudioPipeline();
+    const manager = new DeviceManager(new MockDeviceEnumerator(), pipeline);
+    await manager.activateMicrophone();
+    const fakeTx = { sendFeatures: () => {} } as unknown as TransmissionManager;
+
+    await manager.startAudioPipeline('sess-tx', {}, fakeTx);
+
+    expect(pipeline.startCalledWithTx).toBe(fakeTx);
+  });
+
   it('TP-CLIENT-DEVICE-005b: throws when microphone has not been activated', async () => {
     const pipeline = new MockAudioPipeline();
     const manager = new DeviceManager(new MockDeviceEnumerator(), pipeline);
@@ -460,6 +483,27 @@ describe('DeviceManager.stopAllPipelines()', () => {
     manager.stopAllPipelines();
 
     expect(manager.isMicrophoneAvailable()).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TP-CLIENT-DEVICE-010: setAudioVadSensitivity()
+// ---------------------------------------------------------------------------
+
+describe('DeviceManager.setAudioVadSensitivity()', () => {
+  it('TP-CLIENT-DEVICE-010a: delegates to the audio pipeline when configured', () => {
+    const pipeline = new MockAudioPipeline();
+    const manager = new DeviceManager(new MockDeviceEnumerator(), pipeline);
+
+    manager.setAudioVadSensitivity('high');
+
+    expect(pipeline.lastVadSensitivity).toBe('high');
+  });
+
+  it('TP-CLIENT-DEVICE-010b: is a no-op when no audio pipeline is configured', () => {
+    const manager = new DeviceManager(new MockDeviceEnumerator());
+
+    expect(() => manager.setAudioVadSensitivity('low')).not.toThrow();
   });
 });
 
