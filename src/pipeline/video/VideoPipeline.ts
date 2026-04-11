@@ -1,4 +1,5 @@
 import type { LandmarkFrame, PipelineHealth } from '../../common/models';
+import type { TransmissionManager } from '../../transmission/TransmissionManager';
 import {
   LandmarkExtractor,
   type RawVideoFrame,
@@ -13,7 +14,7 @@ export interface RawMediaHandle {
 }
 
 export interface IVideoPipeline {
-  start(sessionId: string, cameraHandle: RawMediaHandle): void;
+  start(sessionId: string, cameraHandle: RawMediaHandle, tx?: TransmissionManager): void;
   pause(): void;
   resume(): void;
   stop(): void;
@@ -23,6 +24,7 @@ export interface IVideoPipeline {
 /**
  * Client-side video capture and landmark extraction loop.
  * Emits anonymized landmarks only; raw frames never leave this package.
+ * Sends assembled LandmarkFrames to TransmissionManager if one is provided.
  */
 export class VideoPipeline implements IVideoPipeline {
   private readonly extractor: LandmarkExtractor;
@@ -33,6 +35,7 @@ export class VideoPipeline implements IVideoPipeline {
   private isRunning = false;
   private paused = false;
   private cameraHandle: RawMediaHandle | null = null;
+  private transmissionManager: TransmissionManager | null = null;
   private frameTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -45,7 +48,7 @@ export class VideoPipeline implements IVideoPipeline {
     this.targetFps = targetFps;
   }
 
-  start(sessionId: string, cameraHandle: RawMediaHandle): void {
+  start(sessionId: string, cameraHandle: RawMediaHandle, tx?: TransmissionManager): void {
     if (this.isRunning || this.paused) return;
     if (!this.extractor.isReady()) {
       throw new Error('Landmark extractor is not ready');
@@ -53,6 +56,7 @@ export class VideoPipeline implements IVideoPipeline {
 
     this.sessionId = sessionId;
     this.cameraHandle = cameraHandle;
+    this.transmissionManager = tx ?? null;
     this.isRunning = true;
     this.paused = false;
     this.startLoop();
@@ -78,6 +82,7 @@ export class VideoPipeline implements IVideoPipeline {
     this.paused = false;
     this.sessionId = '';
     this.cameraHandle = null;
+    this.transmissionManager = null;
   }
 
   getHealth(): PipelineHealth {
@@ -108,6 +113,9 @@ export class VideoPipeline implements IVideoPipeline {
       const landmarkFrame = this.toLandmarkFrame(extracted, rawFrame.timestampMs);
 
       this.healthMonitor.update(landmarkFrame);
+      if (landmarkFrame !== null) {
+        this.transmissionManager?.sendFeatures(landmarkFrame);
+      }
     }, intervalMs);
   }
 

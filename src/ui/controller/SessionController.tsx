@@ -2,10 +2,13 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 
 import { ModalityPath, SessionState, type PipelineHealth } from '../../common/models';
 import type { DeviceHandle } from '../../device';
-import { AudioChunker, ExpoAudioPipeline } from '../../pipeline/audio';
+import { ExpoAudioPipeline } from '../../pipeline/audio';
+import { VideoPipeline } from '../../pipeline/video';
 import { DeviceManager, ExpoDeviceEnumerator } from '../../device';
 import { TranscriptStore } from '../../store';
+import { TransmissionManager } from '../../transmission';
 import { Configuration, type IConfigurationManager } from '../../config';
+import { AudioChunker } from '../../pipeline/audio';
 import { buildSessionActions } from './sessionActions';
 
 export type SessionControllerValue = {
@@ -72,14 +75,14 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
   const store = useMemo(() => new TranscriptStore(), []);
 
-  // Audio pipeline, chunker, and device manager — stable across renders, one instance per provider.
-  // audioPipeline.current is safe to pass here: useRef returns the same MutableRefObject on every
-  // render, so .current at construction time refers to the single ExpoAudioPipeline instance that
-  // DeviceManager and SessionController both hold — no stale-closure risk.
-  const audioPipeline = useRef(new ExpoAudioPipeline());
+  const deviceManager = useRef(new DeviceManager(new ExpoDeviceEnumerator(), new ExpoAudioPipeline(), new VideoPipeline()));
+  // TODO(audio-team): This chunker ref is used solely to propagate vadSensitivity from Configuration
+  // on mount. It should be removed once IAudioPipeline exposes getVoiceActivityDetector() directly,
+  // at which point deviceManager.current.getAudioPipeline().getVoiceActivityDetector() is the
+  // correct path. Until then, this standalone instance mirrors the default VAD settings.
   const audioChunker = useRef(new AudioChunker());
-  const deviceManager = useRef(new DeviceManager(new ExpoDeviceEnumerator(), audioPipeline.current));
   const config = useRef<IConfigurationManager>(new Configuration());
+  const transmissionManager = useRef<TransmissionManager | null>(null);
 
   // Load persisted configuration on mount, then apply settings that gate pipeline behaviour.
   useEffect(() => {
@@ -140,40 +143,55 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
         if (savedMicId) deviceManager.current.selectMicrophone(savedMicId);
         await deviceManager.current.activateMicrophone();
         await deviceManager.current.startAudioPipeline(newSessionId);
-        audioChunker.current.start(newSessionId);
-        audioPipeline.current.onFrame((frame) => audioChunker.current.push(frame));
       } else if (path === ModalityPath.SIGN) {
         const savedCameraId = config.current.get('selectedCameraId');
         if (savedCameraId) deviceManager.current.selectCamera(savedCameraId);
         await deviceManager.current.activateCamera();
       }
 
+      const serverUrl = config.current.get('serverUrl') ?? 'ws://localhost:8080';
+      const maxReconnectAttempts = config.current.get('maxReconnectAttempts') ?? 5;
+      transmissionManager.current = new TransmissionManager(
+        serverUrl,
+        store,
+        actions.onConnectionLost,
+        maxReconnectAttempts,
+      );
+
+      if (path === ModalityPath.SPEECH) {
+        deviceManager.current.onAudioChunk((chunk) => transmissionManager.current?.sendFeatures(chunk));
+      } else if (path === ModalityPath.SIGN) {
+        await deviceManager.current.startVideoPipeline(newSessionId, {}, transmissionManager.current ?? undefined);
+      }
+
+      // Connect in the background — the 50-frame send buffer holds frames
+      // produced during the connection window. onConnectionLost handles failure.
+      void transmissionManager.current.connect(newSessionId, path)
+        .catch(() => { actions.onConnectionLost(); });
+
       setState(SessionState.RUNNING);
     } catch (e) {
       setState(SessionState.ERROR);
       throw e;
     }
-  }, [store]);
+  }, [store, actions]);
 
   const pauseSession = useCallback(() => {
     if (stateRef.current !== SessionState.RUNNING) return;
-    if (activePathRef.current === ModalityPath.SPEECH) {
-      audioPipeline.current.pause();
-    }
+    deviceManager.current.pauseAllPipelines();
     setState(SessionState.PAUSED);
   }, []);
 
   const resumeSession = useCallback(() => {
     if (stateRef.current !== SessionState.PAUSED) return;
-    if (activePathRef.current === ModalityPath.SPEECH) {
-      audioPipeline.current.resume();
-    }
+    deviceManager.current.resumeAllPipelines();
     setState(SessionState.RUNNING);
   }, []);
 
   const stopSession = useCallback(() => {
     deviceManager.current.stopAllPipelines();
-    audioChunker.current.stop();
+    transmissionManager.current?.disconnect();
+    transmissionManager.current = null;
     setState(SessionState.IDLE);
     setSessionId(null);
     setActivePath(null);
@@ -189,7 +207,26 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     let mounted = true;
     const interval = setInterval(() => {
       if (!mounted) return;
-      const health = audioPipeline.current.getHealth();
+      const health = deviceManager.current.getAudioHealth();
+      actions.onPipelineHealthChanged(health);
+    }, 1000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [state, activePath, actions]);
+
+  // Poll video pipeline health every second while a SIGN session is active.
+  // Transitions RUNNING → DEGRADED if tracking becomes unavailable.
+  useEffect(() => {
+    if (activePath !== ModalityPath.SIGN) return;
+    if (state !== SessionState.RUNNING && state !== SessionState.DEGRADED) return;
+
+    let mounted = true;
+    const interval = setInterval(() => {
+      if (!mounted) return;
+      const health = deviceManager.current.getVideoHealth();
       actions.onPipelineHealthChanged(health);
     }, 1000);
 
@@ -229,4 +266,3 @@ export function useSessionController(): SessionControllerValue {
   if (!ctx) throw new Error('useSessionController must be used within SessionControllerProvider');
   return ctx;
 }
-

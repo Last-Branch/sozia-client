@@ -9,24 +9,32 @@
  */
 
 import { Audio } from 'expo-av';
+import { Camera as ExpoCamera } from 'expo-camera';
+import type { AudioFeatureChunk, PipelineHealth } from '../common/models';
 import type { IAudioPipeline } from '../pipeline/audio';
+import type { IVideoPipeline, RawMediaHandle } from '../pipeline/video';
+import type { TransmissionManager } from '../transmission/TransmissionManager';
 import type { IDeviceEnumerator } from './DeviceEnumerator';
 import type { DeviceHandle } from './DeviceHandle';
 
 export class DeviceManager {
   private enumerator: IDeviceEnumerator;
   private audioPipeline: IAudioPipeline | null;
-  /** IVideoPipeline — not yet implemented; reserved for future video support. */
-  private videoPipeline: null = null;
+  private videoPipeline: IVideoPipeline | null;
 
   private selectedMicId: string | null = null;
   private selectedCameraId: string | null = null;
   private micAvailable = false;
   private cameraAvailable = false;
 
-  constructor(enumerator: IDeviceEnumerator, audioPipeline: IAudioPipeline | null = null) {
+  constructor(
+    enumerator: IDeviceEnumerator,
+    audioPipeline: IAudioPipeline | null = null,
+    videoPipeline: IVideoPipeline | null = null,
+  ) {
     this.enumerator = enumerator;
     this.audioPipeline = audioPipeline;
+    this.videoPipeline = videoPipeline;
   }
 
   /** Returns all enumerated input devices from the underlying enumerator. */
@@ -61,12 +69,19 @@ export class DeviceManager {
   }
 
   /**
-   * Camera activation stub — video pipeline is not yet implemented.
-   * Resolves without throwing so the rest of the session start flow is unaffected.
+   * Requests camera permission from the OS via expo-camera.
+   * Sets `isCameraAvailable()` to true on success.
+   * Throws with an actionable message if permission is denied.
    */
   async activateCamera(): Promise<void> {
-    // Video pipeline not yet implemented.
-    this.cameraAvailable = false;
+    const { granted } = await ExpoCamera.requestCameraPermissionsAsync();
+    if (!granted) {
+      this.cameraAvailable = false;
+      throw new Error(
+        'Camera permission denied. Grant camera access in device settings to use sign language recognition.'
+      );
+    }
+    this.cameraAvailable = true;
   }
 
   /**
@@ -84,11 +99,33 @@ export class DeviceManager {
   }
 
   /**
-   * Video pipeline start stub — not yet implemented.
-   * Resolves without throwing.
+   * Starts the video capture pipeline for the given session.
+   * Requires `activateCamera()` to have been called first.
    */
-  async startVideoPipeline(_sessionId: string): Promise<void> {
-    // Video pipeline not yet implemented.
+  async startVideoPipeline(sessionId: string, cameraHandle?: RawMediaHandle, tx?: TransmissionManager): Promise<void> {
+    if (!this.cameraAvailable) {
+      throw new Error('Cannot start video pipeline: camera has not been activated.');
+    }
+    if (!this.videoPipeline) {
+      throw new Error('Cannot start video pipeline: no IVideoPipeline configured.');
+    }
+    this.videoPipeline.start(sessionId, cameraHandle ?? {}, tx);
+  }
+
+  /**
+   * Pauses all active pipelines. No-op for pipelines that are not running.
+   */
+  pauseAllPipelines(): void {
+    this.audioPipeline?.pause();
+    this.videoPipeline?.pause();
+  }
+
+  /**
+   * Resumes all paused pipelines. No-op for pipelines that are not paused.
+   */
+  resumeAllPipelines(): void {
+    this.audioPipeline?.resume();
+    this.videoPipeline?.resume();
   }
 
   /**
@@ -97,8 +134,65 @@ export class DeviceManager {
    */
   stopAllPipelines(): void {
     this.audioPipeline?.stop();
+    this.videoPipeline?.stop();
     this.micAvailable = false;
     this.cameraAvailable = false;
+  }
+
+  /**
+   * Subscribes to assembled AudioFeatureChunks from the audio pipeline.
+   * Throws if no audio pipeline is configured.
+   * Returns an unsubscribe function.
+   *
+   * NOTE: Requires IAudioPipeline.onChunk() — see audio package note for teammate.
+   * Returns a no-op unsubscribe until that method is added to the interface.
+   */
+  onAudioChunk(callback: (chunk: AudioFeatureChunk) => void): () => void {
+    if (!this.audioPipeline) {
+      throw new Error('Cannot subscribe to audio chunks: no IAudioPipeline configured.');
+    }
+    const pipeline = this.audioPipeline as IAudioPipeline & {
+      onChunk?: (cb: (chunk: AudioFeatureChunk) => void) => () => void;
+    };
+    return pipeline.onChunk?.(callback) ?? (() => {});
+  }
+
+  /**
+   * Returns the current health snapshot of the audio pipeline.
+   * Returns a zeroed-out health object if no pipeline is configured.
+   */
+  getAudioHealth(): PipelineHealth {
+    if (!this.audioPipeline) {
+      return {
+        sessionId: '',
+        pipeline: 'audio',
+        available: false,
+        fps: null,
+        snr: null,
+        faceDetected: null,
+        lastUpdatedMs: 0,
+      };
+    }
+    return this.audioPipeline.getHealth();
+  }
+
+  /**
+   * Returns the current health snapshot of the video pipeline.
+   * Returns a zeroed-out health object if no pipeline is configured.
+   */
+  getVideoHealth(): PipelineHealth {
+    if (!this.videoPipeline) {
+      return {
+        sessionId: '',
+        pipeline: 'video',
+        available: false,
+        fps: null,
+        snr: null,
+        faceDetected: null,
+        lastUpdatedMs: 0,
+      };
+    }
+    return this.videoPipeline.getHealth();
   }
 
   /** True if microphone permission was granted and `activateMicrophone()` succeeded. */
@@ -106,7 +200,7 @@ export class DeviceManager {
     return this.micAvailable;
   }
 
-  /** True if camera is ready. Always false until the video pipeline is implemented. */
+  /** True if camera permission was granted and `activateCamera()` succeeded. */
   isCameraAvailable(): boolean {
     return this.cameraAvailable;
   }
