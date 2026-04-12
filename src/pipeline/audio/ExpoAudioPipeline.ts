@@ -1,7 +1,10 @@
 import { Audio } from 'expo-av';
 
 import type { PipelineHealth } from '../../common/models';
-import type { IAudioPipeline, MFCCFrame } from './AudioPipeline';
+import type { TransmissionManager } from '../../transmission/TransmissionManager';
+import type { IAudioPipeline, MFCCFrame, RawAudioHandle } from './AudioPipeline';
+import { AudioChunker } from './AudioChunker';
+import type { SensitivityLevel } from './VoiceActivityDetector';
 
 const FRAME_INTERVAL_MS = 25; // 40 Hz frame rate
 const NUM_MFCC_COEFFICIENTS = 13;
@@ -11,6 +14,10 @@ const NOISE_FLOOR_DBFS = -60; // assumed noise floor for SNR estimation
  * Concrete implementation of IAudioPipeline for Expo (React Native) environments.
  *
  * Uses expo-av for microphone capture and Android/iOS permission management.
+ *
+ * Owns an internal AudioChunker that batches MFCC frames through VAD +
+ * feature extraction; completed chunks are pushed directly to the
+ * TransmissionManager supplied at `start()` time, matching LLD §3.2.3.
  *
  * MFCC extraction is a placeholder based on expo-av's dBFS metering values;
  * it will be replaced with a proper Mel filterbank + DCT computation once raw
@@ -27,12 +34,24 @@ export class ExpoAudioPipeline implements IAudioPipeline {
 
   private recording: Audio.Recording | null = null;
   private frameTimer: ReturnType<typeof setInterval> | null = null;
-  private listeners = new Set<(frame: MFCCFrame) => void>();
+  private frameListeners = new Set<(frame: MFCCFrame) => void>();
 
   /** Most recent dBFS metering value from expo-av status updates. */
   private lastMeteringDbfs = NOISE_FLOOR_DBFS;
 
-  async start(sessionId: string): Promise<void> {
+  private readonly chunker: AudioChunker;
+  private tx: TransmissionManager | null = null;
+  private unsubscribeChunker: (() => void) | null = null;
+
+  constructor(chunker: AudioChunker = new AudioChunker()) {
+    this.chunker = chunker;
+  }
+
+  async start(
+    sessionId: string,
+    _micHandle: RawAudioHandle = {},
+    tx?: TransmissionManager,
+  ): Promise<void> {
     if (this.available || this.paused) return;
 
     await Audio.setAudioModeAsync({
@@ -57,6 +76,12 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     this.sessionStartMs = Date.now();
     this.available = true;
     this.paused = false;
+    this.tx = tx ?? null;
+
+    this.chunker.start(sessionId);
+    this.unsubscribeChunker = this.chunker.onChunk((chunk) => {
+      this.tx?.sendFeatures(chunk);
+    });
 
     this._startFrameTimer();
   }
@@ -80,7 +105,11 @@ export class ExpoAudioPipeline implements IAudioPipeline {
 
   stop(): void {
     this._stopFrameTimer();
-    this.listeners.clear();
+    this.frameListeners.clear();
+    this.unsubscribeChunker?.();
+    this.unsubscribeChunker = null;
+    this.chunker.stop();
+    this.tx = null;
     this.available = false;
     this.paused = false;
     this.sessionId = '';
@@ -104,8 +133,12 @@ export class ExpoAudioPipeline implements IAudioPipeline {
   }
 
   onFrame(callback: (frame: MFCCFrame) => void): () => void {
-    this.listeners.add(callback);
-    return () => this.listeners.delete(callback);
+    this.frameListeners.add(callback);
+    return () => this.frameListeners.delete(callback);
+  }
+
+  setVadSensitivity(level: SensitivityLevel): void {
+    this.chunker.getVoiceActivityDetector().setSensitivity(level);
   }
 
   // ---------------------------------------------------------------------------
@@ -117,7 +150,8 @@ export class ExpoAudioPipeline implements IAudioPipeline {
       const frame = this._extractFrame();
       this.lastUpdatedMs = frame.timestampMs;
       this.currentSnr = Math.max(0, this.lastMeteringDbfs - NOISE_FLOOR_DBFS);
-      this.listeners.forEach((cb) => cb(frame));
+      this.chunker.push(frame);
+      this.frameListeners.forEach((cb) => cb(frame));
     }, FRAME_INTERVAL_MS);
   }
 

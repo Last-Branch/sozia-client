@@ -10,8 +10,8 @@
 
 import { Audio } from 'expo-av';
 import { Camera as ExpoCamera } from 'expo-camera';
-import type { AudioFeatureChunk, PipelineHealth } from '../common/models';
-import type { IAudioPipeline } from '../pipeline/audio';
+import type { PipelineHealth } from '../common/models';
+import type { IAudioPipeline, RawAudioHandle, SensitivityLevel } from '../pipeline/audio';
 import type { IVideoPipeline, RawMediaHandle } from '../pipeline/video';
 import type { TransmissionManager } from '../transmission/TransmissionManager';
 import type { IDeviceEnumerator } from './DeviceEnumerator';
@@ -87,15 +87,23 @@ export class DeviceManager {
   /**
    * Starts the audio capture pipeline for the given session.
    * Requires `activateMicrophone()` to have been called and granted first.
+   *
+   * The optional `tx` is forwarded to the pipeline, which pushes assembled
+   * AudioFeatureChunks directly to `tx.sendFeatures()`. DeviceManager does
+   * not hold the chunks itself (dependency rule R5).
    */
-  async startAudioPipeline(sessionId: string): Promise<void> {
+  async startAudioPipeline(
+    sessionId: string,
+    micHandle?: RawAudioHandle,
+    tx?: TransmissionManager,
+  ): Promise<void> {
     if (!this.micAvailable) {
       throw new Error('Cannot start audio pipeline: microphone has not been activated.');
     }
     if (!this.audioPipeline) {
       throw new Error('Cannot start audio pipeline: no IAudioPipeline configured.');
     }
-    await this.audioPipeline.start(sessionId);
+    await this.audioPipeline.start(sessionId, micHandle ?? {}, tx);
   }
 
   /**
@@ -140,21 +148,12 @@ export class DeviceManager {
   }
 
   /**
-   * Subscribes to assembled AudioFeatureChunks from the audio pipeline.
-   * Throws if no audio pipeline is configured.
-   * Returns an unsubscribe function.
-   *
-   * NOTE: Requires IAudioPipeline.onChunk() — see audio package note for teammate.
-   * Returns a no-op unsubscribe until that method is added to the interface.
+   * Applies a VAD sensitivity level to the audio pipeline. No-op when no
+   * audio pipeline is configured. Wired by SessionController after
+   * Configuration.load() resolves.
    */
-  onAudioChunk(callback: (chunk: AudioFeatureChunk) => void): () => void {
-    if (!this.audioPipeline) {
-      throw new Error('Cannot subscribe to audio chunks: no IAudioPipeline configured.');
-    }
-    const pipeline = this.audioPipeline as IAudioPipeline & {
-      onChunk?: (cb: (chunk: AudioFeatureChunk) => void) => () => void;
-    };
-    return pipeline.onChunk?.(callback) ?? (() => {});
+  setAudioVadSensitivity(level: SensitivityLevel): void {
+    this.audioPipeline?.setVadSensitivity(level);
   }
 
   /**

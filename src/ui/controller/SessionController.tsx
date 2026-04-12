@@ -8,7 +8,6 @@ import { DeviceManager, ExpoDeviceEnumerator } from '../../device';
 import { TranscriptStore } from '../../store';
 import { TransmissionManager } from '../../transmission';
 import { Configuration, type IConfigurationManager } from '../../config';
-import { AudioChunker } from '../../pipeline/audio';
 import { buildSessionActions } from './sessionActions';
 
 export type SessionControllerValue = {
@@ -75,21 +74,16 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
   const store = useMemo(() => new TranscriptStore(), []);
 
-  const deviceManager = useRef(new DeviceManager(new ExpoDeviceEnumerator(), new ExpoAudioPipeline(), new VideoPipeline()));
-  // TODO(audio-team): This chunker ref is used solely to propagate vadSensitivity from Configuration
-  // on mount. It should be removed once IAudioPipeline exposes getVoiceActivityDetector() directly,
-  // at which point deviceManager.current.getAudioPipeline().getVoiceActivityDetector() is the
-  // correct path. Until then, this standalone instance mirrors the default VAD settings.
-  const audioChunker = useRef(new AudioChunker());
+  const deviceManager = useRef(
+    new DeviceManager(new ExpoDeviceEnumerator(), new ExpoAudioPipeline(), new VideoPipeline()),
+  );
   const config = useRef<IConfigurationManager>(new Configuration());
   const transmissionManager = useRef<TransmissionManager | null>(null);
 
   // Load persisted configuration on mount, then apply settings that gate pipeline behaviour.
   useEffect(() => {
     void config.current.load().then(() => {
-      audioChunker.current
-        .getVoiceActivityDetector()
-        .setSensitivity(config.current.get('vadSensitivity'));
+      deviceManager.current.setAudioVadSensitivity(config.current.get('vadSensitivity'));
     });
   }, []);
 
@@ -142,7 +136,6 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
         const savedMicId = config.current.get('selectedMicId');
         if (savedMicId) deviceManager.current.selectMicrophone(savedMicId);
         await deviceManager.current.activateMicrophone();
-        await deviceManager.current.startAudioPipeline(newSessionId);
       } else if (path === ModalityPath.SIGN) {
         const savedCameraId = config.current.get('selectedCameraId');
         if (savedCameraId) deviceManager.current.selectCamera(savedCameraId);
@@ -159,9 +152,9 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       );
 
       if (path === ModalityPath.SPEECH) {
-        deviceManager.current.onAudioChunk((chunk) => transmissionManager.current?.sendFeatures(chunk));
+        await deviceManager.current.startAudioPipeline(newSessionId, {}, transmissionManager.current);
       } else if (path === ModalityPath.SIGN) {
-        await deviceManager.current.startVideoPipeline(newSessionId, {}, transmissionManager.current ?? undefined);
+        await deviceManager.current.startVideoPipeline(newSessionId, {}, transmissionManager.current);
       }
 
       // Connect in the background — the 50-frame send buffer holds frames

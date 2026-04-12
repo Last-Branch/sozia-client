@@ -12,8 +12,9 @@
  * Test plan reference: TP-CLIENT-AUDIO-001 through TP-CLIENT-AUDIO-008
  */
 
-import type { IAudioPipeline, MFCCFrame } from '../../../src/pipeline/audio';
-import type { PipelineHealth } from '../../../src/common/models';
+import type { IAudioPipeline, MFCCFrame, RawAudioHandle, SensitivityLevel } from '../../../src/pipeline/audio';
+import type { AudioFeatureChunk, PipelineHealth } from '../../../src/common/models';
+import type { TransmissionManager } from '../../../src/transmission/TransmissionManager';
 
 // ---------------------------------------------------------------------------
 // MockAudioPipeline — a minimal, synchronous stand-in used only in tests.
@@ -24,11 +25,18 @@ class MockAudioPipeline implements IAudioPipeline {
   private available = false;
   private lastUpdatedMs = 0;
   private listeners: Set<(frame: MFCCFrame) => void> = new Set();
+  lastStartArgs: { sessionId: string; micHandle: RawAudioHandle; tx: TransmissionManager | undefined } | null = null;
+  lastVadSensitivity: SensitivityLevel | null = null;
 
-  async start(sessionId: string): Promise<void> {
+  async start(
+    sessionId: string,
+    micHandle: RawAudioHandle = {},
+    tx?: TransmissionManager,
+  ): Promise<void> {
     this.sessionId = sessionId;
     this.available = true;
     this.lastUpdatedMs = Date.now();
+    this.lastStartArgs = { sessionId, micHandle, tx };
   }
 
   pause(): void {
@@ -62,10 +70,24 @@ class MockAudioPipeline implements IAudioPipeline {
     return () => this.listeners.delete(callback);
   }
 
+  setVadSensitivity(level: SensitivityLevel): void {
+    this.lastVadSensitivity = level;
+  }
+
   /** Test helper: emit a frame to all registered listeners. */
   _emit(frame: MFCCFrame): void {
     this.listeners.forEach((cb) => cb(frame));
   }
+}
+
+function makeFakeTx(): TransmissionManager & { sent: AudioFeatureChunk[] } {
+  const sent: AudioFeatureChunk[] = [];
+  return {
+    sent,
+    sendFeatures: (features: unknown) => {
+      sent.push(features as AudioFeatureChunk);
+    },
+  } as unknown as TransmissionManager & { sent: AudioFeatureChunk[] };
 }
 
 // ---------------------------------------------------------------------------
@@ -250,5 +272,43 @@ describe('IAudioPipeline.onFrame()', () => {
     pipeline._emit(makeMockFrame());
 
     expect(received).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TP-CLIENT-AUDIO-005: start() accepts micHandle and TransmissionManager
+// ---------------------------------------------------------------------------
+
+describe('IAudioPipeline.start() signature', () => {
+  it('TP-CLIENT-AUDIO-005a: accepts sessionId, micHandle, and tx', async () => {
+    const pipeline = new MockAudioPipeline();
+    const tx = makeFakeTx();
+
+    await pipeline.start('session-xyz', {}, tx);
+
+    expect(pipeline.lastStartArgs?.sessionId).toBe('session-xyz');
+    expect(pipeline.lastStartArgs?.tx).toBe(tx);
+  });
+
+  it('TP-CLIENT-AUDIO-005b: tx is optional (undefined when omitted)', async () => {
+    const pipeline = new MockAudioPipeline();
+
+    await pipeline.start('session-xyz', {});
+
+    expect(pipeline.lastStartArgs?.tx).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TP-CLIENT-AUDIO-006: setVadSensitivity()
+// ---------------------------------------------------------------------------
+
+describe('IAudioPipeline.setVadSensitivity()', () => {
+  it('TP-CLIENT-AUDIO-006a: stores the requested sensitivity level', () => {
+    const pipeline = new MockAudioPipeline();
+
+    pipeline.setVadSensitivity('high');
+
+    expect(pipeline.lastVadSensitivity).toBe('high');
   });
 });

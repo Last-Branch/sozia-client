@@ -1,4 +1,17 @@
 import type { PipelineHealth } from '../../common/models';
+import type { TransmissionManager } from '../../transmission/TransmissionManager';
+import type { SensitivityLevel } from './VoiceActivityDetector';
+
+/**
+ * Opaque platform-specific microphone handle passed into the audio pipeline.
+ *
+ * Mirrors `RawMediaHandle` on the video side — the interface keeps the field
+ * so the signature matches LLD §3.2.3, even though `ExpoAudioPipeline` does
+ * not use it (expo-av manages the microphone internally via its own Recording
+ * instance). Present for symmetry and for future native modules that do need
+ * a concrete handle.
+ */
+export type RawAudioHandle = Record<string, never>;
 
 /**
  * A single frame of extracted audio features, produced by the audio pipeline
@@ -38,9 +51,18 @@ export interface IAudioPipeline {
    * Resolves once the pipeline is ready to emit frames.
    * Rejects if the device is unavailable.
    *
+   * Assembled `AudioFeatureChunk`s are pushed directly to `tx.sendFeatures()`
+   * as soon as they are produced. Frames are exposed separately via `onFrame`
+   * for local telemetry and testing.
+   *
    * @param sessionId - UUID v4 of the active session.
+   * @param micHandle - Platform-specific microphone handle. Empty object on
+   *   Expo — kept for symmetry with `IVideoPipeline.start`.
+   * @param tx - Optional transmission manager. When provided, completed chunks
+   *   are forwarded to `tx.sendFeatures(chunk)` without an intermediate
+   *   listener. Omit in tests that only need the frame stream.
    */
-  start(sessionId: string): Promise<void>;
+  start(sessionId: string, micHandle: RawAudioHandle, tx?: TransmissionManager): Promise<void>;
 
   /**
    * Suspend frame emission without releasing the microphone.
@@ -73,4 +95,16 @@ export interface IAudioPipeline {
    * Multiple listeners may be registered simultaneously.
    */
   onFrame(callback: (frame: MFCCFrame) => void): () => void;
+
+  /**
+   * Adjust the sensitivity of the internal Voice Activity Detector.
+   *
+   * LLD deviation: §3.2.3 does not expose VAD configuration on the public
+   * pipeline interface. It lives here because `Configuration.load()` is
+   * async — the initial sensitivity has to be applied after pipeline
+   * construction, and routing it through the pipeline is the only way to
+   * reach the VAD without re-introducing an external chunker/VAD ref in
+   * `SessionController` (which §3.2.1 does not permit).
+   */
+  setVadSensitivity(level: SensitivityLevel): void;
 }
