@@ -9,8 +9,7 @@ export function PermissionsScreen({ onNext, onBack }: { onNext: () => void; onBa
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
-      <View className="flex-1 w-full items-center justify-center p-4">
-        <View className="w-full flex-1 max-h-[1000px] max-w-sm overflow-hidden rounded-[40px] border-[12px] border-gray-800 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl">
+      <View className="flex-1 w-full bg-white dark:bg-gray-800">
           <ScrollView
             className="flex-1 w-full"
             contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 32, paddingVertical: 40 }}
@@ -82,7 +81,6 @@ export function PermissionsScreen({ onNext, onBack }: { onNext: () => void; onBa
             </TouchableOpacity>
           </ScrollView>
         </View>
-      </View>
     </SafeAreaView>
   );
 }
