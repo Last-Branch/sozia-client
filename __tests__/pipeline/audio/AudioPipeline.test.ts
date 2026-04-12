@@ -9,7 +9,7 @@
  * correct and complete. They serve as the acceptance baseline for any
  * concrete implementation (e.g. ExpoAudioPipeline) that ships later.
  *
- * Test plan reference: TP-CLIENT-AUDIO-001 through TP-CLIENT-AUDIO-008
+ * Test plan reference: TP-CLIENT-AUDIO-001 through TP-CLIENT-AUDIO-007
  */
 
 import type { IAudioPipeline, MFCCFrame, RawAudioHandle, SensitivityLevel } from '../../../src/pipeline/audio';
@@ -310,5 +310,23 @@ describe('IAudioPipeline.setVadSensitivity()', () => {
     pipeline.setVadSensitivity('high');
 
     expect(pipeline.lastVadSensitivity).toBe('high');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TP-CLIENT-AUDIO-007: RecordingPresets shape guard
+// ---------------------------------------------------------------------------
+
+describe('RecordingPresets.HIGH_QUALITY shape', () => {
+  it('TP-CLIENT-AUDIO-007a: has the top-level keys flattenRecordingOptions depends on', () => {
+    // Read the declaration source to verify the RecordingOptions shape hasn't changed.
+    // Direct require() of expo-audio fails under Jest (ESM), so we inspect the .d.ts.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fs = jest.requireActual<any>('fs');
+    const typeDef = fs.readFileSync('node_modules/expo-audio/build/RecordingConstants.d.ts', 'utf8') as string;
+
+    for (const key of ['extension', 'sampleRate', 'numberOfChannels', 'bitRate', 'ios', 'android', 'web']) {
+      expect(typeDef).toContain(key);
+    }
   });
 });

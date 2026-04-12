@@ -7,7 +7,7 @@ import type { SensitivityLevel } from './VoiceActivityDetector';
  *
  * Mirrors `RawMediaHandle` on the video side — the interface keeps the field
  * so the signature matches LLD §3.2.3, even though `ExpoAudioPipeline` does
- * not use it (expo-av manages the microphone internally via its own Recording
+ * not use it (expo-audio manages the microphone internally via its own AudioRecorder
  * instance). Present for symmetry and for future native modules that do need
  * a concrete handle.
  */
