@@ -8,7 +8,7 @@
  * permissions and delegates capture to the pipeline instances it holds.
  */
 
-import { Audio } from 'expo-av';
+import { requestRecordingPermissionsAsync } from 'expo-audio';
 import { Camera as ExpoCamera } from 'expo-camera';
 import type { PipelineHealth } from '../common/models';
 import type { IAudioPipeline, RawAudioHandle, SensitivityLevel } from '../pipeline/audio';
@@ -58,7 +58,7 @@ export class DeviceManager {
    * Throws with an actionable message if permission is denied.
    */
   async activateMicrophone(): Promise<void> {
-    const { granted } = await Audio.requestPermissionsAsync();
+    const { granted } = await requestRecordingPermissionsAsync();
     if (!granted) {
       this.micAvailable = false;
       throw new Error(

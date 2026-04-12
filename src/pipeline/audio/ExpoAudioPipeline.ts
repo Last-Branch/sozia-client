@@ -1,4 +1,11 @@
-import { Audio } from 'expo-av';
+import {
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+  type AudioRecorder,
+  type RecordingOptions,
+} from 'expo-audio';
+import { Platform } from 'react-native';
 
 import type { PipelineHealth } from '../../common/models';
 import type { TransmissionManager } from '../../transmission/TransmissionManager';
@@ -11,18 +18,38 @@ const NUM_MFCC_COEFFICIENTS = 13;
 const NOISE_FLOOR_DBFS = -60; // assumed noise floor for SNR estimation
 
 /**
+ * Flattens a cross-platform `RecordingOptions` object into the platform-specific
+ * shape the native `AudioRecorder` constructor expects.
+ *
+ * Mirrors `expo-audio`'s internal `createRecordingOptions` helper — the hook
+ * (`useAudioRecorder`) runs this before calling `new AudioRecorder(...)`. We
+ * can't use the hook from a plain class, so we replicate the flattening
+ * inline rather than reach into `expo-audio/utils/options` (private path).
+ */
+function flattenRecordingOptions(options: RecordingOptions): Record<string, unknown> {
+  const common = {
+    extension: options.extension,
+    sampleRate: options.sampleRate,
+    numberOfChannels: options.numberOfChannels,
+    bitRate: options.bitRate,
+    isMeteringEnabled: options.isMeteringEnabled ?? false,
+  };
+  if (Platform.OS === 'ios') return { ...common, ...options.ios };
+  if (Platform.OS === 'android') return { ...common, ...options.android };
+  return { ...common, ...options.web };
+}
+
+/**
  * Concrete implementation of IAudioPipeline for Expo (React Native) environments.
  *
- * Uses expo-av for microphone capture and Android/iOS permission management.
+ * Uses `expo-audio` for microphone capture. Owns an internal AudioChunker that
+ * batches MFCC frames through VAD + feature extraction; completed chunks are
+ * pushed directly to the TransmissionManager supplied at `start()` time,
+ * matching LLD §3.2.3.
  *
- * Owns an internal AudioChunker that batches MFCC frames through VAD +
- * feature extraction; completed chunks are pushed directly to the
- * TransmissionManager supplied at `start()` time, matching LLD §3.2.3.
- *
- * MFCC extraction is a placeholder based on expo-av's dBFS metering values;
+ * MFCC extraction is a placeholder based on expo-audio's dBFS metering values;
  * it will be replaced with a proper Mel filterbank + DCT computation once raw
- * PCM sample buffers are accessible (expo-av does not expose PCM in managed
- * workflow). See `_placeholderMfcc()` for details.
+ * PCM sample buffers are accessible. See `_placeholderMfcc()` for details.
  */
 export class ExpoAudioPipeline implements IAudioPipeline {
   private sessionId = '';
@@ -32,11 +59,11 @@ export class ExpoAudioPipeline implements IAudioPipeline {
   private lastUpdatedMs = 0;
   private currentSnr: number | null = null;
 
-  private recording: Audio.Recording | null = null;
+  private recorder: AudioRecorder | null = null;
   private frameTimer: ReturnType<typeof setInterval> | null = null;
   private frameListeners = new Set<(frame: MFCCFrame) => void>();
 
-  /** Most recent dBFS metering value from expo-av status updates. */
+  /** Most recent dBFS metering value polled from the recorder. */
   private lastMeteringDbfs = NOISE_FLOOR_DBFS;
 
   private readonly chunker: AudioChunker;
@@ -54,24 +81,20 @@ export class ExpoAudioPipeline implements IAudioPipeline {
   ): Promise<void> {
     if (this.available || this.paused) return;
 
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: true,
-      playsInSilentModeIOS: true,
+    await setAudioModeAsync({
+      allowsRecording: true,
+      playsInSilentMode: true,
     });
 
-    const { recording } = await Audio.Recording.createAsync({
-      ...Audio.RecordingOptionsPresets.HIGH_QUALITY,
+    const options = flattenRecordingOptions({
+      ...RecordingPresets.HIGH_QUALITY,
       isMeteringEnabled: true,
     });
+    const recorder = new AudioModule.AudioRecorder(options);
+    await recorder.prepareToRecordAsync();
+    recorder.record();
 
-    recording.setOnRecordingStatusUpdate((status) => {
-      if (status.metering != null) {
-        this.lastMeteringDbfs = status.metering;
-      }
-    });
-    recording.setProgressUpdateInterval(FRAME_INTERVAL_MS);
-
-    this.recording = recording;
+    this.recorder = recorder;
     this.sessionId = sessionId;
     this.sessionStartMs = Date.now();
     this.available = true;
@@ -91,15 +114,15 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     this.paused = true;
     this.available = false;
     this._stopFrameTimer();
-    this.recording?.pauseAsync().catch(() => {});
+    this.recorder?.pause();
   }
 
   resume(): void {
     if (!this.paused) return;
     this.paused = false;
     this.available = true;
-    // expo-av: startAsync() resumes a paused recording
-    this.recording?.startAsync().catch(() => {});
+    // expo-audio: record() also resumes a paused recorder.
+    this.recorder?.record();
     this._startFrameTimer();
   }
 
@@ -115,9 +138,9 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     this.sessionId = '';
     this.currentSnr = null;
 
-    const rec = this.recording;
-    this.recording = null;
-    rec?.stopAndUnloadAsync().catch(() => {});
+    const rec = this.recorder;
+    this.recorder = null;
+    rec?.stop().catch(() => {});
   }
 
   getHealth(): PipelineHealth {
@@ -147,6 +170,12 @@ export class ExpoAudioPipeline implements IAudioPipeline {
 
   private _startFrameTimer(): void {
     this.frameTimer = setInterval(() => {
+      if (this.recorder) {
+        const status = this.recorder.getStatus();
+        if (typeof status.metering === 'number') {
+          this.lastMeteringDbfs = status.metering;
+        }
+      }
       const frame = this._extractFrame();
       this.lastUpdatedMs = frame.timestampMs;
       this.currentSnr = Math.max(0, this.lastMeteringDbfs - NOISE_FLOOR_DBFS);
@@ -178,9 +207,9 @@ export class ExpoAudioPipeline implements IAudioPipeline {
    * via a deterministic cosine transform of a flat log-Mel spectrum.
    *
    * PLACEHOLDER — must be replaced with a proper Mel filterbank + DCT pipeline
-   * once expo-av (or an alternative module) exposes raw PCM sample buffers.
-   * The output satisfies the MFCCFrame contract (13 finite floats) and enables
-   * full pipeline wiring and device-level testing without PCM access.
+   * once raw PCM sample buffers are accessible. The output satisfies the
+   * MFCCFrame contract (13 finite floats) and enables full pipeline wiring
+   * and device-level testing without PCM access.
    */
   private _placeholderMfcc(linearEnergy: number): number[] {
     const logEnergy = Math.log(linearEnergy + 1e-10);

@@ -11,10 +11,8 @@
  * Test plan reference: TP-CLIENT-DEVICE-001 through TP-CLIENT-DEVICE-008
  */
 
-jest.mock('expo-av', () => ({
-  Audio: {
-    requestPermissionsAsync: jest.fn(),
-  },
+jest.mock('expo-audio', () => ({
+  requestRecordingPermissionsAsync: jest.fn(),
 }));
 
 jest.mock('expo-camera', () => ({
@@ -23,7 +21,7 @@ jest.mock('expo-camera', () => ({
   },
 }));
 
-import { Audio } from 'expo-av';
+import { requestRecordingPermissionsAsync } from 'expo-audio';
 import { Camera as ExpoCamera } from 'expo-camera';
 import { DeviceManager } from '../../src/device/DeviceManager';
 import type { IDeviceEnumerator } from '../../src/device/DeviceEnumerator';
@@ -38,7 +36,7 @@ import type { IVideoPipeline, RawMediaHandle } from '../../src/pipeline/video';
 import type { PipelineHealth } from '../../src/common/models';
 import type { TransmissionManager } from '../../src/transmission/TransmissionManager';
 
-const mockRequestPermissions = Audio.requestPermissionsAsync as jest.Mock;
+const mockRequestPermissions = requestRecordingPermissionsAsync as jest.Mock;
 const mockRequestCameraPermissions = ExpoCamera.requestCameraPermissionsAsync as jest.Mock;
 
 // ---------------------------------------------------------------------------

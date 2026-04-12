@@ -18,7 +18,7 @@ export interface IDeviceEnumerator {
    * Registers a callback that fires whenever the set of available devices
    * changes (e.g. a headset is plugged in or removed).
    * On native platforms this is a no-op — device changes are rare and not
-   * exposed by expo-av.
+   * exposed by expo-audio.
    *
    * Returns a cleanup function that removes the listener.
    */
@@ -29,7 +29,7 @@ export interface IDeviceEnumerator {
  * Concrete enumerator that works on both web and React Native (Expo) targets.
  *
  * - **Web**: delegates to `navigator.mediaDevices.enumerateDevices()`.
- * - **Native (iOS / Android)**: expo-av does not expose device enumeration;
+ * - **Native (iOS / Android)**: expo-audio does not expose device enumeration;
  *   returns two synthetic default entries so the rest of the system can
  *   operate without branching.
  */
