@@ -8,7 +8,7 @@
  * Uses mock IDeviceEnumerator and mock IAudioPipeline to verify DeviceManager
  * behaviour in isolation. ExpoDeviceEnumerator is excluded (requires platform APIs).
  *
- * Test plan reference: TP-CLIENT-DEVICE-001 through TP-CLIENT-DEVICE-008
+ * Test plan reference: TP-CLIENT-DEVICE-001 through TP-CLIENT-DEVICE-010
  */
 
 jest.mock('expo-audio', () => ({
@@ -413,40 +413,6 @@ describe('DeviceManager.startVideoPipeline()', () => {
 });
 
 // ---------------------------------------------------------------------------
-// TP-CLIENT-DEVICE-009: getVideoHealth()
-// ---------------------------------------------------------------------------
-
-describe('DeviceManager.getVideoHealth()', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockRequestCameraPermissions.mockResolvedValue({ granted: true, status: 'granted' });
-  });
-
-  it('TP-CLIENT-DEVICE-009a: returns a zeroed health object when no video pipeline is configured', () => {
-    const manager = new DeviceManager(new MockDeviceEnumerator());
-
-    const health = manager.getVideoHealth();
-
-    expect(health.pipeline).toBe('video');
-    expect(health.available).toBe(false);
-    expect(health.sessionId).toBe('');
-  });
-
-  it('TP-CLIENT-DEVICE-009b: delegates to videoPipeline.getHealth() when configured', async () => {
-    const pipeline = new MockVideoPipeline();
-    const manager = new DeviceManager(new MockDeviceEnumerator(), null, pipeline);
-    await manager.activateCamera();
-    await manager.startVideoPipeline('sess-health');
-
-    const health = manager.getVideoHealth();
-
-    expect(health.pipeline).toBe('video');
-    expect(health.sessionId).toBe('sess-health');
-    expect(health.available).toBe(true);
-  });
-});
-
-// ---------------------------------------------------------------------------
 // TP-CLIENT-DEVICE-007: stopAllPipelines()
 // ---------------------------------------------------------------------------
 
@@ -485,6 +451,60 @@ describe('DeviceManager.stopAllPipelines()', () => {
 });
 
 // ---------------------------------------------------------------------------
+// TP-CLIENT-DEVICE-008: DeviceHandle shape
+// ---------------------------------------------------------------------------
+
+describe('DeviceHandle', () => {
+  it('TP-CLIENT-DEVICE-008a: has deviceId, label, kind, and isDefault fields', () => {
+    const device = makeAudioDevice();
+
+    expect(typeof device.deviceId).toBe('string');
+    expect(typeof device.label).toBe('string');
+    expect(device.kind === 'audioinput' || device.kind === 'videoinput').toBe(true);
+    expect(typeof device.isDefault).toBe('boolean');
+  });
+
+  it('TP-CLIENT-DEVICE-008b: kind discriminates audioinput from videoinput', () => {
+    expect(makeAudioDevice().kind).toBe('audioinput');
+    expect(makeVideoDevice().kind).toBe('videoinput');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// TP-CLIENT-DEVICE-009: getVideoHealth()
+// ---------------------------------------------------------------------------
+
+describe('DeviceManager.getVideoHealth()', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRequestCameraPermissions.mockResolvedValue({ granted: true, status: 'granted' });
+  });
+
+  it('TP-CLIENT-DEVICE-009a: returns a zeroed health object when no video pipeline is configured', () => {
+    const manager = new DeviceManager(new MockDeviceEnumerator());
+
+    const health = manager.getVideoHealth();
+
+    expect(health.pipeline).toBe('video');
+    expect(health.available).toBe(false);
+    expect(health.sessionId).toBe('');
+  });
+
+  it('TP-CLIENT-DEVICE-009b: delegates to videoPipeline.getHealth() when configured', async () => {
+    const pipeline = new MockVideoPipeline();
+    const manager = new DeviceManager(new MockDeviceEnumerator(), null, pipeline);
+    await manager.activateCamera();
+    await manager.startVideoPipeline('sess-health');
+
+    const health = manager.getVideoHealth();
+
+    expect(health.pipeline).toBe('video');
+    expect(health.sessionId).toBe('sess-health');
+    expect(health.available).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // TP-CLIENT-DEVICE-010: setAudioVadSensitivity()
 // ---------------------------------------------------------------------------
 
@@ -502,25 +522,5 @@ describe('DeviceManager.setAudioVadSensitivity()', () => {
     const manager = new DeviceManager(new MockDeviceEnumerator());
 
     expect(() => manager.setAudioVadSensitivity('low')).not.toThrow();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// TP-CLIENT-DEVICE-008: DeviceHandle shape
-// ---------------------------------------------------------------------------
-
-describe('DeviceHandle', () => {
-  it('TP-CLIENT-DEVICE-008a: has deviceId, label, kind, and isDefault fields', () => {
-    const device = makeAudioDevice();
-
-    expect(typeof device.deviceId).toBe('string');
-    expect(typeof device.label).toBe('string');
-    expect(device.kind === 'audioinput' || device.kind === 'videoinput').toBe(true);
-    expect(typeof device.isDefault).toBe('boolean');
-  });
-
-  it('TP-CLIENT-DEVICE-008b: kind discriminates audioinput from videoinput', () => {
-    expect(makeAudioDevice().kind).toBe('audioinput');
-    expect(makeVideoDevice().kind).toBe('videoinput');
   });
 });

@@ -17,15 +17,8 @@ const FRAME_INTERVAL_MS = 25; // 40 Hz frame rate
 const NUM_MFCC_COEFFICIENTS = 13;
 const NOISE_FLOOR_DBFS = -60; // assumed noise floor for SNR estimation
 
-/**
- * Flattens a cross-platform `RecordingOptions` object into the platform-specific
- * shape the native `AudioRecorder` constructor expects.
- *
- * Mirrors `expo-audio`'s internal `createRecordingOptions` helper — the hook
- * (`useAudioRecorder`) runs this before calling `new AudioRecorder(...)`. We
- * can't use the hook from a plain class, so we replicate the flattening
- * inline rather than reach into `expo-audio/utils/options` (private path).
- */
+// Mirrors expo-audio@1.1.x internal `createRecordingOptions`. Revisit on upgrade.
+// See TP-CLIENT-AUDIO-007 for shape assertion.
 function flattenRecordingOptions(options: RecordingOptions): Record<string, unknown> {
   const common = {
     extension: options.extension,
@@ -140,7 +133,12 @@ export class ExpoAudioPipeline implements IAudioPipeline {
 
     const rec = this.recorder;
     this.recorder = null;
-    rec?.stop().catch(() => {});
+    rec
+      ?.stop()
+      .then(() => setAudioModeAsync({ allowsRecording: false }))
+      .catch((err: unknown) => {
+        console.warn('[ExpoAudioPipeline] stop cleanup failed:', err);
+      });
   }
 
   getHealth(): PipelineHealth {
