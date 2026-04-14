@@ -32,6 +32,8 @@
       "privacy": "Gizliliğiniz önemlidir. ",
       "privacyDesc": "Tüm işlemler cihazınızda gerçekleşir. Hiçbir video veya ses saklanmaz veya iletilmez.",
       "allowAccess": "Erişim İzni Ver",
+      "requestingAccess": "Erişim isteniyor...",
+      "permissionError": "Devam etmek için kamera ve mikrofon erişimi gereklidir.",
       "skip": "Şimdilik atla",
       "back": "Geri"
     },

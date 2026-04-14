@@ -1,4 +1,6 @@
-import React from 'react';
+import { requestRecordingPermissionsAsync } from 'expo-audio';
+import { Camera as ExpoCamera } from 'expo-camera';
+import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, MessageCircle, Mic } from 'lucide-react-native';
@@ -6,6 +8,31 @@ import { useLanguage } from '../context/LanguageContext';
 
 export function PermissionsScreen({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const { t } = useLanguage();
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+
+  const handleAllowAccess = async () => {
+    if (isRequesting) return;
+
+    setIsRequesting(true);
+    setPermissionError(null);
+
+    try {
+      const cameraPermission = await ExpoCamera.requestCameraPermissionsAsync();
+      const microphonePermission = await requestRecordingPermissionsAsync();
+
+      if (!cameraPermission.granted || !microphonePermission.granted) {
+        setPermissionError(t('permissions.permissionError'));
+        return;
+      }
+
+      onNext();
+    } catch {
+      setPermissionError(t('permissions.permissionError'));
+    } finally {
+      setIsRequesting(false);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
@@ -57,12 +84,25 @@ export function PermissionsScreen({ onNext, onBack }: { onNext: () => void; onBa
               </Text>
             </View>
 
+            {permissionError && (
+              <View className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900/50 dark:bg-red-950/40">
+                <Text className="text-center text-sm text-red-700 dark:text-red-300">
+                  {permissionError}
+                </Text>
+              </View>
+            )}
+
             <TouchableOpacity
-              className="mb-3 h-14 w-full items-center justify-center rounded-2xl bg-[#2ECC71] shadow-xl"
-              onPress={onNext}
+              className={`mb-3 h-14 w-full items-center justify-center rounded-2xl bg-[#2ECC71] shadow-xl ${isRequesting ? 'opacity-70' : ''}`}
+              onPress={() => {
+                void handleAllowAccess();
+              }}
               activeOpacity={0.9}
+              disabled={isRequesting}
             >
-              <Text className="text-base font-bold text-white">{t('permissions.allowAccess')}</Text>
+              <Text className="text-base font-bold text-white">
+                {isRequesting ? t('permissions.requestingAccess') : t('permissions.allowAccess')}
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               className="h-10 w-full items-center justify-center"

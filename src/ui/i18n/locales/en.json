@@ -32,6 +32,8 @@
       "privacy": "Your privacy matters. ",
       "privacyDesc": "All processing happens on your device. No video or audio is stored or transmitted.",
       "allowAccess": "Allow Access",
+      "requestingAccess": "Requesting access...",
+      "permissionError": "Camera and microphone access are required to continue.",
       "skip": "Skip for now",
       "back": "Back"
     },
