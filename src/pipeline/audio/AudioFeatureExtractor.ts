@@ -1,15 +1,6 @@
+import type { FeatureExtractor } from '../../common/interfaces';
 import type { AudioFeatureChunk } from '../../common/models';
 import type { MFCCFrame } from './AudioPipeline';
-
-/**
- * Contract for any feature extraction stage in the pipeline.
- * Each implementation converts raw input into a typed feature chunk
- * suitable for transmission.
- */
-export interface FeatureExtractor<TInput, TOutput> {
-  extract(rawInput: TInput): TOutput | null;
-  isReady(): boolean;
-}
 
 /**
  * Converts a batch of MFCCFrames into an AudioFeatureChunk ready for

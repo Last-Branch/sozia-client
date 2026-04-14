@@ -5,6 +5,7 @@
  * remain local to the video pipeline package.
  */
 
+import type { FeatureExtractor } from '../../common/interfaces';
 import type { LandmarkFrame } from '../../common/models';
 
 /** Opaque raw frame payload captured from the camera runtime. */
@@ -39,7 +40,7 @@ export class NullLandmarkBackend implements LandmarkExtractionBackend {
 /**
  * Wrapper around a concrete landmark backend.
  */
-export class LandmarkExtractor {
+export class LandmarkExtractor implements FeatureExtractor<RawVideoFrame, LandmarkFrame> {
   private readonly backend: LandmarkExtractionBackend;
 
   constructor(backend: LandmarkExtractionBackend = new NullLandmarkBackend()) {

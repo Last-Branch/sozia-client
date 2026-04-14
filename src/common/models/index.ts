@@ -79,6 +79,18 @@ export interface AudioFeatureChunk {
   chunkDurationMs: number;
 }
 
+/** Configuration payload for loading a concrete model implementation (LLD UML DTO). */
+export interface ModelConfig {
+  /** Stable identifier such as `whisper-small-tr` or `gemma-9b-gloss-tr`. */
+  model_id: string;
+  /** Filesystem or remote path to the model weights/artifact. */
+  weights_path: string;
+  /** Compute device. Server validation constrains this to values such as `cpu` or `cuda`. */
+  device: string;
+  /** Engine-specific parameters mirrored from the server-side dataclass. */
+  params: Record<string, unknown>;
+}
+
 /** Output of a single inference engine (LLD §3.1.2). Server-side, consumed by FusionOrchestrator. */
 export interface ModalityResult {
   modalityType: ModalityType;
