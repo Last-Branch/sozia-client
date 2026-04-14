@@ -24,7 +24,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
   const [cameraMountError, setCameraMountError] = useState<string | null>(null);
 
   const baseFontSize = (textSize / 100) * 30;
-  const shouldShowLiveCamera = activePath === ModalityPath.SIGN;
+  const shouldShowLiveCamera = activePath === ModalityPath.SIGN || activePath === ModalityPath.SPEECH;
 
   // Demo mode: MockTranscriptSource (dev-only, dynamically imported)
   const [demoActive, setDemoActive] = useState(false);
