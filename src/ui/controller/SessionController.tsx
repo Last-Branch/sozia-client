@@ -132,14 +132,14 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       setSessionId(newSessionId);
       setActivePath(path);
 
+      const savedCameraId = config.current.get('selectedCameraId');
+      if (savedCameraId) deviceManager.current.selectCamera(savedCameraId);
+      await deviceManager.current.activateCamera();
+
       if (path === ModalityPath.SPEECH) {
         const savedMicId = config.current.get('selectedMicId');
         if (savedMicId) deviceManager.current.selectMicrophone(savedMicId);
         await deviceManager.current.activateMicrophone();
-      } else if (path === ModalityPath.SIGN) {
-        const savedCameraId = config.current.get('selectedCameraId');
-        if (savedCameraId) deviceManager.current.selectCamera(savedCameraId);
-        await deviceManager.current.activateCamera();
       }
 
       const serverUrl = config.current.get('serverUrl') ?? 'ws://localhost:8080';
