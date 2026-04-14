@@ -120,9 +120,9 @@ export function DashboardScreen({
                 disabled={!isIdle}
                 onPress={async () => {
                   if (!isIdle) return;
+                  onOpenLive();
                   try {
                     await startSession(ModalityPath.SPEECH);
-                    onOpenLive();
                   } catch (e: unknown) {
                     if (__DEV__) console.warn('Session start failed (SPEECH)', e);
                   }
@@ -140,9 +140,9 @@ export function DashboardScreen({
                 disabled={!isIdle}
                 onPress={async () => {
                   if (!isIdle) return;
+                  onOpenLive();
                   try {
                     await startSession(ModalityPath.SIGN);
-                    onOpenLive();
                   } catch (e: unknown) {
                     if (__DEV__) console.warn('Session start failed (SIGN)', e);
                   }
