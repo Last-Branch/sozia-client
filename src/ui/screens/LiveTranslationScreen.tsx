@@ -1,3 +1,4 @@
+import { CameraView, type CameraType } from 'expo-camera';
 import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,8 +20,11 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
   const [showSettings, setShowSettings] = useState(false);
   const [textSize, setTextSize] = useState(100);
   const [groupMode, setGroupMode] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<CameraType>('front');
+  const [cameraMountError, setCameraMountError] = useState<string | null>(null);
 
   const baseFontSize = (textSize / 100) * 30;
+  const shouldShowLiveCamera = activePath === ModalityPath.SIGN;
 
   // Demo mode: MockTranscriptSource (dev-only, dynamically imported)
   const [demoActive, setDemoActive] = useState(false);
@@ -47,6 +51,10 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
     };
   }, []);
 
+  useEffect(() => {
+    setCameraMountError(null);
+  }, [cameraFacing, activePath]);
+
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
       <View className="flex-1 w-full bg-black">
@@ -63,8 +71,31 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
           <View className="relative flex-1">
             {/* Camera background */}
             <View className="absolute inset-0 items-center justify-center bg-gray-800">
-              <View className="absolute inset-0 bg-black/40" />
-              <Camera size={48} color="rgba(255,255,255,0.5)" />
+              {shouldShowLiveCamera ? (
+                <>
+                  <CameraView
+                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                    facing={cameraFacing}
+                    mirror={cameraFacing === 'front'}
+                    active={state !== SessionState.PAUSED}
+                    onMountError={(event) => setCameraMountError(event.message)}
+                  />
+                  <View className="absolute inset-0 bg-black/20" />
+                </>
+              ) : (
+                <>
+                  <View className="absolute inset-0 bg-black/40" />
+                  <Camera size={48} color="rgba(255,255,255,0.5)" />
+                </>
+              )}
+
+              {cameraMountError && (
+                <View className="z-10 items-center px-8">
+                  <Text className="text-center text-sm font-semibold text-white">
+                    {t('live.cameraUnavailable')}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Active indicator — sits below the controls row */}
@@ -77,7 +108,14 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
             {/* Controls */}
             <View className="absolute right-6 top-6 z-30 flex-row items-center gap-3">
-              <TouchableOpacity className="h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/60">
+              <TouchableOpacity
+                className={`h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/60 ${shouldShowLiveCamera ? '' : 'opacity-50'}`}
+                disabled={!shouldShowLiveCamera}
+                onPress={() => {
+                  if (!shouldShowLiveCamera) return;
+                  setCameraFacing((current) => (current === 'front' ? 'back' : 'front'));
+                }}
+              >
                 <SwitchCamera size={20} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity

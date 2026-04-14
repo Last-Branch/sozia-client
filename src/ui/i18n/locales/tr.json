@@ -129,6 +129,8 @@
       "session": "Oturum",
       "path": "Yol",
       "waiting": "Dinleniyor…",
+      "cameraPermissionRequired": "Canlı önizlemeyi göstermek için kamera izni gerekiyor.",
+      "cameraUnavailable": "Bu cihazda kamera önizlemesi başlatılamadı.",
       "demo": "Demo",
       "demoDesc": "Transkript akışını simüle et",
       "pause": "Duraklat",

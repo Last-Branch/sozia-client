@@ -129,6 +129,8 @@
       "session": "Session",
       "path": "Path",
       "waiting": "Listening…",
+      "cameraPermissionRequired": "Camera permission is required to show the live preview.",
+      "cameraUnavailable": "Camera preview could not be started on this device.",
       "demo": "Demo",
       "demoDesc": "Simulate transcript flow",
       "pause": "Pause",
