@@ -138,23 +138,33 @@ describe('FeatureSerializer', () => {
 
   describe('sessionInit()', () => {
     it('produces type "session_init"', () => {
-      const result = JSON.parse(serializer.sessionInit('session-1', ModalityPath.SPEECH));
+      const result = JSON.parse(serializer.sessionInit('session-1', ModalityPath.SPEECH, ''));
       expect(result.type).toBe('session_init');
     });
 
     it('includes sessionId', () => {
-      const result = JSON.parse(serializer.sessionInit('session-abc', ModalityPath.SPEECH));
+      const result = JSON.parse(serializer.sessionInit('session-abc', ModalityPath.SPEECH, ''));
       expect(result.sessionId).toBe('session-abc');
     });
 
     it('includes activePath for SPEECH', () => {
-      const result = JSON.parse(serializer.sessionInit('s', ModalityPath.SPEECH));
+      const result = JSON.parse(serializer.sessionInit('s', ModalityPath.SPEECH, ''));
       expect(result.activePath).toBe(ModalityPath.SPEECH);
     });
 
     it('includes activePath for SIGN', () => {
-      const result = JSON.parse(serializer.sessionInit('s', ModalityPath.SIGN));
+      const result = JSON.parse(serializer.sessionInit('s', ModalityPath.SIGN, ''));
       expect(result.activePath).toBe(ModalityPath.SIGN);
+    });
+
+    it('includes api_key in the payload', () => {
+      const result = JSON.parse(serializer.sessionInit('s', ModalityPath.SPEECH, 'my-secret-key'));
+      expect(result.api_key).toBe('my-secret-key');
+    });
+
+    it('includes api_key as empty string when not set', () => {
+      const result = JSON.parse(serializer.sessionInit('s', ModalityPath.SPEECH, ''));
+      expect(result.api_key).toBe('');
     });
   });
 

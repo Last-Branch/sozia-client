@@ -106,8 +106,8 @@ function makeManager(opts: { maxAttempts?: number } = {}): {
 }
 
 /** Connect and await the ready ack — leaves manager in RUNNING state. */
-async function connectManager(manager: TransmissionManager): Promise<FakeWebSocket> {
-  const promise = manager.connect('session-1', ModalityPath.SPEECH);
+async function connectManager(manager: TransmissionManager, apiKey = ''): Promise<FakeWebSocket> {
+  const promise = manager.connect('session-1', ModalityPath.SPEECH, apiKey);
   const ws = FakeWebSocket.lastInstance!;
   ws.simulateOpen();
   ws.simulateReady();
@@ -159,16 +159,16 @@ describe('TransmissionManager', () => {
   describe('connect()', () => {
     it('resolves when server sends ready ack', async () => {
       const { manager } = makeManager();
-      const promise = manager.connect('session-1', ModalityPath.SPEECH);
+      const promise = manager.connect('session-1', ModalityPath.SPEECH, '');
       const ws = FakeWebSocket.lastInstance!;
       ws.simulateOpen();
       ws.simulateReady();
       await expect(promise).resolves.toBeUndefined();
     });
 
-    it('sends session_init with sessionId and activePath on open', async () => {
+    it('sends session_init with sessionId, activePath, and api_key on open', async () => {
       const { manager } = makeManager();
-      const promise = manager.connect('session-1', ModalityPath.SIGN);
+      const promise = manager.connect('session-1', ModalityPath.SIGN, 'test-key');
       const ws = FakeWebSocket.lastInstance!;
       ws.simulateOpen();
 
@@ -176,6 +176,20 @@ describe('TransmissionManager', () => {
       expect(msg.type).toBe('session_init');
       expect(msg.sessionId).toBe('session-1');
       expect(msg.activePath).toBe(ModalityPath.SIGN);
+      expect(msg.api_key).toBe('test-key');
+
+      ws.simulateReady();
+      await promise;
+    });
+
+    it('sends api_key as empty string when not provided', async () => {
+      const { manager } = makeManager();
+      const promise = manager.connect('session-1', ModalityPath.SPEECH, '');
+      const ws = FakeWebSocket.lastInstance!;
+      ws.simulateOpen();
+
+      const msg = JSON.parse(ws.sentMessages[0]);
+      expect(msg.api_key).toBe('');
 
       ws.simulateReady();
       await promise;
@@ -183,7 +197,7 @@ describe('TransmissionManager', () => {
 
     it('rejects after 10 s if server never sends ready', async () => {
       const { manager } = makeManager();
-      const promise = manager.connect('session-1', ModalityPath.SPEECH);
+      const promise = manager.connect('session-1', ModalityPath.SPEECH, '');
       const ws = FakeWebSocket.lastInstance!;
       ws.simulateOpen();
       // No ready ack
@@ -194,21 +208,21 @@ describe('TransmissionManager', () => {
     it('connects to the provided serverUrl', () => {
       const store = new TranscriptStore();
       const manager = new TransmissionManager('wss://custom.host/ws', store, jest.fn());
-      manager.connect('session-1', ModalityPath.SPEECH);
+      manager.connect('session-1', ModalityPath.SPEECH, '');
       expect(FakeWebSocket.lastInstance!.url).toBe('wss://custom.host/ws');
     });
 
     it('rejects immediately when serverUrl is a placeholder like "wss://..."', async () => {
       const store = new TranscriptStore();
       const manager = new TransmissionManager('wss://...', store, jest.fn());
-      await expect(manager.connect('session-1', ModalityPath.SPEECH)).rejects.toThrow('invalid server URL');
+      await expect(manager.connect('session-1', ModalityPath.SPEECH, '')).rejects.toThrow('invalid server URL');
       expect(FakeWebSocket.lastInstance).toBeNull(); // no WebSocket created
     });
 
     it('rejects immediately when serverUrl has no ws:// or wss:// scheme', async () => {
       const store = new TranscriptStore();
       const manager = new TransmissionManager('https://example.com', store, jest.fn());
-      await expect(manager.connect('session-1', ModalityPath.SPEECH)).rejects.toThrow('invalid server URL');
+      await expect(manager.connect('session-1', ModalityPath.SPEECH, '')).rejects.toThrow('invalid server URL');
     });
   });
 
@@ -239,7 +253,7 @@ describe('TransmissionManager', () => {
 
     it('buffers features when not yet connected (socket CONNECTING)', () => {
       const { manager } = makeManager();
-      manager.connect('session-1', ModalityPath.SPEECH);
+      manager.connect('session-1', ModalityPath.SPEECH, '');
       // Socket created but not opened yet
       const ws = FakeWebSocket.lastInstance!;
       expect(ws.readyState).toBe(FakeWebSocket.CONNECTING);
@@ -251,7 +265,7 @@ describe('TransmissionManager', () => {
 
     it('flushes buffered features when ready ack arrives', async () => {
       const { manager } = makeManager();
-      const promise = manager.connect('session-1', ModalityPath.SPEECH);
+      const promise = manager.connect('session-1', ModalityPath.SPEECH, '');
       const ws = FakeWebSocket.lastInstance!;
 
       // Buffer a chunk before the socket is ready
@@ -272,7 +286,7 @@ describe('TransmissionManager', () => {
 
     it('drops the oldest entry when buffer exceeds 200 items', async () => {
       const { manager } = makeManager();
-      const promise = manager.connect('session-1', ModalityPath.SPEECH);
+      const promise = manager.connect('session-1', ModalityPath.SPEECH, '');
       const ws = FakeWebSocket.lastInstance!;
 
       // Push 201 chunks — chunk #0 should be dropped
@@ -355,7 +369,7 @@ describe('TransmissionManager', () => {
       manager.disconnect(); // clears buffer + stops reconnect
 
       // New connect should not flush the old chunk
-      const promise2 = manager.connect('session-2', ModalityPath.SPEECH);
+      const promise2 = manager.connect('session-2', ModalityPath.SPEECH, '');
       const ws2 = FakeWebSocket.lastInstance!;
       ws2.simulateOpen();
       ws2.simulateReady();
@@ -533,6 +547,74 @@ describe('TransmissionManager', () => {
       ws.onmessage?.({ data: JSON.stringify({ type: 'transcript_segment', segmentId: 'seg-1' }) });
 
       expect(store.size).toBe(0);
+    });
+
+    it('routes session_status to onSessionStatus callback', async () => {
+      const onSessionStatus = jest.fn();
+      const store = new TranscriptStore();
+      const manager = new TransmissionManager('wss://test.sozia', store, jest.fn(), 5, onSessionStatus);
+      const ws = await connectManager(manager);
+
+      ws.onmessage?.({
+        data: JSON.stringify({
+          type: 'session_status',
+          session_id: 'session-1',
+          state: 'RUNNING',
+          message: 'Model warm-up complete',
+        }),
+      });
+
+      expect(onSessionStatus).toHaveBeenCalledTimes(1);
+      expect(onSessionStatus).toHaveBeenCalledWith({
+        session_id: 'session-1',
+        state: 'RUNNING',
+        message: 'Model warm-up complete',
+      });
+    });
+
+    it('routes error to onServerError callback', async () => {
+      const onServerError = jest.fn();
+      const store = new TranscriptStore();
+      const manager = new TransmissionManager('wss://test.sozia', store, jest.fn(), 5, undefined, onServerError);
+      const ws = await connectManager(manager);
+
+      ws.onmessage?.({
+        data: JSON.stringify({
+          type: 'error',
+          session_id: 'session-1',
+          code: 4001,
+          message: 'Authentication failed',
+        }),
+      });
+
+      expect(onServerError).toHaveBeenCalledTimes(1);
+      expect(onServerError).toHaveBeenCalledWith({
+        session_id: 'session-1',
+        code: 4001,
+        message: 'Authentication failed',
+      });
+    });
+
+    it('does not throw on session_status when no callback is provided', async () => {
+      const { manager } = makeManager();
+      const ws = await connectManager(manager);
+
+      expect(() => {
+        ws.onmessage?.({
+          data: JSON.stringify({ type: 'session_status', session_id: 'session-1', state: 'RUNNING', message: '' }),
+        });
+      }).not.toThrow();
+    });
+
+    it('does not throw on error when no callback is provided', async () => {
+      const { manager } = makeManager();
+      const ws = await connectManager(manager);
+
+      expect(() => {
+        ws.onmessage?.({
+          data: JSON.stringify({ type: 'error', session_id: 'session-1', code: 4002, message: 'Bad session' }),
+        });
+      }).not.toThrow();
     });
   });
 });
