@@ -81,4 +81,23 @@ describe('Configuration', () => {
 
     expect(cfg.get('defaultPath')).toBe(ModalityPath.SPEECH);
   });
+
+  test('apiKey defaults to empty string', async () => {
+    const s = makeStorage();
+    const cfg = new Configuration(s);
+    await cfg.load();
+
+    expect(cfg.get('apiKey')).toBe('');
+  });
+
+  test('apiKey round-trips through set/get', () => {
+    const s = makeStorage();
+    const cfg = new Configuration(s);
+
+    cfg.set('apiKey', 'sk-test-abc123');
+    expect(cfg.get('apiKey')).toBe('sk-test-abc123');
+
+    const persisted = JSON.parse(s.data[KEY]);
+    expect(persisted.apiKey).toBe('sk-test-abc123');
+  });
 });

@@ -36,8 +36,8 @@ export class FeatureSerializer {
     return JSON.stringify({ type: 'pipeline_health', ...payload });
   }
 
-  sessionInit(sessionId: string, activePath: ModalityPath): string {
-    return JSON.stringify({ type: 'session_init', sessionId, activePath });
+  sessionInit(sessionId: string, activePath: ModalityPath, apiKey: string): string {
+    return JSON.stringify({ type: 'session_init', sessionId, activePath, api_key: apiKey });
   }
 
   sessionEnd(sessionId: string): string {

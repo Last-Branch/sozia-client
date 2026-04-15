@@ -1,4 +1,12 @@
-import type { LandmarkFrame, AudioFeatureChunk, PipelineHealth, ModalityPath } from '@common/models';
+import type {
+  LandmarkFrame,
+  AudioFeatureChunk,
+  PipelineHealth,
+  ModalityPath,
+  SessionState,
+  SessionStatusMessage,
+  ErrorMessage,
+} from '@common/models';
 import type { TranscriptStore } from '@/store/TranscriptStore';
 import { FeatureSerializer } from './FeatureSerializer';
 import { SegmentReceiver } from './SegmentReceiver';
@@ -70,6 +78,8 @@ export class TransmissionManager {
   private readonly store: TranscriptStore;
   private readonly onConnectionLost: () => void;
   private readonly maxReconnectAttempts: number;
+  private readonly onSessionStatus: ((msg: SessionStatusMessage) => void) | undefined;
+  private readonly onServerError: ((msg: ErrorMessage) => void) | undefined;
 
   private readonly serializer = new FeatureSerializer();
   private readonly receiver = new SegmentReceiver();
@@ -77,6 +87,7 @@ export class TransmissionManager {
   private socket: WebSocketInstance | null = null;
   private sessionId: string | null = null;
   private activePath: ModalityPath | null = null;
+  private apiKey: string = '';
 
   private sendBuffer: string[] = [];
   private reconnectAttempts = 0;
@@ -89,18 +100,22 @@ export class TransmissionManager {
     store: TranscriptStore,
     onConnectionLost: () => void,
     maxReconnectAttempts = 5,
+    onSessionStatus?: (msg: SessionStatusMessage) => void,
+    onServerError?: (msg: ErrorMessage) => void,
   ) {
     this.serverUrl = serverUrl;
     this.store = store;
     this.onConnectionLost = onConnectionLost;
     this.maxReconnectAttempts = maxReconnectAttempts;
+    this.onSessionStatus = onSessionStatus;
+    this.onServerError = onServerError;
   }
 
   /**
    * Opens a WebSocket, sends `session_init`, and resolves once the server
    * replies with a `ready` ack. Rejects after 10 s if no ack is received.
    */
-  connect(sessionId: string, activePath: ModalityPath): Promise<void> {
+  connect(sessionId: string, activePath: ModalityPath, apiKey: string): Promise<void> {
     if (!isValidWsUrl(this.serverUrl)) {
       return Promise.reject(
         new Error(`TransmissionManager: invalid server URL "${this.serverUrl}"`)
@@ -108,6 +123,7 @@ export class TransmissionManager {
     }
     this.sessionId = sessionId;
     this.activePath = activePath;
+    this.apiKey = apiKey;
     this.reconnectAttempts = 0;
     return this._openInitialSocket();
   }
@@ -210,7 +226,7 @@ export class TransmissionManager {
    */
   private _attachSocketHandlers(socket: WebSocketInstance): void {
     socket.onopen = () => {
-      this._sendRaw(this.serializer.sessionInit(this.sessionId!, this.activePath!));
+      this._sendRaw(this.serializer.sessionInit(this.sessionId!, this.activePath!, this.apiKey));
       // Buffer is flushed once the server sends "ready" (see _handleMessage).
     };
 
@@ -264,31 +280,53 @@ export class TransmissionManager {
       return;
     }
 
+    let parsed: unknown;
     try {
-      const parsed = JSON.parse(data) as unknown;
-      if (
-        typeof parsed === 'object' &&
-        parsed !== null &&
-        (parsed as Record<string, unknown>)['type'] === 'ready'
-      ) {
-        // Reset on every ready ack, including reconnects.
-        this.reconnectAttempts = 0;
-
-        if (this.readyResolver !== null) {
-          clearTimeout(this.connectTimeout!);
-          this.connectTimeout = null;
-
-          const { resolve } = this.readyResolver;
-          this.readyResolver = null;
-          resolve();
-        }
-
-        // Always flush here — both the initial connect and every reconnect
-        // gate the buffer flush on the server's ready ack.
-        this._flushBuffer();
-      }
+      parsed = JSON.parse(data);
     } catch {
       // Malformed JSON — ignore.
+      return;
+    }
+
+    if (typeof parsed !== 'object' || parsed === null) return;
+
+    const msg = parsed as Record<string, unknown>;
+    const type = msg['type'];
+
+    if (type === 'ready') {
+      // Reset on every ready ack, including reconnects.
+      this.reconnectAttempts = 0;
+
+      if (this.readyResolver !== null) {
+        clearTimeout(this.connectTimeout!);
+        this.connectTimeout = null;
+
+        const { resolve } = this.readyResolver;
+        this.readyResolver = null;
+        resolve();
+      }
+
+      // Always flush here — both the initial connect and every reconnect
+      // gate the buffer flush on the server's ready ack.
+      this._flushBuffer();
+      return;
+    }
+
+    if (type === 'session_status' && this.onSessionStatus !== undefined) {
+      this.onSessionStatus({
+        session_id: msg['session_id'] as string,
+        state: msg['state'] as SessionState,
+        message: msg['message'] as string,
+      });
+      return;
+    }
+
+    if (type === 'error' && this.onServerError !== undefined) {
+      this.onServerError({
+        session_id: msg['session_id'] as string,
+        code: msg['code'] as number,
+        message: msg['message'] as string,
+      });
     }
   }
 

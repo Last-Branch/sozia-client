@@ -35,6 +35,7 @@ function makeConfig(enabled: boolean): IConfigurationManager {
     maxReconnectAttempts: 5,
     diagnosticsEnabled: enabled,
     vadSensitivity: 'medium',
+    apiKey: '',
   };
 
   return {

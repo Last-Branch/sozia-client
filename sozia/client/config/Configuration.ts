@@ -13,6 +13,8 @@ export interface AppConfig {
   maxReconnectAttempts: number;
   diagnosticsEnabled: boolean;
   vadSensitivity: 'low' | 'medium' | 'high';
+  /** API key sent in the `session_init` message (DEV-02). Empty string = no auth. */
+  apiKey: string;
 }
 
 export interface IConfigurationManager {
@@ -40,6 +42,7 @@ const DEFAULT_CONFIG: AppConfig = {
   maxReconnectAttempts: 5,
   diagnosticsEnabled: false,
   vadSensitivity: 'medium',
+  apiKey: '',
 };
 
 function getBrowserStorage(): KeyValueStorage | null {
@@ -82,6 +85,7 @@ function mergeWithDefaults(raw: unknown): AppConfig {
       input.vadSensitivity === 'low' || input.vadSensitivity === 'high'
         ? input.vadSensitivity
         : 'medium',
+    apiKey: typeof input.apiKey === 'string' ? input.apiKey : '',
   };
 }
 
