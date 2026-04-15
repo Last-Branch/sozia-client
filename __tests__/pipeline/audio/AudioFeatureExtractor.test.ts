@@ -8,8 +8,8 @@
  * and null-safety for uninitialised or empty-input scenarios.
  */
 
-import { AudioFeatureExtractor } from '../../../src/pipeline/audio/AudioFeatureExtractor';
-import type { MFCCFrame } from '../../../src/pipeline/audio/AudioPipeline';
+import { AudioFeatureExtractor } from '@/pipeline/audio/AudioFeatureExtractor';
+import type { MFCCFrame } from '@/pipeline/audio/AudioPipeline';
 
 // ---------------------------------------------------------------------------
 // Helpers

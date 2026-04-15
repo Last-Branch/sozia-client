@@ -3,15 +3,15 @@ import React from 'react';
 import { Platform, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-import { LanguageProvider } from './src/ui/context/LanguageContext';
-import { SessionControllerProvider } from './src/ui/controller/SessionController';
-import { DashboardScreen } from './src/ui/screens/DashboardScreen';
-import { HelpScreen } from './src/ui/screens/HelpScreen';
-import { LiveTranslationScreen } from './src/ui/screens/LiveTranslationScreen';
-import { LoginScreen } from './src/ui/screens/LoginScreen';
-import { PermissionsScreen } from './src/ui/screens/PermissionsScreen';
-import { SettingsScreen } from './src/ui/screens/SettingsScreen';
-import { SignUpScreen } from './src/ui/screens/SignUpScreen';
+import { LanguageProvider } from './sozia/client/ui/context/LanguageContext';
+import { SessionControllerProvider } from './sozia/client/ui/controller/SessionController';
+import { DashboardScreen } from './sozia/client/ui/screens/DashboardScreen';
+import { HelpScreen } from './sozia/client/ui/screens/HelpScreen';
+import { LiveTranslationScreen } from './sozia/client/ui/screens/LiveTranslationScreen';
+import { LoginScreen } from './sozia/client/ui/screens/LoginScreen';
+import { PermissionsScreen } from './sozia/client/ui/screens/PermissionsScreen';
+import { SettingsScreen } from './sozia/client/ui/screens/SettingsScreen';
+import { SignUpScreen } from './sozia/client/ui/screens/SignUpScreen';
 
 export default function App() {
   const [route, setRoute] = React.useState<

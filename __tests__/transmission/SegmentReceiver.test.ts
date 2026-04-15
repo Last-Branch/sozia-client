@@ -11,9 +11,9 @@
  * Test plan reference: TP-CLIENT-TX-002
  */
 
-import { SegmentReceiver } from '../../src/transmission/SegmentReceiver';
-import { SegmentStatus, ModalityType } from '../../src/common/models';
-import type { TranscriptSegment } from '../../src/common/models';
+import { SegmentReceiver } from '@/transmission/SegmentReceiver';
+import { SegmentStatus, ModalityType } from '@common/models';
+import type { TranscriptSegment } from '@common/models';
 
 // ---------------------------------------------------------------------------
 // Helpers

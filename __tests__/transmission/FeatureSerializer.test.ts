@@ -10,9 +10,9 @@
  * Test plan reference: TP-CLIENT-TX-001
  */
 
-import { FeatureSerializer } from '../../src/transmission/FeatureSerializer';
-import { ModalityPath } from '../../src/common/models';
-import type { LandmarkFrame, AudioFeatureChunk, PipelineHealth } from '../../src/common/models';
+import { FeatureSerializer } from '@/transmission/FeatureSerializer';
+import { ModalityPath } from '@common/models';
+import type { LandmarkFrame, AudioFeatureChunk, PipelineHealth } from '@common/models';
 
 // ---------------------------------------------------------------------------
 // Helpers

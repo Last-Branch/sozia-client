@@ -1,9 +1,9 @@
 /**
  * @jest-environment node
  */
-import { TranscriptStore } from '../../../src/store/TranscriptStore';
-import { MockTranscriptSource } from '../../../src/ui/testing/MockTranscriptSource';
-import { SegmentStatus } from '../../../src/common/models';
+import { TranscriptStore } from '@/store/TranscriptStore';
+import { MockTranscriptSource } from '@/ui/testing/MockTranscriptSource';
+import { SegmentStatus } from '@common/models';
 
 describe('MockTranscriptSource', () => {
   let store: TranscriptStore;

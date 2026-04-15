@@ -8,8 +8,8 @@
  * edge cases (empty input, boundary thresholds), and sensitivity switching.
  */
 
-import { VoiceActivityDetector } from '../../../src/pipeline/audio/VoiceActivityDetector';
-import type { MFCCFrame } from '../../../src/pipeline/audio/AudioPipeline';
+import { VoiceActivityDetector } from '@/pipeline/audio/VoiceActivityDetector';
+import type { MFCCFrame } from '@/pipeline/audio/AudioPipeline';
 
 // ---------------------------------------------------------------------------
 // Helpers

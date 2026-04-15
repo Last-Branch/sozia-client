@@ -23,18 +23,18 @@ jest.mock('expo-camera', () => ({
 
 import { requestRecordingPermissionsAsync } from 'expo-audio';
 import { Camera as ExpoCamera } from 'expo-camera';
-import { DeviceManager } from '../../src/device/DeviceManager';
-import type { IDeviceEnumerator } from '../../src/device/DeviceEnumerator';
-import type { DeviceHandle } from '../../src/device/DeviceHandle';
+import { DeviceManager } from '@/device/DeviceManager';
+import type { IDeviceEnumerator } from '@/device/DeviceEnumerator';
+import type { DeviceHandle } from '@/device/DeviceHandle';
 import type {
   IAudioPipeline,
   MFCCFrame,
   RawAudioHandle,
   SensitivityLevel,
-} from '../../src/pipeline/audio';
-import type { IVideoPipeline, RawMediaHandle } from '../../src/pipeline/video';
-import type { PipelineHealth } from '../../src/common/models';
-import type { TransmissionManager } from '../../src/transmission/TransmissionManager';
+} from '@/pipeline/audio';
+import type { IVideoPipeline, RawMediaHandle } from '@/pipeline/video';
+import type { PipelineHealth } from '@common/models';
+import type { TransmissionManager } from '@/transmission/TransmissionManager';
 
 const mockRequestPermissions = requestRecordingPermissionsAsync as jest.Mock;
 const mockRequestCameraPermissions = ExpoCamera.requestCameraPermissionsAsync as jest.Mock;

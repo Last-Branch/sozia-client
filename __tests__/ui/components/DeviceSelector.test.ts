@@ -1,11 +1,11 @@
 /**
  * @jest-environment node
  */
-import type { DeviceHandle } from '../../../src/device/DeviceHandle';
+import type { DeviceHandle } from '@/device/DeviceHandle';
 import {
   buildDeviceRows,
   type DeviceRow,
-} from '../../../src/ui/components/DeviceSelector/helpers';
+} from '@/ui/components/DeviceSelector/helpers';
 
 function makeMic(overrides: Partial<DeviceHandle> = {}): DeviceHandle {
   return {

@@ -1,12 +1,12 @@
 /**
  * @jest-environment node
  */
-import { SessionState, ModalityPath, type PipelineHealth } from '../../../src/common/models';
+import { SessionState, ModalityPath, type PipelineHealth } from '@common/models';
 import {
   buildSessionActions,
   type SessionActions,
-} from '../../../src/ui/controller/sessionActions';
-import { TranscriptStore } from '../../../src/store/TranscriptStore';
+} from '@/ui/controller/sessionActions';
+import { TranscriptStore } from '@/store/TranscriptStore';
 
 function makeAudioHealth(overrides: Partial<PipelineHealth> = {}): PipelineHealth {
   return {
