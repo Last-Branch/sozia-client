@@ -106,6 +106,26 @@ export interface ModalityResult {
   inferenceLatencyMs: number;
 }
 
+/** Server→client lifecycle notification (DEV-01). */
+export interface SessionStatusMessage {
+  /** UUID v4. Matches the active session. */
+  session_id: string;
+  /** Current state reported by the server. */
+  state: SessionState;
+  /** Human-readable description (e.g. warm-up progress, auth rejection). */
+  message: string;
+}
+
+/** Server→client error notification (DEV-01). Codes 4001–4004. */
+export interface ErrorMessage {
+  /** UUID v4. Matches the active session. */
+  session_id: string;
+  /** Numeric error code (4001–4004). */
+  code: number;
+  /** Human-readable error description. */
+  message: string;
+}
+
 /** Time-aligned transcript text with metadata (LLD §3.1.2). */
 export interface TranscriptSegment {
   /** UUID v4. Globally unique. */

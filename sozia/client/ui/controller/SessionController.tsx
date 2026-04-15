@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { ModalityPath, SessionState, type PipelineHealth } from '@common/models';
+import { ModalityPath, SessionState, type PipelineHealth, type SessionStatusMessage } from '@common/models';
 import type { DeviceHandle } from '@/device';
 import { ExpoAudioPipeline } from '@/pipeline/audio';
 import { VideoPipeline } from '@/pipeline/video';
@@ -144,11 +144,21 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
       const serverUrl = config.current.get('serverUrl') ?? 'ws://localhost:8080';
       const maxReconnectAttempts = config.current.get('maxReconnectAttempts') ?? 5;
+      const apiKey = config.current.get('apiKey') ?? '';
+
+      const handleSessionStatus = (msg: SessionStatusMessage) => {
+        if (msg.state === SessionState.ERROR) {
+          actions.onConnectionLost();
+        }
+      };
+
       transmissionManager.current = new TransmissionManager(
         serverUrl,
         store,
         actions.onConnectionLost,
         maxReconnectAttempts,
+        handleSessionStatus,
+        () => { actions.onConnectionLost(); },
       );
 
       if (path === ModalityPath.SPEECH) {
@@ -159,7 +169,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
       // Connect in the background — the 50-frame send buffer holds frames
       // produced during the connection window. onConnectionLost handles failure.
-      void transmissionManager.current.connect(newSessionId, path)
+      void transmissionManager.current.connect(newSessionId, path, apiKey)
         .catch(() => { actions.onConnectionLost(); });
 
       setState(SessionState.RUNNING);
