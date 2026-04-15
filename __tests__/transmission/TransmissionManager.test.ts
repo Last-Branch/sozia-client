@@ -13,10 +13,10 @@
  * Test plan reference: TP-CLIENT-TX-003
  */
 
-import { TransmissionManager } from '../../src/transmission/TransmissionManager';
-import { TranscriptStore } from '../../src/store/TranscriptStore';
-import { ModalityPath, SegmentStatus, ModalityType } from '../../src/common/models';
-import type { AudioFeatureChunk, LandmarkFrame, PipelineHealth } from '../../src/common/models';
+import { TransmissionManager } from '@/transmission/TransmissionManager';
+import { TranscriptStore } from '@/store/TranscriptStore';
+import { ModalityPath, SegmentStatus, ModalityType } from '@common/models';
+import type { AudioFeatureChunk, LandmarkFrame, PipelineHealth } from '@common/models';
 
 // ---------------------------------------------------------------------------
 // FakeWebSocket

@@ -12,9 +12,9 @@
  * Test plan reference: TP-CLIENT-AUDIO-001 through TP-CLIENT-AUDIO-007
  */
 
-import type { IAudioPipeline, MFCCFrame, RawAudioHandle, SensitivityLevel } from '../../../src/pipeline/audio';
-import type { AudioFeatureChunk, PipelineHealth } from '../../../src/common/models';
-import type { TransmissionManager } from '../../../src/transmission/TransmissionManager';
+import type { IAudioPipeline, MFCCFrame, RawAudioHandle, SensitivityLevel } from '@/pipeline/audio';
+import type { AudioFeatureChunk, PipelineHealth } from '@common/models';
+import type { TransmissionManager } from '@/transmission/TransmissionManager';
 
 // ---------------------------------------------------------------------------
 // MockAudioPipeline — a minimal, synchronous stand-in used only in tests.

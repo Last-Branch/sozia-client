@@ -1,8 +1,8 @@
 /**
  * @jest-environment node
  */
-import { ModalityType, SegmentStatus, type TranscriptSegment } from '../../../src/common/models';
-import { TranscriptStore } from '../../../src/store/TranscriptStore';
+import { ModalityType, SegmentStatus, type TranscriptSegment } from '@common/models';
+import { TranscriptStore } from '@/store/TranscriptStore';
 
 describe('TranscriptStore contract (methods used by TranscriptView)', () => {
   it('getSegments returns current segments', () => {
@@ -42,7 +42,7 @@ import {
   mapSourceLabel,
   buildTranscriptRows,
   type TranscriptRow,
-} from '../../../src/ui/components/TranscriptView/helpers';
+} from '@/ui/components/TranscriptView/helpers';
 
 function makeSegment(overrides: Partial<TranscriptSegment> = {}): TranscriptSegment {
   return {

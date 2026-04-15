@@ -17,15 +17,14 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["sozia/client/*"],
+      "@common/*": ["sozia/common/*"]
     }
   },
   "include": [
     "App.tsx",
     "index.ts",
-    "src",
+    "sozia",
     "nativewind-env.d.ts",
     "__tests__"
   ],

@@ -1,11 +1,11 @@
 /**
  * @jest-environment node
  */
-import { ModalityPath } from '../../../src/common/models';
+import { ModalityPath } from '@common/models';
 import {
   buildToggleState,
   type ToggleOption,
-} from '../../../src/ui/components/ModalityToggle/helpers';
+} from '@/ui/components/ModalityToggle/helpers';
 
 describe('buildToggleState', () => {
   it('returns two options for SPEECH and SIGN', () => {

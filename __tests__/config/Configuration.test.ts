@@ -1,5 +1,5 @@
 import { Configuration, getDefaultAppConfig } from '@/config/Configuration';
-import { ModalityPath } from '@/common/models';
+import { ModalityPath } from '@common/models';
 
 type KV = {
   getItem: (k: string) => string | null;
