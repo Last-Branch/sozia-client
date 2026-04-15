@@ -15,6 +15,7 @@ export interface RawMediaHandle {
 
 export interface IVideoPipeline {
   start(sessionId: string, cameraHandle: RawMediaHandle, tx?: TransmissionManager): void;
+  setCameraHandle(handle: RawMediaHandle): void;
   pause(): void;
   resume(): void;
   stop(): void;
@@ -60,6 +61,10 @@ export class VideoPipeline implements IVideoPipeline {
     this.isRunning = true;
     this.paused = false;
     this.startLoop();
+  }
+
+  setCameraHandle(handle: RawMediaHandle): void {
+    this.cameraHandle = handle;
   }
 
   pause(): void {
@@ -114,6 +119,16 @@ export class VideoPipeline implements IVideoPipeline {
 
       this.healthMonitor.update(landmarkFrame);
       if (landmarkFrame !== null) {
+        if (__DEV__) {
+          console.log('[VideoPipeline] landmark detected', {
+            face: landmarkFrame.faceLandmarks?.length ?? 0,
+            leftHand: landmarkFrame.leftHandLandmarks?.length ?? 0,
+            rightHand: landmarkFrame.rightHandLandmarks?.length ?? 0,
+            pose: landmarkFrame.poseLandmarks?.length ?? 0,
+            faceSample: landmarkFrame.faceLandmarks?.slice(0, 3),
+            poseSample: landmarkFrame.poseLandmarks?.slice(0, 3),
+          });
+        }
         this.transmissionManager?.sendFeatures(landmarkFrame);
       }
     }, intervalMs);

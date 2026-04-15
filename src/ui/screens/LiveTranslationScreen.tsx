@@ -13,7 +13,8 @@ import type { MockTranscriptSource as MockTranscriptSourceType } from '../testin
 
 
 export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
-  const { state, sessionId, activePath, healthReports, stopSession, pauseSession, resumeSession, store } = useSessionController();
+  const { state, sessionId, activePath, healthReports, stopSession, pauseSession, resumeSession, store, setCameraVideoElement } = useSessionController();
+  const cameraContainerRef = useRef<View>(null);
 
   const [outputLanguage, setOutputLanguage] = useState<'TR' | 'EN'>('EN');
   const { t } = useLanguage();
@@ -73,13 +74,22 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
             <View className="absolute inset-0 items-center justify-center bg-gray-800">
               {shouldShowLiveCamera ? (
                 <>
-                  <CameraView
-                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-                    facing={cameraFacing}
-                    mirror={cameraFacing === 'front'}
-                    active={state !== SessionState.PAUSED}
-                    onMountError={(event) => setCameraMountError(event.message)}
-                  />
+                  <View ref={cameraContainerRef} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+                    <CameraView
+                      style={{ flex: 1 }}
+                      facing={cameraFacing}
+                      mirror={cameraFacing === 'front'}
+                      active={state !== SessionState.PAUSED}
+                      onCameraReady={() => {
+                        setTimeout(() => {
+                          const container = (cameraContainerRef.current as unknown as { _nativeTag?: number }) as unknown as HTMLElement | null;
+                          const videoEl = container?.querySelector?.('video') ?? document.querySelector('video');
+                          setCameraVideoElement(videoEl as HTMLVideoElement | null);
+                        }, 500);
+                      }}
+                      onMountError={(event) => setCameraMountError(event.message)}
+                    />
+                  </View>
                   <View className="absolute inset-0 bg-black/20" />
                 </>
               ) : (

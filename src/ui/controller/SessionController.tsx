@@ -3,7 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { ModalityPath, SessionState, type PipelineHealth } from '../../common/models';
 import type { DeviceHandle } from '../../device';
 import { ExpoAudioPipeline } from '../../pipeline/audio';
-import { VideoPipeline } from '../../pipeline/video';
+import { LandmarkExtractor, VideoPipeline, WebMediaPipeLandmarkBackend } from '../../pipeline/video';
 import { DeviceManager, ExpoDeviceEnumerator } from '../../device';
 import { TranscriptStore } from '../../store';
 import { TransmissionManager } from '../../transmission';
@@ -28,6 +28,7 @@ export type SessionControllerValue = {
   enumerateDevices: () => Promise<DeviceHandle[]>;
   selectMicrophone: (id: string) => void;
   selectCamera: (id: string) => void;
+  setCameraVideoElement: (el: HTMLVideoElement | null) => void;
 };
 
 const SessionControllerContext = createContext<SessionControllerValue | null>(null);
@@ -74,17 +75,37 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
   const store = useMemo(() => new TranscriptStore(), []);
 
+  const landmarkBackend = useRef(new WebMediaPipeLandmarkBackend());
   const deviceManager = useRef(
-    new DeviceManager(new ExpoDeviceEnumerator(), new ExpoAudioPipeline(), new VideoPipeline()),
+    new DeviceManager(
+      new ExpoDeviceEnumerator(),
+      new ExpoAudioPipeline(),
+      new VideoPipeline(new LandmarkExtractor(landmarkBackend.current)),
+    ),
   );
   const config = useRef<IConfigurationManager>(new Configuration());
   const transmissionManager = useRef<TransmissionManager | null>(null);
 
-  // Load persisted configuration on mount, then apply settings that gate pipeline behaviour.
   useEffect(() => {
     void config.current.load().then(() => {
       deviceManager.current.setAudioVadSensitivity(config.current.get('vadSensitivity'));
     });
+    void landmarkBackend.current.init();
+  }, []);
+
+  const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
+  const setCameraVideoElement = useCallback((el: HTMLVideoElement | null) => {
+    cameraVideoRef.current = el;
+    if (el) {
+      deviceManager.current.updateVideoCameraHandle({
+        getFrame: () => ({
+          timestampMs: Date.now(),
+          width: el.videoWidth,
+          height: el.videoHeight,
+          data: el,
+        }),
+      });
+    }
   }, []);
 
   const stateRef = useRef(state);
@@ -154,7 +175,11 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       if (path === ModalityPath.SPEECH) {
         await deviceManager.current.startAudioPipeline(newSessionId, {}, transmissionManager.current);
       } else if (path === ModalityPath.SIGN) {
-        await deviceManager.current.startVideoPipeline(newSessionId, {}, transmissionManager.current);
+        const videoEl = cameraVideoRef.current;
+        const cameraHandle = videoEl
+          ? { getFrame: () => ({ timestampMs: Date.now(), width: videoEl.videoWidth, height: videoEl.videoHeight, data: videoEl }) }
+          : {};
+        await deviceManager.current.startVideoPipeline(newSessionId, cameraHandle, transmissionManager.current);
       }
 
       // Connect in the background — the 50-frame send buffer holds frames
@@ -247,8 +272,9 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       enumerateDevices,
       selectMicrophone,
       selectCamera,
+      setCameraVideoElement,
     }),
-    [actions, activePath, enumerateDevices, getState, healthReports, pauseSession, resumeSession, selectCamera, selectMicrophone, sessionId, startSession, state, stopSession, store]
+    [actions, activePath, enumerateDevices, getState, healthReports, pauseSession, resumeSession, selectCamera, selectMicrophone, sessionId, startSession, state, stopSession, store, setCameraVideoElement]
   );
 
   return <SessionControllerContext.Provider value={value}>{children}</SessionControllerContext.Provider>;

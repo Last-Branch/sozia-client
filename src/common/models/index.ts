@@ -53,7 +53,7 @@ export interface LandmarkFrame {
   sessionId: string;
   /** Milliseconds since session start. ≥ 0, monotonically increasing within a session. */
   timestampMs: number;
-  /** 478 points, each [x, y, z] normalised to [0.0, 1.0]. null if not detected. */
+  /** 83 linguistically-relevant face points, each [x, y, z] normalised to [0.0, 1.0]. null if not detected. */
   faceLandmarks: number[][] | null;
   /** 21 points, each [x, y, z]. null if not detected. */
   leftHandLandmarks: number[][] | null;
