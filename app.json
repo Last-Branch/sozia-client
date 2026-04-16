@@ -19,13 +19,32 @@
         {
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
         }
+      ],
+      [
+        "@siteed/audio-studio",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for speech transcription."
+        }
       ]
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.lastbranch.soziaclient"
     },
     "android": {
-      "predictiveBackGestureEnabled": false
-    }
+      "package": "com.lastbranch.soziaclient",
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e1dc5c9f-dc85-4ddb-ac54-4445426a49e6"
+      }
+    },
+    "owner": "last-branch"
   }
 }

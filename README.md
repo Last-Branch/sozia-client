@@ -30,7 +30,7 @@ After Expo starts, you can:
 - press `a` for Android
 - press `i` for iOS
 - press `w` for web
-- scan the QR code with Expo Go
+- scan the QR code with the EAS dev client (not Expo Go — see Native Development section below)
 
 ## Available Scripts
 
@@ -66,6 +66,20 @@ npx jest --testNamePattern="export"                    # by test name
 ```
 
 Unit tests live under `__tests__/` mirroring the `src/` structure (`.ts` only, no `.tsx`).
+
+## Native Development (EAS Dev Build)
+
+Expo Go will not work — native modules require a custom dev client.
+
+```bash
+# Build and install the dev client on your device (once per native change)
+eas build --profile development --platform android   # or ios
+
+# Then start Metro and scan the QR with the installed dev client
+npm run start
+```
+
+To view device logs: shake the phone → React Native dev menu → Open DevTools.
 
 ## Notes
 
