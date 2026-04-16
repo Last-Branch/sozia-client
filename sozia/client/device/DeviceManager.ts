@@ -120,9 +120,10 @@ export class DeviceManager {
     this.videoPipeline.start(sessionId, cameraHandle ?? {}, tx);
   }
 
-  /**
-   * Pauses all active pipelines. No-op for pipelines that are not running.
-   */
+  updateVideoCameraHandle(handle: RawMediaHandle): void {
+    this.videoPipeline?.setCameraHandle(handle);
+  }
+
   pauseAllPipelines(): void {
     this.audioPipeline?.pause();
     this.videoPipeline?.pause();

@@ -15,6 +15,7 @@ export interface RawMediaHandle {
 
 export interface IVideoPipeline {
   start(sessionId: string, cameraHandle: RawMediaHandle, tx?: TransmissionManager): void;
+  setCameraHandle(handle: RawMediaHandle): void;
   pause(): void;
   resume(): void;
   stop(): void;
@@ -60,6 +61,10 @@ export class VideoPipeline implements IVideoPipeline {
     this.isRunning = true;
     this.paused = false;
     this.startLoop();
+  }
+
+  setCameraHandle(handle: RawMediaHandle): void {
+    this.cameraHandle = handle;
   }
 
   pause(): void {

@@ -13,7 +13,8 @@ import type { MockTranscriptSource as MockTranscriptSourceType } from '../testin
 
 
 export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
-  const { state, sessionId, activePath, healthReports, stopSession, pauseSession, resumeSession, store } = useSessionController();
+  const { state, sessionId, activePath, healthReports, stopSession, pauseSession, resumeSession, store, setCameraVideoElement } = useSessionController();
+  const cameraContainerRef = useRef<View>(null);
 
   const [outputLanguage, setOutputLanguage] = useState<'TR' | 'EN'>('EN');
   const { t } = useLanguage();
@@ -70,7 +71,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
           <View className="relative flex-1">
             {/* Camera background */}
-            <View className="absolute inset-0 items-center justify-center bg-gray-800">
+            <View ref={cameraContainerRef} className="absolute inset-0 items-center justify-center bg-gray-800">
               {shouldShowLiveCamera ? (
                 <>
                   <CameraView
@@ -78,6 +79,14 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                     facing={cameraFacing}
                     mirror={cameraFacing === 'front'}
                     active={state !== SessionState.PAUSED}
+                    onCameraReady={() => {
+                      setTimeout(() => {
+                        if (typeof document === 'undefined') return;
+                        const container = cameraContainerRef.current as unknown as HTMLElement | null;
+                        const videoEl = container?.querySelector?.('video') ?? document.querySelector('video');
+                        setCameraVideoElement(videoEl as HTMLVideoElement | null);
+                      }, 500);
+                    }}
                     onMountError={(event) => setCameraMountError(event.message)}
                   />
                   <View className="absolute inset-0 bg-black/20" />
