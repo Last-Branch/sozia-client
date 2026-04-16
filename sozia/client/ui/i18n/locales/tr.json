@@ -1,0 +1,177 @@
+{
+  "translation": {
+    "login": {
+      "subtitle": "Yardımcı İletişim",
+      "email": "E-posta",
+      "emailPlaceholder": "örnek@e-posta.com",
+      "password": "Şifre",
+      "passwordPlaceholder": "Şifrenizi girin",
+      "forgotPassword": "Şifremi Unuttum?",
+      "signIn": "Giriş Yap",
+      "orContinueWith": "veya şununla devam et",
+      "noAccount": "Hesabınız yok mu? ",
+      "signUp": "Kayıt Ol"
+    },
+    "signup": {
+      "subtitle": "Hesap Oluştur",
+      "fullName": "Ad Soyad",
+      "fullNamePlaceholder": "Ad Soyad",
+      "confirmPassword": "Şifre Tekrar",
+      "confirmPasswordPlaceholder": "Şifrenizi tekrar girin",
+      "createAccount": "Kayıt Ol",
+      "orSignUpWith": "veya şununla kaydol",
+      "haveAccount": "Zaten hesabınız var mı? "
+    },
+    "permissions": {
+      "accessNeeded": "Erişim Gerekli",
+      "description": "Sozia'nın dudak okumak ve işaretleri çevirmek için kamera ve mikrofon erişimine ihtiyacı var.",
+      "camera": "Kamera",
+      "cameraDesc": "Dudak okuma için",
+      "microphone": "Mikrofon",
+      "micDesc": "Ses girişi için",
+      "privacy": "Gizliliğiniz önemlidir. ",
+      "privacyDesc": "Tüm işlemler cihazınızda gerçekleşir. Hiçbir video veya ses saklanmaz veya iletilmez.",
+      "allowAccess": "Erişim İzni Ver",
+      "requestingAccess": "Erişim isteniyor...",
+      "permissionError": "Devam etmek için kamera ve mikrofon erişimi gereklidir.",
+      "skip": "Şimdilik atla",
+      "back": "Geri"
+    },
+    "dashboard": {
+      "hello": "Merhaba!",
+      "startLipReading": "Dudak Okumayı Başlat",
+      "startLipReadingDesc": "Gerçek zamanlı sesten metne",
+      "startSignLanguage": "İşaret Dilini Başlat",
+      "startSignLanguageDesc": "Hareketten metne çeviri",
+      "ready": "Başlamaya Hazır mısınız?",
+      "path": "Yol",
+      "notSelected": "seçilmedi",
+      "state": "Durum",
+      "home": "Ana Sayfa",
+      "help": "Yardım",
+      "profile": "Profil",
+      "tips": [
+        "İpucu: Doğru dudak ve işaret takibi için iyi aydınlatılmış bir ortamda olduğunuzdan emin olun.",
+        "İpucu: En iyi sonuçlar için kameranızı göz hizasına yerleştirin.",
+        "İpucu: Daha net konuşma algılaması için arka plan gürültüsünü en aza indirin.",
+        "İpucu: İşaret dili için ellerinizi görünür ve ortada tutun."
+      ]
+    },
+    "help": {
+      "title": "Yardım",
+      "quickGuide": "Hızlı Kılavuz",
+      "speechMode": "Konuşma Modu",
+      "speechModeDesc": "Gösterge panelinde \"Dudak Okumayı Başlat\" düğmesine basın. Mikrofon ve kamera erişimine izin verin. Kameraya bakarak net konuşun.",
+      "signMode": "İşaret Dili Modu",
+      "signModeDesc": "\"İşaret Dilini Başlat\" düğmesine basın. Ellerinizi görünür ve ortada tutun. İyi aydınlatma sağlayın.",
+      "bestConditions": "En İyi Koşullar",
+      "bestConditionsDesc": "İyi aydınlatılmış ortam, kamera göz hizasında, minimum arka plan gürültüsü, kararlı internet bağlantısı.",
+      "privacy": "Gizlilik",
+      "privacyDesc": "Ham ses ve video hiçbir zaman cihazınızı terk etmez. Yalnızca anonimleştirilmiş sayısal veriler iletilir.",
+      "faqTitle": "Sık Sorulan Sorular",
+      "subtitle": "Yardımcı İletişim",
+      "faq": [
+        {
+          "question": "Dudak okuma nasıl çalışır?",
+          "answer": "Sozia, yüz referans noktalarını gerçek zamanlı olarak izlemek için cihaz kameranızı kullanır. Dudak hareketleri yalnızca cihazınızda analiz edilir; hiçbir video buluta gönderilmez."
+        },
+        {
+          "question": "İşaret dili tanıma nasıl çalışır?",
+          "answer": "El ve vücut referans noktaları, cihazınızda MediaPipe aracılığıyla çıkarılır. Yalnızca sayısal veri (video değil) şifreli bir bağlantı üzerinden Türk İşaret Dili sınıflandırması için sunucuya gönderilir."
+        },
+        {
+          "question": "Ses veya görüntüm bir yerde depolanıyor mu?",
+          "answer": "Hayır. Ham ses ve görüntü hiçbir zaman cihazınızı terk etmez. Yalnızca anonimleştirilmiş sayısal özellik dizileri çıkarım için şifreli bağlantı üzerinden iletilir."
+        },
+        {
+          "question": "Konuşma ve İşaret modları arasındaki fark nedir?",
+          "answer": "Konuşma modu, daha yüksek doğruluk için mikrofon sesini (ASR) dudak okumayla birleştirir. İşaret modu, Türk İşaret Dili hareketlerini tanır ve doğal dil metnine dönüştürür. Aynı anda yalnızca bir mod etkin olabilir."
+        },
+        {
+          "question": "Altyazı neden bazen iki kez görünüp değişiyor?",
+          "answer": "Sozia iyimser bir görüntüleme stratejisi kullanır: geçici bir altyazı hemen görünür, ardından tüm modaliteler işlemeyi bitirince daha doğru nihai sonuçla değiştirilir."
+        },
+        {
+          "question": "Uygulama DEGRADED durumu gösterirse ne yapmalıyım?",
+          "answer": "DEGRADED, mikrofon veya kamera gibi bir modalite'nin kullanılamaz hale geldiği anlamına gelir. Uygulama kalan modalite ile devam eder. Gerekli izinlerin verildiğini kontrol edin ve oturumu yeniden başlatmayı deneyin."
+        }
+      ]
+    },
+    "settings": {
+      "title": "Ayarlar",
+      "language": "Dil",
+      "languageDesc": "Tercih ettiğiniz dili seçin",
+      "tr": "Türkçe (TR)",
+      "en": "İngilizce (EN)",
+      "darkMode": "Karanlık Mod",
+      "darkModeDesc": "Göz yorgunluğunu azaltın",
+      "privacyPolicy": "Gizlilik Politikası",
+      "privacyPolicyDesc": "Gizlilik koşullarımızı görüntüleyin",
+      "privacyDetails": "Bu prototip, ayarları yalnızca yerel olarak ekran durumunda saklar. Henüz bir arka uca hiçbir kişisel veri gönderilmemiştir ve nihai belgeler hazır olduğunda politika/yasal içerik buraya bağlanabilir.",
+      "currentPrefs": "Mevcut Tercihler",
+      "langPref": "Dil",
+      "themePref": "Tema",
+      "darkEnabled": "Karanlık mod etkin",
+      "lightEnabled": "Aydınlık mod etkin",
+      "version": "Sürüm 1.0.0",
+      "subtitle": "Yardımcı İletişim"
+    },
+    "live": {
+      "cameraFeed": "Kamera Akışı Etkin",
+      "listening": "Dinleniyor ve Okunuyor…",
+      "settings": "Ayarlar",
+      "outputLang": "Çıktı Dili",
+      "tr": "Türkçe (TR)",
+      "en": "İngilizce (EN)",
+      "subtitleSize": "Altyazı Boyutu",
+      "groupMode": "Grup Modu",
+      "groupModeDesc": "Birden çok konuşmacıyı izle",
+      "speaker": "Konuşmacı",
+      "back": "Geri",
+      "session": "Oturum",
+      "path": "Yol",
+      "waiting": "Dinleniyor…",
+      "cameraPermissionRequired": "Canlı önizlemeyi göstermek için kamera izni gerekiyor.",
+      "cameraUnavailable": "Bu cihazda kamera önizlemesi başlatılamadı.",
+      "demo": "Demo",
+      "demoDesc": "Transkript akışını simüle et",
+      "pause": "Duraklat",
+      "resume": "Devam Et",
+      "clearTranscript": "Temizle",
+      "modality": "Giriş Modu",
+      "listening": "Dinliyor",
+      "reading": "Okuyor"
+    },
+    "device": {
+      "selectMicrophone": "Mikrofon Seçin",
+      "selectCamera": "Kamera Seçin",
+      "noDevicesFound": "Cihaz bulunamadı",
+      "default": "Varsayılan",
+      "setupDevices": "Cihaz Ayarları"
+    },
+    "modality": {
+      "speech": "Konuşma",
+      "sign": "İşaret Dili",
+      "toggleDisabled": "Aktif oturum sırasında mod değiştirilemez"
+    },
+    "health": {
+      "sessionActive": "Oturum etkin",
+      "warming": "Modeller hazırlanıyor…",
+      "sessionPaused": "Oturum duraklatıldı",
+      "sessionError": "Oturum hatası — lütfen yeniden başlatın.",
+      "cameraObstructed": "Kamera engellenmiş olabilir",
+      "microphoneUnavailable": "Mikrofon kullanılamıyor",
+      "lowSignalQuality": "Düşük sinyal kalitesi",
+      "noFaceDetected": "Yüz algılanmadı",
+      "degraded": "Düşük performanslı modda çalışıyor",
+      "restart": "Yeniden Başlat"
+    },
+    "transcript": {
+      "sourceASR": "ASR",
+      "sourceLIP": "DUD",
+      "sourceTSL": "TİD",
+      "sourceFused": "BİRLEŞİK",
+      "lowConfidence": "Düşük güven"
+    }
+  }
+}

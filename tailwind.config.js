@@ -2,7 +2,7 @@
 module.exports = {
   darkMode: 'class',
   presets: [require('nativewind/preset')],
-  content: ['./App.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
+  content: ['./App.{js,jsx,ts,tsx}', './sozia/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {},
   },

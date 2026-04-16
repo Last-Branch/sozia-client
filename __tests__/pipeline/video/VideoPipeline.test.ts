@@ -6,10 +6,10 @@ import {
   LandmarkExtractor,
   type LandmarkExtractionBackend,
   type RawVideoFrame,
-} from '../../../src/pipeline/video/LandmarkExtractor';
-import { TrackingHealthMonitor } from '../../../src/pipeline/video/TrackingHealthMonitor';
-import { VideoPipeline, type RawMediaHandle } from '../../../src/pipeline/video/VideoPipeline';
-import type { LandmarkFrame } from '../../../src/common/models';
+} from '@/pipeline/video/LandmarkExtractor';
+import { TrackingHealthMonitor } from '@/pipeline/video/TrackingHealthMonitor';
+import { VideoPipeline, type RawMediaHandle } from '@/pipeline/video/VideoPipeline';
+import type { LandmarkFrame } from '@common/models';
 
 function makeMockTx(): { sendFeatures: jest.Mock } {
   return { sendFeatures: jest.fn() };

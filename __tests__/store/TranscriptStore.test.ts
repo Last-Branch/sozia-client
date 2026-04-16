@@ -9,10 +9,10 @@
  * Test plan reference: TP-CLIENT-STORE-001 through TP-CLIENT-STORE-004
  */
 
-import { TranscriptStore } from '../../src/store/TranscriptStore';
-import { TranscriptExporter } from '../../src/store/TranscriptExporter';
-import type { TranscriptSegment } from '../../src/common/models';
-import { SegmentStatus, ModalityType } from '../../src/common/models';
+import { TranscriptStore } from '@/store/TranscriptStore';
+import { TranscriptExporter } from '@/store/TranscriptExporter';
+import type { TranscriptSegment } from '@common/models';
+import { SegmentStatus, ModalityType } from '@common/models';
 
 // Mock expo-file-system/next for TranscriptExporter tests
 const mockWrite = jest.fn();

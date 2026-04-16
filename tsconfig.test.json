@@ -3,10 +3,14 @@
   "compilerOptions": {
     "module": "CommonJS",
     "moduleResolution": "node",
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "paths": {
+      "@/*": ["sozia/client/*"],
+      "@common/*": ["sozia/common/*"]
+    }
   },
   "include": [
-    "src",
+    "sozia",
     "__tests__"
   ]
 }

@@ -10,11 +10,11 @@
  * Test plan reference: TP-CLIENT-AUDIO-005 through TP-CLIENT-AUDIO-008
  */
 
-import { AudioChunker } from '../../../src/pipeline/audio/AudioChunker';
-import { VoiceActivityDetector } from '../../../src/pipeline/audio/VoiceActivityDetector';
-import { AudioFeatureExtractor } from '../../../src/pipeline/audio/AudioFeatureExtractor';
-import type { MFCCFrame } from '../../../src/pipeline/audio/AudioPipeline';
-import type { AudioFeatureChunk } from '../../../src/common/models';
+import { AudioChunker } from '@/pipeline/audio/AudioChunker';
+import { VoiceActivityDetector } from '@/pipeline/audio/VoiceActivityDetector';
+import { AudioFeatureExtractor } from '@/pipeline/audio/AudioFeatureExtractor';
+import type { MFCCFrame } from '@/pipeline/audio/AudioPipeline';
+import type { AudioFeatureChunk } from '@common/models';
 
 // ---------------------------------------------------------------------------
 // Helpers

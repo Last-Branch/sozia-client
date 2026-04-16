@@ -1,11 +1,11 @@
 /**
  * @jest-environment node
  */
-import { SessionState, type PipelineHealth } from '../../../src/common/models';
+import { SessionState, type PipelineHealth } from '@common/models';
 import {
   getStatusBanner,
   type Banner,
-} from '../../../src/ui/components/StatusBar/helpers';
+} from '@/ui/components/StatusBar/helpers';
 
 function makeAudioHealth(overrides: Partial<PipelineHealth> = {}): PipelineHealth {
   return {
