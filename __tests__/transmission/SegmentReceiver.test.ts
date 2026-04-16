@@ -22,16 +22,16 @@ import type { TranscriptSegment } from '@common/models';
 function validPayload(overrides: Record<string, unknown> = {}): string {
   return JSON.stringify({
     type: 'transcript_segment',
-    segmentId: 'seg-1',
-    sessionId: 'session-1',
+    segment_id: 'seg-1',
+    session_id: 'session-1',
     status: SegmentStatus.FINAL,
     text: 'Merhaba',
     source: ModalityType.ASR,
     confidence: 0.9,
-    timestampMs: 1000,
-    durationMs: 500,
-    createdAtMs: 1_700_000_000_000,
-    replacesSegmentId: null,
+    timestamp_ms: 1000,
+    duration_ms: 500,
+    created_at_ms: 1_700_000_000_000,
+    replaces_segment_id: null,
     ...overrides,
   });
 }
@@ -74,7 +74,7 @@ describe('SegmentReceiver', () => {
 
   it('accepts a non-null replacesSegmentId for PARTIAL→FINAL revision', () => {
     const result = receiver.deserialize(
-      validPayload({ replacesSegmentId: 'seg-0', status: SegmentStatus.FINAL }),
+      validPayload({ replaces_segment_id: 'seg-0', status: SegmentStatus.FINAL }),
     ) as TranscriptSegment;
     expect(result.replacesSegmentId).toBe('seg-0');
   });
@@ -100,12 +100,12 @@ describe('SegmentReceiver', () => {
 
   // -- missing required fields -----------------------------------------------
 
-  it('returns null when segmentId is missing', () => {
-    expect(receiver.deserialize(validPayload({ segmentId: undefined }))).toBeNull();
+  it('returns null when segment_id is missing', () => {
+    expect(receiver.deserialize(validPayload({ segment_id: undefined }))).toBeNull();
   });
 
-  it('returns null when sessionId is missing', () => {
-    expect(receiver.deserialize(validPayload({ sessionId: undefined }))).toBeNull();
+  it('returns null when session_id is missing', () => {
+    expect(receiver.deserialize(validPayload({ session_id: undefined }))).toBeNull();
   });
 
   it('returns null when status is missing', () => {
@@ -124,21 +124,21 @@ describe('SegmentReceiver', () => {
     expect(receiver.deserialize(validPayload({ confidence: undefined }))).toBeNull();
   });
 
-  it('returns null when timestampMs is missing', () => {
-    expect(receiver.deserialize(validPayload({ timestampMs: undefined }))).toBeNull();
+  it('returns null when timestamp_ms is missing', () => {
+    expect(receiver.deserialize(validPayload({ timestamp_ms: undefined }))).toBeNull();
   });
 
-  it('returns null when durationMs is missing', () => {
-    expect(receiver.deserialize(validPayload({ durationMs: undefined }))).toBeNull();
+  it('returns null when duration_ms is missing', () => {
+    expect(receiver.deserialize(validPayload({ duration_ms: undefined }))).toBeNull();
   });
 
-  it('returns null when createdAtMs is missing', () => {
-    expect(receiver.deserialize(validPayload({ createdAtMs: undefined }))).toBeNull();
+  it('returns null when created_at_ms is missing', () => {
+    expect(receiver.deserialize(validPayload({ created_at_ms: undefined }))).toBeNull();
   });
 
-  it('returns null when replacesSegmentId key is absent entirely', () => {
+  it('returns null when replaces_segment_id key is absent entirely', () => {
     const payload = JSON.parse(validPayload());
-    delete payload.replacesSegmentId;
+    delete payload.replaces_segment_id;
     expect(receiver.deserialize(JSON.stringify(payload))).toBeNull();
   });
 

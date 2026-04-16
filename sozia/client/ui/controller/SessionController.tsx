@@ -239,6 +239,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       if (!mounted) return;
       const health = deviceManager.current.getAudioHealth();
       actions.onPipelineHealthChanged(health);
+      transmissionManager.current?.sendHealth(health);
     }, 1000);
 
     return () => {
@@ -256,6 +257,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       if (!mounted) return;
       const health = deviceManager.current.getVideoHealth();
       actions.onPipelineHealthChanged(health);
+      transmissionManager.current?.sendHealth(health);
     }, 1000);
 
     return () => {
