@@ -182,13 +182,15 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
         () => { actions.onConnectionLost(); },
       );
 
+      const videoEl = cameraVideoRef.current;
+      const cameraHandle = videoEl
+        ? { getFrame: () => ({ timestampMs: Date.now(), width: videoEl.videoWidth, height: videoEl.videoHeight, data: videoEl }) }
+        : {};
+
       if (path === ModalityPath.SPEECH) {
         await deviceManager.current.startAudioPipeline(newSessionId, {}, transmissionManager.current);
+        await deviceManager.current.startVideoPipeline(newSessionId, cameraHandle, transmissionManager.current);
       } else if (path === ModalityPath.SIGN) {
-        const videoEl = cameraVideoRef.current;
-        const cameraHandle = videoEl
-          ? { getFrame: () => ({ timestampMs: Date.now(), width: videoEl.videoWidth, height: videoEl.videoHeight, data: videoEl }) }
-          : {};
         await deviceManager.current.startVideoPipeline(newSessionId, cameraHandle, transmissionManager.current);
       }
 
@@ -245,10 +247,8 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     };
   }, [state, activePath, actions]);
 
-  // Poll video pipeline health every second while a SIGN session is active.
-  // Transitions RUNNING → DEGRADED if tracking becomes unavailable.
   useEffect(() => {
-    if (activePath !== ModalityPath.SIGN) return;
+    if (!activePath) return;
     if (state !== SessionState.RUNNING && state !== SessionState.DEGRADED) return;
 
     let mounted = true;
