@@ -141,6 +141,8 @@ class MockVideoPipeline implements IVideoPipeline {
     this.startCalledWithSessionId = sessionId;
   }
 
+  setCameraHandle(_handle: RawMediaHandle): void {}
+
   pause(): void {
     this.running = false;
   }
