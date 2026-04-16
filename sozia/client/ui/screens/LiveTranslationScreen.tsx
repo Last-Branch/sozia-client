@@ -62,7 +62,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
           {/* Top bar */}
           <View className="z-20 flex-row items-center justify-between bg-black/30 px-6 pt-3 pb-2">
             <Text className="text-xs font-semibold text-white">Sozia · {state}</Text>
-            <TouchableOpacity onPress={onBack}>
+            <TouchableOpacity onPress={() => { stopSession(); onBack(); }}>
               <Text className="text-xs font-semibold text-gray-300">{t('live.back')}</Text>
             </TouchableOpacity>
           </View>
@@ -71,7 +71,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
           <View className="relative flex-1">
             {/* Camera background */}
-            <View ref={cameraContainerRef} className="absolute inset-0 items-center justify-center bg-gray-800">
+            <View ref={cameraContainerRef} className="absolute inset-0 items-center justify-center bg-gray-800" pointerEvents="none">
               {shouldShowLiveCamera ? (
                 <>
                   <CameraView
