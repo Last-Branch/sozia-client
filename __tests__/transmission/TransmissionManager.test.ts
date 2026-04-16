@@ -166,7 +166,7 @@ describe('TransmissionManager', () => {
       await expect(promise).resolves.toBeUndefined();
     });
 
-    it('sends session_init with sessionId, activePath, and api_key on open', async () => {
+    it('sends session_init with session_id, modality_path, and api_key on open', async () => {
       const { manager } = makeManager();
       const promise = manager.connect('session-1', ModalityPath.SIGN, 'test-key');
       const ws = FakeWebSocket.lastInstance!;
@@ -174,8 +174,8 @@ describe('TransmissionManager', () => {
 
       const msg = JSON.parse(ws.sentMessages[0]);
       expect(msg.type).toBe('session_init');
-      expect(msg.sessionId).toBe('session-1');
-      expect(msg.activePath).toBe(ModalityPath.SIGN);
+      expect(msg.session_id).toBe('session-1');
+      expect(msg.modality_path).toBe(ModalityPath.SIGN);
       expect(msg.api_key).toBe('test-key');
 
       ws.simulateReady();
@@ -237,7 +237,7 @@ describe('TransmissionManager', () => {
 
       const msg = JSON.parse(ws.sentMessages[ws.sentMessages.length - 1]);
       expect(msg.type).toBe('audio_feature_chunk');
-      expect(msg.timestampMs).toBe(100);
+      expect(msg.timestamp_ms).toBe(100);
     });
 
     it('sends landmark_frame immediately when connected', async () => {
@@ -248,7 +248,7 @@ describe('TransmissionManager', () => {
 
       const msg = JSON.parse(ws.sentMessages[ws.sentMessages.length - 1]);
       expect(msg.type).toBe('landmark_frame');
-      expect(msg.timestampMs).toBe(200);
+      expect(msg.timestamp_ms).toBe(200);
     });
 
     it('buffers features when not yet connected (socket CONNECTING)', () => {
@@ -281,7 +281,7 @@ describe('TransmissionManager', () => {
       expect(ws.sentMessages).toHaveLength(2);
       const flushed = JSON.parse(ws.sentMessages[1]);
       expect(flushed.type).toBe('audio_feature_chunk');
-      expect(flushed.timestampMs).toBe(42);
+      expect(flushed.timestamp_ms).toBe(42);
     });
 
     it('drops the oldest entry when buffer exceeds 200 items', async () => {
@@ -301,8 +301,8 @@ describe('TransmissionManager', () => {
       // session_init (1) + 200 buffered chunks (chunk 0 dropped)
       const buffered = ws.sentMessages.slice(1);
       expect(buffered).toHaveLength(200);
-      expect(JSON.parse(buffered[0]).timestampMs).toBe(1); // chunk 0 dropped
-      expect(JSON.parse(buffered[199]).timestampMs).toBe(200);
+      expect(JSON.parse(buffered[0]).timestamp_ms).toBe(1); // chunk 0 dropped
+      expect(JSON.parse(buffered[199]).timestamp_ms).toBe(200);
     });
   });
 
@@ -344,7 +344,7 @@ describe('TransmissionManager', () => {
 
       const msg = JSON.parse(ws.sentMessages[ws.sentMessages.length - 1]);
       expect(msg.type).toBe('session_end');
-      expect(msg.sessionId).toBe('session-1');
+      expect(msg.session_id).toBe('session-1');
     });
 
     it('stops reconnection attempts after disconnect', async () => {
@@ -352,7 +352,7 @@ describe('TransmissionManager', () => {
       const ws = await connectManager(manager);
 
       manager.disconnect();
-      ws.simulateClose(); // onclose fires but sessionId is null → no reconnect
+      ws.simulateClose(); // onclose fires but session_id is null → no reconnect
 
       jest.advanceTimersByTime(60_000);
       expect(onLost).not.toHaveBeenCalled();
@@ -447,7 +447,7 @@ describe('TransmissionManager', () => {
 
       const initMsg = JSON.parse(ws2.sentMessages[0]);
       expect(initMsg.type).toBe('session_init');
-      expect(initMsg.sessionId).toBe('session-1');
+      expect(initMsg.session_id).toBe('session-1');
     });
 
     it('flushes buffer after ready ack on reconnect (not on open)', async () => {
@@ -471,7 +471,7 @@ describe('TransmissionManager', () => {
       expect(ws2.sentMessages).toHaveLength(2);
       const flushed = JSON.parse(ws2.sentMessages[1]);
       expect(flushed.type).toBe('audio_feature_chunk');
-      expect(flushed.timestampMs).toBe(777);
+      expect(flushed.timestamp_ms).toBe(777);
     });
 
     it('resets reconnect counter after a successful reconnect', async () => {
@@ -504,16 +504,16 @@ describe('TransmissionManager', () => {
       const ws = await connectManager(manager);
 
       ws.simulateSegment({
-        segmentId: 'seg-1',
-        sessionId: 'session-1',
+        segment_id: 'seg-1',
+        session_id: 'session-1',
         status: SegmentStatus.FINAL,
         text: 'Merhaba',
         source: ModalityType.ASR,
         confidence: 0.9,
-        timestampMs: 1000,
-        durationMs: 500,
-        createdAtMs: 1_700_000_000_000,
-        replacesSegmentId: null,
+        timestamp_ms: 1000,
+        duration_ms: 500,
+        created_at_ms: 1_700_000_000_000,
+        replaces_segment_id: null,
       });
 
       expect(store.size).toBe(1);

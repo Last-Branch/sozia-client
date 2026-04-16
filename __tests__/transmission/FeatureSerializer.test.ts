@@ -93,38 +93,38 @@ describe('FeatureSerializer', () => {
       expect(result.type).toBe('pipeline_health');
     });
 
-    it('preserves all LandmarkFrame fields', () => {
+    it('preserves all LandmarkFrame fields as snake_case', () => {
       const frame = makeLandmarkFrame();
       const result = JSON.parse(serializer.serialize(frame));
-      expect(result.sessionId).toBe(frame.sessionId);
-      expect(result.timestampMs).toBe(frame.timestampMs);
-      expect(result.faceLandmarks).toEqual(frame.faceLandmarks);
-      expect(result.leftHandLandmarks).toBeNull();
-      expect(result.rightHandLandmarks).toEqual(frame.rightHandLandmarks);
-      expect(result.poseLandmarks).toBeNull();
+      expect(result.session_id).toBe(frame.sessionId);
+      expect(result.timestamp_ms).toBe(frame.timestampMs);
+      expect(result.face_landmarks).toEqual(frame.faceLandmarks);
+      expect(result.left_hand_landmarks).toBeNull();
+      expect(result.right_hand_landmarks).toEqual(frame.rightHandLandmarks);
+      expect(result.pose_landmarks).toBeNull();
     });
 
-    it('preserves all AudioFeatureChunk fields', () => {
+    it('preserves all AudioFeatureChunk fields as snake_case', () => {
       const chunk = makeAudioChunk();
       const result = JSON.parse(serializer.serialize(chunk));
-      expect(result.sessionId).toBe(chunk.sessionId);
-      expect(result.timestampMs).toBe(chunk.timestampMs);
+      expect(result.session_id).toBe(chunk.sessionId);
+      expect(result.timestamp_ms).toBe(chunk.timestampMs);
       expect(result.features).toEqual(chunk.features);
-      expect(result.featureType).toBe(chunk.featureType);
-      expect(result.sampleRateHz).toBe(chunk.sampleRateHz);
-      expect(result.chunkDurationMs).toBe(chunk.chunkDurationMs);
+      expect(result.feature_type).toBe(chunk.featureType);
+      expect(result.sample_rate_hz).toBe(chunk.sampleRateHz);
+      expect(result.chunk_duration_ms).toBe(chunk.chunkDurationMs);
     });
 
-    it('preserves all PipelineHealth fields', () => {
+    it('preserves all PipelineHealth fields as snake_case', () => {
       const health = makePipelineHealth();
       const result = JSON.parse(serializer.serialize(health));
-      expect(result.sessionId).toBe(health.sessionId);
+      expect(result.session_id).toBe(health.sessionId);
       expect(result.pipeline).toBe(health.pipeline);
       expect(result.available).toBe(health.available);
       expect(result.fps).toBeNull();
       expect(result.snr).toBe(health.snr);
-      expect(result.faceDetected).toBeNull();
-      expect(result.lastUpdatedMs).toBe(health.lastUpdatedMs);
+      expect(result.face_detected).toBeNull();
+      expect(result.last_updated_ms).toBe(health.lastUpdatedMs);
     });
 
     it('correctly identifies PipelineHealth over LandmarkFrame when faceLandmarks is absent', () => {
@@ -142,19 +142,19 @@ describe('FeatureSerializer', () => {
       expect(result.type).toBe('session_init');
     });
 
-    it('includes sessionId', () => {
+    it('includes session_id', () => {
       const result = JSON.parse(serializer.sessionInit('session-abc', ModalityPath.SPEECH, ''));
-      expect(result.sessionId).toBe('session-abc');
+      expect(result.session_id).toBe('session-abc');
     });
 
-    it('includes activePath for SPEECH', () => {
+    it('includes modality_path for SPEECH', () => {
       const result = JSON.parse(serializer.sessionInit('s', ModalityPath.SPEECH, ''));
-      expect(result.activePath).toBe(ModalityPath.SPEECH);
+      expect(result.modality_path).toBe(ModalityPath.SPEECH);
     });
 
-    it('includes activePath for SIGN', () => {
+    it('includes modality_path for SIGN', () => {
       const result = JSON.parse(serializer.sessionInit('s', ModalityPath.SIGN, ''));
-      expect(result.activePath).toBe(ModalityPath.SIGN);
+      expect(result.modality_path).toBe(ModalityPath.SIGN);
     });
 
     it('includes api_key in the payload', () => {
@@ -176,9 +176,9 @@ describe('FeatureSerializer', () => {
       expect(result.type).toBe('session_end');
     });
 
-    it('includes sessionId', () => {
+    it('includes session_id', () => {
       const result = JSON.parse(serializer.sessionEnd('session-xyz'));
-      expect(result.sessionId).toBe('session-xyz');
+      expect(result.session_id).toBe('session-xyz');
     });
   });
 });
