@@ -37,10 +37,12 @@
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.34",
+    "@siteed/audio-studio": "^3.0.3",
     "babel-preset-expo": "~54.0.10",
     "expo": "~54.0.33",
     "expo-audio": "~1.1.1",
     "expo-camera": "~17.0.10",
+    "expo-dev-client": "~6.0.20",
     "expo-status-bar": "~3.0.9",
     "lucide-react-native": "^0.577.0",
     "nativewind": "^4.2.3",
