@@ -314,18 +314,21 @@ describe('IAudioPipeline.setVadSensitivity()', () => {
 });
 
 // ---------------------------------------------------------------------------
-// TP-CLIENT-AUDIO-007: RecordingPresets shape guard
+// TP-CLIENT-AUDIO-007: @siteed/expo-audio-studio RecordingConfig shape guard
 // ---------------------------------------------------------------------------
 
-describe('RecordingPresets.HIGH_QUALITY shape', () => {
-  it('TP-CLIENT-AUDIO-007a: has the top-level keys flattenRecordingOptions depends on', () => {
-    // Read the declaration source to verify the RecordingOptions shape hasn't changed.
-    // Direct require() of expo-audio fails under Jest (ESM), so we inspect the .d.ts.
+describe('@siteed/expo-audio-studio RecordingConfig shape', () => {
+  it('TP-CLIENT-AUDIO-007a: RecordingConfig has the fields ExpoAudioPipeline depends on', () => {
+    // ExpoAudioPipeline uses: sampleRate, channels, encoding, streamFormat,
+    // interval, output, onAudioStream. Inspect the .d.ts to catch upstream renames.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fs = jest.requireActual<any>('fs');
-    const typeDef = fs.readFileSync('node_modules/expo-audio/build/RecordingConstants.d.ts', 'utf8') as string;
+    const typeDef = fs.readFileSync(
+      'node_modules/@siteed/audio-studio/build/types/AudioStudio.types.d.ts',
+      'utf8',
+    ) as string;
 
-    for (const key of ['extension', 'sampleRate', 'numberOfChannels', 'bitRate', 'ios', 'android', 'web']) {
+    for (const key of ['sampleRate', 'channels', 'encoding', 'streamFormat', 'interval', 'output', 'onAudioStream']) {
       expect(typeDef).toContain(key);
     }
   });
