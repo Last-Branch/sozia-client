@@ -121,7 +121,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                     style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
                     facing={cameraFacing}
                     mirror={cameraFacing === 'front'}
-                    active={state !== SessionState.PAUSED}
+                    active
                     onCameraReady={() => {
                       setTimeout(() => {
                         if (typeof document === 'undefined') return;
