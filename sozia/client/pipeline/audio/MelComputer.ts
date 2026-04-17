@@ -2,7 +2,7 @@
  * 80-bin log10-mel spectrogram for Whisper ASR.
  *
  * Pipeline per frame:
- *   pre-emphasis → Hamming window → zero-pad to FFT size →
+ *   Hann window → zero-pad to FFT size →
  *   FFT → power spectrum → 80-bin Mel filterbank → log10
  *
  * Output: raw log10-mel energies (80 bins). Normalization (clip + scale)
@@ -13,7 +13,6 @@ const SAMPLE_RATE = 16_000;
 const FRAME_SIZE_SAMPLES = 400; // 25 ms at 16 kHz
 const FFT_SIZE = 512;
 const NUM_MEL_FILTERS = 80;
-const PRE_EMPHASIS = 0.97;
 const MEL_LOW_HZ = 0;
 const MEL_HIGH_HZ = 8_000;
 
@@ -30,13 +29,13 @@ function melToHz(mel: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Hamming window
+// Hann window (matches Whisper's feature extractor)
 // ---------------------------------------------------------------------------
 
-function buildHammingWindow(N: number): Float32Array {
+function buildHannWindow(N: number): Float32Array {
   const w = new Float32Array(N);
   for (let n = 0; n < N; n++) {
-    w[n] = 0.54 - 0.46 * Math.cos((2 * Math.PI * n) / (N - 1));
+    w[n] = 0.5 * (1 - Math.cos((2 * Math.PI * n) / (N - 1)));
   }
   return w;
 }
@@ -141,7 +140,7 @@ function fftInPlace(real: Float32Array, imag: Float32Array): void {
 // ---------------------------------------------------------------------------
 
 export class MelComputer {
-  private readonly hammingWindow: Float32Array;
+  private readonly hannWindow: Float32Array;
   private readonly melBank: Float32Array;
 
   private readonly fftReal: Float32Array;
@@ -149,7 +148,7 @@ export class MelComputer {
   private readonly melEnergies: Float32Array;
 
   constructor() {
-    this.hammingWindow = buildHammingWindow(FRAME_SIZE_SAMPLES);
+    this.hannWindow = buildHannWindow(FRAME_SIZE_SAMPLES);
     this.melBank = buildMelFilterbank(
       NUM_MEL_FILTERS,
       FFT_SIZE,
@@ -168,17 +167,12 @@ export class MelComputer {
    * @param samples - Exactly 400 Float32 PCM values in [-1, 1].
    */
   compute(samples: Float32Array): number[] {
-    this.fftReal[0] = samples[0];
     const len = Math.min(samples.length, FRAME_SIZE_SAMPLES);
-    for (let i = 1; i < len; i++) {
-      this.fftReal[i] = samples[i] - PRE_EMPHASIS * samples[i - 1];
+    for (let i = 0; i < len; i++) {
+      this.fftReal[i] = samples[i] * this.hannWindow[i];
     }
     for (let i = len; i < FFT_SIZE; i++) {
       this.fftReal[i] = 0;
-    }
-
-    for (let i = 0; i < len; i++) {
-      this.fftReal[i] *= this.hammingWindow[i];
     }
 
     this.fftImag.fill(0);
