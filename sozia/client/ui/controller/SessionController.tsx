@@ -1,9 +1,16 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
-import { ModalityPath, SessionState, type PipelineHealth, type SessionStatusMessage } from '@common/models';
+import { ModalityPath, SessionState, type LandmarkFrame, type PipelineHealth, type SessionStatusMessage } from '@common/models';
 import type { DeviceHandle } from '@/device';
 import { ExpoAudioPipeline } from '@/pipeline/audio';
-import { LandmarkExtractor, VideoPipeline, WebMediaPipeLandmarkBackend } from '@/pipeline/video';
+import {
+  LandmarkExtractor,
+  NativeLandmarkBridge,
+  NativeMediaPipeLandmarkBackend,
+  VideoPipeline,
+  WebMediaPipeLandmarkBackend,
+} from '@/pipeline/video';
 import { DeviceManager, ExpoDeviceEnumerator } from '@/device';
 import { TranscriptStore } from '@/store';
 import { TransmissionManager } from '@/transmission';
@@ -31,6 +38,7 @@ export type SessionControllerValue = {
   selectMicrophone: (id: string) => void;
   selectCamera: (id: string) => void;
   setCameraVideoElement: (el: HTMLVideoElement | null) => void;
+  setNativeLandmarks: (frame: LandmarkFrame | null) => void;
 };
 
 const SessionControllerContext = createContext<SessionControllerValue | null>(null);
@@ -77,7 +85,10 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
   const store = useMemo(() => new TranscriptStore(), []);
 
-  const landmarkBackend = useRef(new WebMediaPipeLandmarkBackend());
+  const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
+  const landmarkBackend = useRef(
+    isNative ? new NativeMediaPipeLandmarkBackend() : new WebMediaPipeLandmarkBackend(),
+  );
   const deviceManager = useRef(
     new DeviceManager(
       new ExpoDeviceEnumerator(),
@@ -92,8 +103,13 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     void config.current.load().then(() => {
       deviceManager.current.setAudioVadSensitivity(config.current.get('vadSensitivity'));
     });
-    void landmarkBackend.current.init();
-  }, []);
+    if (!isNative) {
+      // WebMediaPipeLandmarkBackend requires async model loading; native backend
+      // is model-loaded by the JSI plugin on a background thread.
+      const backend = landmarkBackend.current as { init?: () => Promise<void> };
+      void backend.init?.();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const setCameraVideoElement = useCallback((el: HTMLVideoElement | null) => {
@@ -146,6 +162,10 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     (id: string) => deviceManager.current.selectCamera(id),
     []
   );
+
+  const setNativeLandmarks = useCallback((frame: LandmarkFrame | null) => {
+    NativeLandmarkBridge.setLatestFrame(frame);
+  }, []);
 
   const startSession = useCallback(async (path: ModalityPath) => {
     try {
@@ -302,8 +322,9 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       selectMicrophone,
       selectCamera,
       setCameraVideoElement,
+      setNativeLandmarks,
     }),
-    [actions, activePath, enumerateDevices, getState, healthReports, pauseSession, restartSession, resumeSession, selectCamera, selectMicrophone, sessionId, startSession, state, stopSession, store, setCameraVideoElement]
+    [actions, activePath, enumerateDevices, getState, healthReports, pauseSession, restartSession, resumeSession, selectCamera, selectMicrophone, sessionId, startSession, state, stopSession, store, setCameraVideoElement, setNativeLandmarks]
   );
 
   return <SessionControllerContext.Provider value={value}>{children}</SessionControllerContext.Provider>;

@@ -10,6 +10,7 @@
 
 import { requestRecordingPermissionsAsync } from 'expo-audio';
 import { Camera as ExpoCamera } from 'expo-camera';
+import { Platform } from 'react-native';
 import type { PipelineHealth } from '@common/models';
 import type { IAudioPipeline, RawAudioHandle, SensitivityLevel } from '@/pipeline/audio';
 import type { IVideoPipeline, RawMediaHandle } from '@/pipeline/video';
@@ -69,11 +70,25 @@ export class DeviceManager {
   }
 
   /**
-   * Requests camera permission from the OS via expo-camera.
+   * Requests camera permission from the OS.
+   * On native (iOS/Android) uses react-native-vision-camera (required for JSI
+   * frame processor access). On web falls back to expo-camera.
    * Sets `isCameraAvailable()` to true on success.
    * Throws with an actionable message if permission is denied.
    */
   async activateCamera(): Promise<void> {
+    if (Platform.OS !== 'web') {
+      const { Camera: VisionCamera } = require('react-native-vision-camera') as typeof import('react-native-vision-camera');
+      const status = await VisionCamera.requestCameraPermission();
+      if (status !== 'granted') {
+        this.cameraAvailable = false;
+        throw new Error(
+          'Camera permission denied. Grant camera access in device settings to use sign language recognition.'
+        );
+      }
+      this.cameraAvailable = true;
+      return;
+    }
     const { granted } = await ExpoCamera.requestCameraPermissionsAsync();
     if (!granted) {
       this.cameraAvailable = false;

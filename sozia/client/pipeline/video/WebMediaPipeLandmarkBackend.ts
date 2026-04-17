@@ -20,6 +20,7 @@ import {
 } from '@mediapipe/tasks-vision';
 
 import type { LandmarkFrame } from '@common/models';
+import { FACE_LANDMARK_INDICES } from '@common/models';
 import type { LandmarkExtractionBackend, RawVideoFrame } from './LandmarkExtractor';
 
 const VISION_WASM_CDN =
@@ -31,18 +32,6 @@ const MODEL_URLS = {
   pose: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task',
 };
 
-/**
- * 83 linguistically-relevant face landmark indices from the full 478-point
- * MediaPipe Face Mesh. Mirrors tsl_recognition/config.py FACE_LANDMARK_INDICES.
- */
-const FACE_LANDMARK_INDICES: readonly number[] = [
-  0, 1, 4, 5, 13, 14, 17, 33, 37, 39, 40, 46, 52, 53, 55, 61, 65,
-  78, 80, 81, 82, 84, 87, 88, 91, 95, 133, 144, 145, 146, 152, 157,
-  158, 159, 160, 175, 178, 181, 185, 191, 199, 200, 263, 267, 269,
-  270, 276, 282, 283, 285, 291, 295, 308, 310, 311, 312, 314, 317,
-  318, 321, 324, 362, 373, 374, 375, 384, 385, 386, 387, 402, 405,
-  409, 415, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477,
-];
 
 type ImageSource = HTMLVideoElement | HTMLCanvasElement | HTMLImageElement;
 
