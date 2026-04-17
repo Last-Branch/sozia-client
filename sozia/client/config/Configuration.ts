@@ -41,7 +41,7 @@ const DEFAULT_CONFIG: AppConfig = {
   serverUrl: 'wss://...',
   maxReconnectAttempts: 5,
   diagnosticsEnabled: false,
-  vadSensitivity: 'medium',
+  vadSensitivity: 'high',
   apiKey: '',
 };
 
