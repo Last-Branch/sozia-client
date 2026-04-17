@@ -58,14 +58,14 @@ export class ExpoAudioPipeline implements IAudioPipeline {
   private frameListeners = new Set<(frame: MelFrame) => void>();
 
   private readonly chunker: AudioChunker;
-  private readonly mfcc: MelComputer;
+  private readonly mel: MelComputer;
   private tx: TransmissionManager | null = null;
   private unsubscribeChunker: (() => void) | null = null;
   private audioSubscription: { remove: () => void } | null = null;
 
   constructor(chunker: AudioChunker = new AudioChunker()) {
     this.chunker = chunker;
-    this.mfcc = new MelComputer();
+    this.mel = new MelComputer();
   }
 
   async start(
@@ -237,7 +237,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
 
   private _emitFrame(samples: Float32Array): void {
     const timestampMs = Date.now() - this.sessionStartMs;
-    const coefficients = this.mfcc.compute(samples);
+    const coefficients = this.mel.compute(samples);
     const energy = frameLogEnergy(samples);
     const frame: MelFrame = { timestampMs, coefficients, energy };
 

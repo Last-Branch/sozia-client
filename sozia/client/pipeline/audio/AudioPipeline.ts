@@ -47,7 +47,7 @@ export interface MelFrame {
  */
 export interface IAudioPipeline {
   /**
-   * Begin microphone capture and MFCC extraction for the given session.
+   * Begin microphone capture and mel spectrogram extraction for the given session.
    * Resolves once the pipeline is ready to emit frames.
    * Rejects if the device is unavailable.
    *
@@ -90,7 +90,7 @@ export interface IAudioPipeline {
   getHealth(): PipelineHealth;
 
   /**
-   * Register a callback to receive MFCC frames as they are extracted.
+   * Register a callback to receive mel frames as they are extracted.
    * Returns an unsubscribe function; call it to stop receiving frames.
    * Multiple listeners may be registered simultaneously.
    */

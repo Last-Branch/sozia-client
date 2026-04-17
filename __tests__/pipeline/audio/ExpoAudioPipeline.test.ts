@@ -344,7 +344,7 @@ describe('ExpoAudioPipeline web factory path', () => {
 // ---------------------------------------------------------------------------
 
 describe('ExpoAudioPipeline.onFrame() and chunk forwarding', () => {
-  it('TP-CLIENT-EXPOPIPELINE-005a: native AudioData event drives frame listeners via real MFCC', async () => {
+  it('TP-CLIENT-EXPOPIPELINE-005a: native AudioData event drives frame listeners via real mel spectrogram', async () => {
     const pipeline = new ExpoAudioPipeline(makeChunker());
     const frames: unknown[] = [];
     pipeline.onFrame((f) => frames.push(f));

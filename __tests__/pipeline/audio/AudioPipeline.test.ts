@@ -114,7 +114,7 @@ describe('MelFrame', () => {
     expect(frame.timestampMs).toBeGreaterThanOrEqual(0);
   });
 
-  it('TP-CLIENT-AUDIO-001b: contains 13 MFCC coefficients', () => {
+  it('TP-CLIENT-AUDIO-001b: contains mel spectrogram coefficients', () => {
     const frame = makeMockFrame();
     expect(Array.isArray(frame.coefficients)).toBe(true);
     expect(frame.coefficients).toHaveLength(13);
