@@ -22,6 +22,8 @@ export type SessionControllerValue = {
   pauseSession: () => void;
   resumeSession: () => void;
   stopSession: () => void;
+  /** Stops the session then starts again with the same modality (live screen Restart). */
+  restartSession: () => Promise<void>;
   getState: () => SessionState;
   onPipelineHealthChanged: (health: PipelineHealth) => void;
   onConnectionLost: () => void;
@@ -232,6 +234,16 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     store.clear();
   }, [store]);
 
+  const restartSession = useCallback(async () => {
+    const path = activePathRef.current ?? ModalityPath.SPEECH;
+    stopSession();
+    try {
+      await startSession(path);
+    } catch (e) {
+      if (__DEV__) console.warn('restartSession failed', e);
+    }
+  }, [stopSession, startSession]);
+
   // Poll audio pipeline health every second while a SPEECH session is active.
   // Transitions RUNNING → DEGRADED if the pipeline becomes unavailable.
   useEffect(() => {
@@ -282,6 +294,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       pauseSession,
       resumeSession,
       stopSession,
+      restartSession,
       getState,
       onPipelineHealthChanged: actions.onPipelineHealthChanged,
       onConnectionLost: actions.onConnectionLost,
@@ -290,7 +303,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       selectCamera,
       setCameraVideoElement,
     }),
-    [actions, activePath, enumerateDevices, getState, healthReports, pauseSession, resumeSession, selectCamera, selectMicrophone, sessionId, startSession, state, stopSession, store, setCameraVideoElement]
+    [actions, activePath, enumerateDevices, getState, healthReports, pauseSession, restartSession, resumeSession, selectCamera, selectMicrophone, sessionId, startSession, state, stopSession, store, setCameraVideoElement]
   );
 
   return <SessionControllerContext.Provider value={value}>{children}</SessionControllerContext.Provider>;
