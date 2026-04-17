@@ -1,0 +1,7 @@
+{
+  "name": "sozia-mediapipe",
+  "version": "1.0.0",
+  "description": "MediaPipe landmark frame processor plugin for VisionCamera",
+  "main": "index.js",
+  "react-native": "index.js"
+}
