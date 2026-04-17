@@ -5,7 +5,7 @@ import type { PipelineHealth } from '@common/models';
 import type { TransmissionManager } from '@/transmission/TransmissionManager';
 import type { IAudioPipeline, MFCCFrame, RawAudioHandle } from './AudioPipeline';
 import { AudioChunker } from './AudioChunker';
-import { MelComputer, frameLogEnergy } from './MfccComputer';
+import { MelComputer, frameLogEnergy } from './MelComputer';
 import type { SensitivityLevel } from './VoiceActivityDetector';
 
 const SAMPLE_RATE = 16_000;
@@ -37,8 +37,8 @@ interface AudioRecorder {
  *           `AudioStudioModule`, emitting `'AudioData'` with `event.pcmFloat32`
  *           (Android = `Float32Array`, iOS = `number[]`).
  *
- * `MelComputer` performs pre-emphasis → Hamming window → FFT → Mel filterbank → log → DCT-II.
- * Frames are sliced from a rolling sample accumulator so each MFCC frame always receives
+ * `MelComputer` performs pre-emphasis → Hamming window → FFT → 80-bin Mel filterbank → log10.
+ * Frames are sliced from a rolling sample accumulator so each mel frame always receives
  * exactly FRAME_SIZE_SAMPLES samples regardless of how the native bridge chunks the data.
  *
  * Platform normalisation: `_resolveRecorder()` returns the object that carries

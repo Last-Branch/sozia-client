@@ -24,8 +24,8 @@ export interface MFCCFrame {
   /** Milliseconds elapsed since the session started (monotonically increasing). */
   timestampMs: number;
   /**
-   * Mel-frequency cepstral coefficients — 13 values representing the spectral
-   * envelope of the audio frame. Primary input for ASR and lip-reading fusion.
+   * 80-bin log10-mel spectrogram values for a single audio frame.
+   * Primary input for Whisper ASR and lip-reading fusion.
    */
   coefficients: number[];
   /**

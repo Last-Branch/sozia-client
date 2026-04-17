@@ -1,6 +1,6 @@
 export type { IAudioPipeline, MFCCFrame, RawAudioHandle } from './AudioPipeline';
 export { ExpoAudioPipeline } from './ExpoAudioPipeline';
-export { MelComputer, frameLogEnergy } from './MfccComputer';
+export { MelComputer, frameLogEnergy } from './MelComputer';
 export { AudioChunker } from './AudioChunker';
 export { VoiceActivityDetector } from './VoiceActivityDetector';
 export type { SensitivityLevel } from './VoiceActivityDetector';

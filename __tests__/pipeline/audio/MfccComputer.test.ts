@@ -5,7 +5,7 @@
  * energy sensitivity, normalization range, and determinism.
  */
 
-import { MelComputer, frameLogEnergy } from '@/pipeline/audio/MfccComputer';
+import { MelComputer, frameLogEnergy } from '@/pipeline/audio/MelComputer';
 
 const FRAME_SIZE = 400; // 25 ms at 16 kHz
 const NUM_MEL_BINS = 80;
