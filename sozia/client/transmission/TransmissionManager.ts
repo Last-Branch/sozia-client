@@ -56,7 +56,7 @@ interface ReadyResolver {
 // At a combined 12 Hz (audio 2 Hz + video 10 Hz), 200 frames covers ~16 s —
 // safely past the 10 s connect timeout with room to spare.
 const MAX_BUFFER_SIZE = 200;
-const CONNECT_TIMEOUT_MS = 10_000;
+const CONNECT_TIMEOUT_MS = 60_000;
 
 // ---------------------------------------------------------------------------
 // TransmissionManager
