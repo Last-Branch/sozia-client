@@ -24,8 +24,8 @@ export interface MFCCFrame {
   /** Milliseconds elapsed since the session started (monotonically increasing). */
   timestampMs: number;
   /**
-   * 80-bin log10-mel spectrogram values for a single audio frame.
-   * Primary input for Whisper ASR and lip-reading fusion.
+   * Log10-mel spectogram values for a single audio frame(80 or 128 bins depending 
+   * on the deployed Whisper model). Primary input for Whisper ASR.
    */
   coefficients: number[];
   /**

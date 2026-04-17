@@ -12,7 +12,7 @@
 const SAMPLE_RATE = 16_000;
 const FRAME_SIZE_SAMPLES = 400; // 25 ms at 16 kHz
 const FFT_SIZE = 512;
-const NUM_MEL_FILTERS = 80;
+const NUM_MEL_FILTERS = 128;
 const MEL_LOW_HZ = 0;
 const MEL_HIGH_HZ = 8_000;
 
