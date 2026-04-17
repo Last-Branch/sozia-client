@@ -28,48 +28,14 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
   } = useSessionController();
   const cameraContainerRef = useRef<View>(null);
 
-  const [outputLanguage, setOutputLanguage] = useState<'TR' | 'EN'>('EN');
   const { t } = useLanguage();
   const [showSettings, setShowSettings] = useState(false);
   const [textSize, setTextSize] = useState(100);
-  const [groupMode, setGroupMode] = useState(false);
   const [cameraFacing, setCameraFacing] = useState<CameraType>('front');
   const [cameraMountError, setCameraMountError] = useState<string | null>(null);
 
   const baseFontSize = (textSize / 100) * 30;
   const shouldShowLiveCamera = activePath === ModalityPath.SIGN || activePath === ModalityPath.SPEECH;
-
-  const canPrimaryStart =
-    state === SessionState.PAUSED ||
-    state === SessionState.ERROR ||
-    state === SessionState.IDLE;
-
-  const primaryStartLabel =
-    state === SessionState.PAUSED
-      ? t('live.resume')
-      : state === SessionState.INITIALIZING
-        ? t('live.starting')
-        : state === SessionState.RUNNING || state === SessionState.DEGRADED
-          ? t('live.sessionRunning')
-          : t('live.start');
-
-  const primaryStartDisabled =
-    state === SessionState.INITIALIZING ||
-    state === SessionState.RUNNING ||
-    state === SessionState.DEGRADED;
-
-  const onPrimaryStartPress = () => {
-    if (state === SessionState.PAUSED) {
-      resumeSession();
-      return;
-    }
-    if (state === SessionState.ERROR || state === SessionState.IDLE) {
-      const path = activePath ?? ModalityPath.SPEECH;
-      void startSession(path).catch((e: unknown) => {
-        if (__DEV__) console.warn('Session start failed', e);
-      });
-    }
-  };
 
   // Demo mode: MockTranscriptSource (dev-only, dynamically imported)
   const [demoActive, setDemoActive] = useState(false);
@@ -159,9 +125,19 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
             {/* Active indicator — sits below the controls row */}
             <View className="absolute left-6 top-20 z-30 flex-row items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 py-1.5">
-              <View className="h-2.5 w-2.5 rounded-full bg-[#2ECC71]" />
+              <View className={`h-2.5 w-2.5 rounded-full ${
+                state === SessionState.RUNNING || state === SessionState.DEGRADED
+                  ? 'bg-[#2ECC71]'
+                  : state === SessionState.PAUSED
+                    ? 'bg-yellow-400'
+                    : 'bg-gray-400'
+              }`} />
               <Text className="text-xs font-semibold text-white">
-                {activePath === ModalityPath.SIGN ? t('live.reading') : t('live.listening')}
+                {state === SessionState.RUNNING || state === SessionState.DEGRADED
+                  ? (activePath === ModalityPath.SIGN ? t('live.reading') : t('live.listening'))
+                  : state === SessionState.PAUSED
+                    ? t('live.paused')
+                    : t('live.idle')}
               </Text>
             </View>
 
@@ -185,17 +161,23 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               </TouchableOpacity>
               <TouchableOpacity
                 className="h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/60"
+                disabled={state === SessionState.INITIALIZING}
                 onPress={() => {
-                  if (state === SessionState.PAUSED) {
-                    resumeSession();
-                  } else {
+                  if (state === SessionState.RUNNING || state === SessionState.DEGRADED) {
                     pauseSession();
+                  } else if (state === SessionState.PAUSED) {
+                    resumeSession();
+                  } else if (state === SessionState.IDLE || state === SessionState.ERROR) {
+                    const path = activePath ?? ModalityPath.SPEECH;
+                    void startSession(path).catch((e: unknown) => {
+                      if (__DEV__) console.warn('Session start failed', e);
+                    });
                   }
                 }}
               >
-                {state === SessionState.PAUSED
-                  ? <PlayCircle size={22} color="#fff" />
-                  : <PauseCircle size={22} color="#fff" />
+                {state === SessionState.RUNNING || state === SessionState.DEGRADED || state === SessionState.INITIALIZING
+                  ? <PauseCircle size={22} color="#fff" />
+                  : <PlayCircle size={22} color="#fff" />
                 }
               </TouchableOpacity>
               <TouchableOpacity
@@ -223,31 +205,6 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                 {/* Scrollable body */}
                 <ScrollView className="max-h-36 px-5 py-3" showsVerticalScrollIndicator={false}>
 
-                {/* Language */}
-                <View className="mb-4">
-                  <Text className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">{t('live.outputLang')}</Text>
-                  <View className="inline-flex w-full flex-row rounded-full bg-gray-100 dark:bg-gray-800 p-1">
-                    <TouchableOpacity
-                      className="flex-1 rounded-full px-4 py-2.5"
-                      style={outputLanguage === 'TR' ? { backgroundColor: '#2ECC71' } : {}}
-                      onPress={() => setOutputLanguage('TR')}
-                    >
-                      <Text style={outputLanguage === 'TR' ? { color: '#ffffff', fontWeight: 'bold', textAlign: 'center' } : { color: '#4b5563', fontWeight: 'bold', textAlign: 'center' }}>
-                        {t('live.tr')}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      className="flex-1 rounded-full px-4 py-2.5"
-                      style={outputLanguage === 'EN' ? { backgroundColor: '#2ECC71' } : {}}
-                      onPress={() => setOutputLanguage('EN')}
-                    >
-                      <Text style={outputLanguage === 'EN' ? { color: '#ffffff', fontWeight: 'bold', textAlign: 'center' } : { color: '#4b5563', fontWeight: 'bold', textAlign: 'center' }}>
-                        {t('live.en')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
                 {/* Subtitle Size */}
                 <View className="mb-4">
                   <View className="mb-2 flex-row items-center justify-between">
@@ -262,30 +219,20 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                   />
                 </View>
 
-                {/* Group mode */}
-                <View className="mb-4 flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <View>
-                    <Text className="text-sm font-semibold text-gray-900 dark:text-gray-100">{t('live.groupMode')}</Text>
-                    <Text className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{t('live.groupModeDesc')}</Text>
-                  </View>
-                  <TouchableOpacity
-                    className={`h-7 w-12 rounded-full p-1 ${
-                      groupMode ? 'bg-[#2ECC71]' : 'bg-gray-200 dark:bg-gray-600'
-                    }`}
-                    onPress={() => setGroupMode((v) => !v)}
-                  >
-                    <View
-                      className={`h-5 w-5 rounded-full bg-white dark:bg-gray-800 ${
-                        groupMode ? 'ml-5' : 'ml-0'
-                      }`}
-                    />
-                  </TouchableOpacity>
-                </View>
-
                 </ScrollView>
 
-                {/* Fixed footer: Clear transcript */}
-                <View className="border-t border-gray-200 dark:border-gray-700 px-5 py-3">
+                {/* Fixed footer */}
+                <View className="border-t border-gray-200 dark:border-gray-700 px-5 py-3 gap-2">
+                  {__DEV__ && (
+                    <TouchableOpacity
+                      className={`items-center rounded-2xl py-2 ${demoActive ? 'bg-red-400/20 border border-red-300 dark:border-red-700' : 'bg-blue-400/20 border border-blue-300 dark:border-blue-700'}`}
+                      onPress={toggleDemo}
+                    >
+                      <Text className={`text-sm font-semibold ${demoActive ? 'text-red-500' : 'text-blue-500'}`}>
+                        {demoActive ? 'Stop Demo' : t('live.demo')}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                   <TouchableOpacity
                     className="items-center rounded-2xl border border-red-300 dark:border-red-700 py-2"
                     onPress={() => store.clear()}
@@ -297,50 +244,8 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
             )}
 
             <View className="absolute bottom-0 left-0 right-0 z-30" pointerEvents="box-none">
-              {/* Start / Stop — explicit session controls */}
-              <View className="mx-4 mb-3 flex-row gap-3">
-                <TouchableOpacity
-                  className={`flex-1 rounded-2xl py-3.5 ${primaryStartDisabled || !canPrimaryStart ? 'bg-white/15' : 'bg-[#2ECC71]'}`}
-                  disabled={primaryStartDisabled || !canPrimaryStart}
-                  onPress={onPrimaryStartPress}
-                >
-                  <Text
-                    className={`text-center text-base font-bold ${primaryStartDisabled || !canPrimaryStart ? 'text-white/50' : 'text-white'}`}
-                  >
-                    {primaryStartLabel}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  className="flex-1 rounded-2xl bg-red-600 py-3.5 active:bg-red-700"
-                  onPress={() => {
-                    stopSession();
-                    onBack();
-                  }}
-                >
-                  <Text className="text-center text-base font-bold text-white">{t('live.stop')}</Text>
-                </TouchableOpacity>
-              </View>
-
               {/* Subtitle box — max-h-56 caps growth so it never reaches the top controls */}
               <View className="mx-4 mb-6 max-h-56 rounded-3xl border-t-2 border-white/20 bg-black/75 px-6 py-4">
-                {__DEV__ && (
-                  <View className="mb-2 flex-row items-center justify-center">
-                    <TouchableOpacity
-                      className={`rounded-full px-3 py-1 ${demoActive ? 'bg-red-400/90' : 'bg-blue-400/90'}`}
-                      onPress={toggleDemo}
-                    >
-                      <Text className="text-xs font-bold text-white">
-                        {demoActive ? 'Stop Demo' : t('live.demo')}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {groupMode && (
-                  <View className="mb-2 flex-row items-center justify-center gap-2">
-                    <View className="h-2.5 w-2.5 rounded-full bg-[#2ECC71]" />
-                    <Text className="text-sm font-bold text-[#2ECC71]">{t('live.speaker')} 1</Text>
-                  </View>
-                )}
                 <TranscriptView store={store} fontSize={baseFontSize} />
                 <View className="mt-3 items-center">
                   <Text className="text-xs text-gray-400">
