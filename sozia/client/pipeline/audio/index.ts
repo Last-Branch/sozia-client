@@ -1,4 +1,4 @@
-export type { IAudioPipeline, MFCCFrame, RawAudioHandle } from './AudioPipeline';
+export type { IAudioPipeline, MelFrame, RawAudioHandle } from './AudioPipeline';
 export { ExpoAudioPipeline } from './ExpoAudioPipeline';
 export { MelComputer, frameLogEnergy } from './MelComputer';
 export { AudioChunker } from './AudioChunker';

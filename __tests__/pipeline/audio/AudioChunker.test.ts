@@ -4,7 +4,7 @@
 /**
  * Unit tests — AudioChunker
  *
- * Verifies that MFCCFrames are batched into AudioFeatureChunks correctly,
+ * Verifies that MelFrames are batched into AudioFeatureChunks correctly,
  * listeners are notified, and start/stop resets internal state.
  *
  * Test plan reference: TP-CLIENT-AUDIO-005 through TP-CLIENT-AUDIO-008
@@ -13,15 +13,15 @@
 import { AudioChunker } from '@/pipeline/audio/AudioChunker';
 import { VoiceActivityDetector } from '@/pipeline/audio/VoiceActivityDetector';
 import { AudioFeatureExtractor } from '@/pipeline/audio/AudioFeatureExtractor';
-import type { MFCCFrame } from '@/pipeline/audio/AudioPipeline';
+import type { MelFrame } from '@/pipeline/audio/AudioPipeline';
 import type { AudioFeatureChunk } from '@common/models';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Build a fake MFCCFrame with a given timestamp and deterministic coefficients. */
-function fakeFrame(timestampMs: number, seed = 0): MFCCFrame {
+/** Build a fake MelFrame with a given timestamp and deterministic coefficients. */
+function fakeFrame(timestampMs: number, seed = 0): MelFrame {
   return {
     timestampMs,
     coefficients: Array.from({ length: 80 }, (_, i) => seed + i * 0.1),

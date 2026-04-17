@@ -20,7 +20,7 @@ export type RawAudioHandle = Record<string, never>;
  * Frames are consumed locally by the audio pipeline and transmitted to the
  * server as anonymized feature vectors — raw audio is never sent.
  */
-export interface MFCCFrame {
+export interface MelFrame {
   /** Milliseconds elapsed since the session started (monotonically increasing). */
   timestampMs: number;
   /**
@@ -39,7 +39,7 @@ export interface MFCCFrame {
  * Public contract for the audio capture and feature-extraction pipeline.
  *
  * Lifecycle:
- *   start() → (running: emitting MFCCFrames)
+ *   start() → (running: emitting MelFrames)
  *             → pause() → resume() → stop()
  *
  * Only one session is active at a time. Calling start() while already running
@@ -94,7 +94,7 @@ export interface IAudioPipeline {
    * Returns an unsubscribe function; call it to stop receiving frames.
    * Multiple listeners may be registered simultaneously.
    */
-  onFrame(callback: (frame: MFCCFrame) => void): () => void;
+  onFrame(callback: (frame: MelFrame) => void): () => void;
 
   /**
    * Adjust the sensitivity of the internal Voice Activity Detector.

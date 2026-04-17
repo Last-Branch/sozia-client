@@ -1,10 +1,10 @@
-import type { MFCCFrame } from './AudioPipeline';
+import type { MelFrame } from './AudioPipeline';
 
 /**
  * Energy-based voice activity detector that determines whether a chunk of
  * audio frames contains speech.
  *
- * Uses the per-frame `energy` (dBFS) from MFCCFrames to classify chunks as
+ * Uses the per-frame `energy` (dBFS) from MelFrames to classify chunks as
  * speech or silence. A chunk is considered speech when the proportion of
  * frames above the energy threshold exceeds a sensitivity-dependent ratio.
  *
@@ -35,10 +35,10 @@ export class VoiceActivityDetector {
   /**
    * Determines whether the given chunk of frames contains speech.
    *
-   * @param chunk - Array of MFCCFrames from a single AudioChunker window.
+   * @param chunk - Array of MelFrames from a single AudioChunker window.
    * @returns true if the chunk likely contains speech.
    */
-  isSpeechPresent(chunk: MFCCFrame[]): boolean {
+  isSpeechPresent(chunk: MelFrame[]): boolean {
     if (chunk.length === 0) return false;
 
     const energyThreshold = ENERGY_THRESHOLDS[this.sensitivity];

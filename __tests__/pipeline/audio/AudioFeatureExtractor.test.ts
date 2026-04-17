@@ -4,18 +4,18 @@
 /**
  * Unit tests — AudioFeatureExtractor
  *
- * Verifies lifecycle (init/teardown), chunk production from MFCCFrames,
+ * Verifies lifecycle (init/teardown), chunk production from MelFrames,
  * and null-safety for uninitialised or empty-input scenarios.
  */
 
 import { AudioFeatureExtractor } from '@/pipeline/audio/AudioFeatureExtractor';
-import type { MFCCFrame } from '@/pipeline/audio/AudioPipeline';
+import type { MelFrame } from '@/pipeline/audio/AudioPipeline';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function fakeFrame(timestampMs: number, seed = 0): MFCCFrame {
+function fakeFrame(timestampMs: number, seed = 0): MelFrame {
   return {
     timestampMs,
     coefficients: Array.from({ length: 80 }, (_, i) => seed + i * 0.01),
@@ -23,7 +23,7 @@ function fakeFrame(timestampMs: number, seed = 0): MFCCFrame {
   };
 }
 
-function fakeFrames(count: number, startMs = 0): MFCCFrame[] {
+function fakeFrames(count: number, startMs = 0): MelFrame[] {
   return Array.from({ length: count }, (_, i) => fakeFrame(startMs + i * 25, i));
 }
 

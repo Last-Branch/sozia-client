@@ -3,7 +3,7 @@ import { AudioStudioModule } from '@siteed/audio-studio';
 
 import type { PipelineHealth } from '@common/models';
 import type { TransmissionManager } from '@/transmission/TransmissionManager';
-import type { IAudioPipeline, MFCCFrame, RawAudioHandle } from './AudioPipeline';
+import type { IAudioPipeline, MelFrame, RawAudioHandle } from './AudioPipeline';
 import { AudioChunker } from './AudioChunker';
 import { MelComputer, frameLogEnergy } from './MelComputer';
 import type { SensitivityLevel } from './VoiceActivityDetector';
@@ -55,7 +55,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
   private currentSnr: number | null = null;
 
   private sampleAccumulator = new Float32Array(0);
-  private frameListeners = new Set<(frame: MFCCFrame) => void>();
+  private frameListeners = new Set<(frame: MelFrame) => void>();
 
   private readonly chunker: AudioChunker;
   private readonly mfcc: MelComputer;
@@ -187,7 +187,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     };
   }
 
-  onFrame(callback: (frame: MFCCFrame) => void): () => void {
+  onFrame(callback: (frame: MelFrame) => void): () => void {
     this.frameListeners.add(callback);
     return () => this.frameListeners.delete(callback);
   }
@@ -239,7 +239,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     const timestampMs = Date.now() - this.sessionStartMs;
     const coefficients = this.mfcc.compute(samples);
     const energy = frameLogEnergy(samples);
-    const frame: MFCCFrame = { timestampMs, coefficients, energy };
+    const frame: MelFrame = { timestampMs, coefficients, energy };
 
     this.lastUpdatedMs = timestampMs;
     this.currentSnr = Math.max(0, energy - NOISE_FLOOR_DBFS);

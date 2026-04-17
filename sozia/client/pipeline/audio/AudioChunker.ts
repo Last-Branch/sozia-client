@@ -1,5 +1,5 @@
 import type { AudioFeatureChunk } from '@common/models';
-import type { MFCCFrame } from './AudioPipeline';
+import type { MelFrame } from './AudioPipeline';
 import { AudioFeatureExtractor } from './AudioFeatureExtractor';
 import { VoiceActivityDetector } from './VoiceActivityDetector';
 
@@ -7,7 +7,7 @@ import { VoiceActivityDetector } from './VoiceActivityDetector';
 const FRAME_INTERVAL_MS = 10;
 
 /**
- * Accumulates MFCCFrames from the audio pipeline and emits AudioFeatureChunks
+ * Accumulates MelFrames from the audio pipeline and emits AudioFeatureChunks
  * at regular intervals for transmission to the inference server.
  *
  * The chunker owns the VAD and feature-extractor stages: each completed frame
@@ -32,7 +32,7 @@ export class AudioChunker {
   readonly sampleRateHz: number;
 
   private framesPerChunk: number;
-  private buffer: MFCCFrame[] = [];
+  private buffer: MelFrame[] = [];
   private listeners = new Set<(chunk: AudioFeatureChunk) => void>();
   private vad: VoiceActivityDetector;
   private extractor: AudioFeatureExtractor;
@@ -61,7 +61,7 @@ export class AudioChunker {
     this.extractor.init(sessionId);
   }
 
-  push(frame: MFCCFrame): void {
+  push(frame: MelFrame): void {
     this.buffer.push(frame);
     if (this.buffer.length >= this.framesPerChunk) {
       this._flush();
