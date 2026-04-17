@@ -296,7 +296,7 @@ describe('ExpoAudioPipeline web factory path', () => {
 
     expect(frames).toHaveLength(1);
     const frame = frames[0] as { coefficients: number[]; energy: number };
-    expect(frame.coefficients).toHaveLength(80);
+    expect(frame.coefficients).toHaveLength(128);
     expect(typeof frame.energy).toBe('number');
 
     pipeline.stop();
@@ -360,7 +360,7 @@ describe('ExpoAudioPipeline.onFrame() and chunk forwarding', () => {
 
     expect(frames).toHaveLength(1);
     const frame = frames[0] as { coefficients: number[]; energy: number; timestampMs: number };
-    expect(frame.coefficients).toHaveLength(80);
+    expect(frame.coefficients).toHaveLength(128);
     expect(typeof frame.energy).toBe('number');
     expect(isFinite(frame.energy)).toBe(true);
 

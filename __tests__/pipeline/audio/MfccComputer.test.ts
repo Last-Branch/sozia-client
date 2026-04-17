@@ -1,14 +1,14 @@
 /**
  * Unit tests — MelComputer
  *
- * Validates the 80-bin log10-mel spectrogram pipeline: shape, finite-ness,
+ * Validates the 128-bin log10-mel spectrogram pipeline: shape, finite-ness,
  * energy sensitivity, normalization range, and determinism.
  */
 
 import { MelComputer, frameLogEnergy } from '@/pipeline/audio/MelComputer';
 
 const FRAME_SIZE = 400; // 25 ms at 16 kHz
-const NUM_MEL_BINS = 80;
+const NUM_MEL_BINS = 128;
 
 function sineFrame(frequency: number, sampleRate = 16_000): Float32Array {
   const samples = new Float32Array(FRAME_SIZE);
@@ -37,7 +37,7 @@ function noiseFrame(amplitude = 0.1): Float32Array {
 describe('MelComputer.compute() — output shape', () => {
   const mel = new MelComputer();
 
-  it('returns exactly 80 mel bins', () => {
+  it('returns exactly 128 mel bins', () => {
     const result = mel.compute(sineFrame(440));
     expect(result).toHaveLength(NUM_MEL_BINS);
   });
