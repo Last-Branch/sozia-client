@@ -194,10 +194,11 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
         await deviceManager.current.startVideoPipeline(newSessionId, cameraHandle, transmissionManager.current);
       }
 
-      // Connect in the background — the 50-frame send buffer holds frames
-      // produced during the connection window. onConnectionLost handles failure.
-      void transmissionManager.current.connect(newSessionId, path, apiKey)
-        .catch(() => { actions.onConnectionLost(); });
+      // Connect in the background — the send buffer holds frames produced
+      // during the connection window. onConnectionLost handles failure.
+      void transmissionManager.current.connect(newSessionId, path, apiKey).catch(() => {
+        actions.onConnectionLost();
+      });
 
       setState(SessionState.RUNNING);
     } catch (e) {
@@ -207,7 +208,10 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   }, [store, actions]);
 
   const pauseSession = useCallback(() => {
-    if (stateRef.current !== SessionState.RUNNING) return;
+    const s = stateRef.current;
+    // Allow pause from DEGRADED too — health polling moves RUNNING → DEGRADED when a
+    // pipeline flags unavailable; pause must still stop capture/inference work.
+    if (s !== SessionState.RUNNING && s !== SessionState.DEGRADED) return;
     deviceManager.current.pauseAllPipelines();
     setState(SessionState.PAUSED);
   }, []);

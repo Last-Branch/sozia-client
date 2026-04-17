@@ -18,7 +18,7 @@ export function DashboardScreen({
   onOpenSettings: () => void;
   onOpenHelp: () => void;
 }) {
-  const { state, activePath, startSession, enumerateDevices, selectMicrophone, selectCamera } = useSessionController();
+  const { state, activePath, startSession, stopSession, enumerateDevices, selectMicrophone, selectCamera } = useSessionController();
   const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'home' | 'help' | 'profile'>('home');
@@ -74,6 +74,19 @@ export function DashboardScreen({
                 <CircleUser size={20} color="#374151" />
               </TouchableOpacity>
             </View>
+
+            {!isIdle && (
+              <View className="px-6 pb-3">
+                <TouchableOpacity
+                  className="items-center rounded-2xl bg-red-600 py-3.5 active:bg-red-700"
+                  onPress={() => {
+                    stopSession();
+                  }}
+                >
+                  <Text className="text-center text-base font-bold text-white">{t('live.stop')}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Device Setup */}
             <View className="px-6 pb-2">

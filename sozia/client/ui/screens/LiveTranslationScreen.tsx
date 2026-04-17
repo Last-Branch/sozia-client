@@ -13,7 +13,18 @@ import type { MockTranscriptSource as MockTranscriptSourceType } from '../testin
 
 
 export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
-  const { state, sessionId, activePath, healthReports, stopSession, pauseSession, resumeSession, store, setCameraVideoElement } = useSessionController();
+  const {
+    state,
+    sessionId,
+    activePath,
+    healthReports,
+    startSession,
+    stopSession,
+    pauseSession,
+    resumeSession,
+    store,
+    setCameraVideoElement,
+  } = useSessionController();
   const cameraContainerRef = useRef<View>(null);
 
   const [outputLanguage, setOutputLanguage] = useState<'TR' | 'EN'>('EN');
@@ -26,6 +37,38 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
   const baseFontSize = (textSize / 100) * 30;
   const shouldShowLiveCamera = activePath === ModalityPath.SIGN || activePath === ModalityPath.SPEECH;
+
+  const canPrimaryStart =
+    state === SessionState.PAUSED ||
+    state === SessionState.ERROR ||
+    state === SessionState.IDLE;
+
+  const primaryStartLabel =
+    state === SessionState.PAUSED
+      ? t('live.resume')
+      : state === SessionState.INITIALIZING
+        ? t('live.starting')
+        : state === SessionState.RUNNING || state === SessionState.DEGRADED
+          ? t('live.sessionRunning')
+          : t('live.start');
+
+  const primaryStartDisabled =
+    state === SessionState.INITIALIZING ||
+    state === SessionState.RUNNING ||
+    state === SessionState.DEGRADED;
+
+  const onPrimaryStartPress = () => {
+    if (state === SessionState.PAUSED) {
+      resumeSession();
+      return;
+    }
+    if (state === SessionState.ERROR || state === SessionState.IDLE) {
+      const path = activePath ?? ModalityPath.SPEECH;
+      void startSession(path).catch((e: unknown) => {
+        if (__DEV__) console.warn('Session start failed', e);
+      });
+    }
+  };
 
   // Demo mode: MockTranscriptSource (dev-only, dynamically imported)
   const [demoActive, setDemoActive] = useState(false);
@@ -78,7 +121,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                     style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
                     facing={cameraFacing}
                     mirror={cameraFacing === 'front'}
-                    active={state !== SessionState.PAUSED}
+                    active
                     onCameraReady={() => {
                       setTimeout(() => {
                         if (typeof document === 'undefined') return;
@@ -247,6 +290,30 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
             )}
 
             <View className="absolute bottom-0 left-0 right-0 z-30" pointerEvents="box-none">
+              {/* Start / Stop — explicit session controls */}
+              <View className="mx-4 mb-3 flex-row gap-3">
+                <TouchableOpacity
+                  className={`flex-1 rounded-2xl py-3.5 ${primaryStartDisabled || !canPrimaryStart ? 'bg-white/15' : 'bg-[#2ECC71]'}`}
+                  disabled={primaryStartDisabled || !canPrimaryStart}
+                  onPress={onPrimaryStartPress}
+                >
+                  <Text
+                    className={`text-center text-base font-bold ${primaryStartDisabled || !canPrimaryStart ? 'text-white/50' : 'text-white'}`}
+                  >
+                    {primaryStartLabel}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  className="flex-1 rounded-2xl bg-red-600 py-3.5 active:bg-red-700"
+                  onPress={() => {
+                    stopSession();
+                    onBack();
+                  }}
+                >
+                  <Text className="text-center text-base font-bold text-white">{t('live.stop')}</Text>
+                </TouchableOpacity>
+              </View>
+
               {/* Subtitle box — max-h-56 caps growth so it never reaches the top controls */}
               <View className="mx-4 mb-6 max-h-56 rounded-3xl border-t-2 border-white/20 bg-black/75 px-6 py-4">
                 {__DEV__ && (
