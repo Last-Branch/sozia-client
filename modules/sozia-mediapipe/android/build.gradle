@@ -1,0 +1,35 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    namespace 'com.sozia.mediapipe'
+    compileSdkVersion 36
+    defaultConfig {
+        minSdkVersion 24
+        targetSdkVersion 34
+    }
+    buildFeatures {
+        buildConfig false
+    }
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.mediapipe:tasks-vision:0.10.14'
+    // Both react-native and react-native-vision-camera are already included by
+    // the app module at runtime; compileOnly gives us their types without
+    // duplicating the AAR.
+    compileOnly project(':react-native-vision-camera')
+    compileOnly "com.facebook.react:react-android:+"
+}
