@@ -5,7 +5,7 @@ import type { PipelineHealth } from '@common/models';
 import type { TransmissionManager } from '@/transmission/TransmissionManager';
 import type { IAudioPipeline, MFCCFrame, RawAudioHandle } from './AudioPipeline';
 import { AudioChunker } from './AudioChunker';
-import { MfccComputer, frameLogEnergy } from './MfccComputer';
+import { MelComputer, frameLogEnergy } from './MfccComputer';
 import type { SensitivityLevel } from './VoiceActivityDetector';
 
 const SAMPLE_RATE = 16_000;
@@ -37,7 +37,7 @@ interface AudioRecorder {
  *           `AudioStudioModule`, emitting `'AudioData'` with `event.pcmFloat32`
  *           (Android = `Float32Array`, iOS = `number[]`).
  *
- * `MfccComputer` performs pre-emphasis → Hamming window → FFT → Mel filterbank → log → DCT-II.
+ * `MelComputer` performs pre-emphasis → Hamming window → FFT → Mel filterbank → log → DCT-II.
  * Frames are sliced from a rolling sample accumulator so each MFCC frame always receives
  * exactly FRAME_SIZE_SAMPLES samples regardless of how the native bridge chunks the data.
  *
@@ -58,14 +58,14 @@ export class ExpoAudioPipeline implements IAudioPipeline {
   private frameListeners = new Set<(frame: MFCCFrame) => void>();
 
   private readonly chunker: AudioChunker;
-  private readonly mfcc: MfccComputer;
+  private readonly mfcc: MelComputer;
   private tx: TransmissionManager | null = null;
   private unsubscribeChunker: (() => void) | null = null;
   private audioSubscription: { remove: () => void } | null = null;
 
   constructor(chunker: AudioChunker = new AudioChunker()) {
     this.chunker = chunker;
-    this.mfcc = new MfccComputer();
+    this.mfcc = new MelComputer();
   }
 
   async start(

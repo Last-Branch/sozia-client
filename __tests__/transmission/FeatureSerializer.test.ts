@@ -34,7 +34,7 @@ function makeAudioChunk(): AudioFeatureChunk {
     sessionId: 'session-1',
     timestampMs: 2000,
     features: [[1, 2, 3], [4, 5, 6]],
-    featureType: 'mfcc',
+    featureType: 'mel_spectrogram',
     sampleRateHz: 16000,
     chunkDurationMs: 500,
   };

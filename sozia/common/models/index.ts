@@ -72,7 +72,7 @@ export interface AudioFeatureChunk {
   /** 2D array [T, D] — T temporal frames, D feature dimensions. T ≥ 1, D ≥ 1. */
   features: number[][];
   /** Must match the server's expected input format. */
-  featureType: 'mfcc' | 'mel_spectrogram';
+  featureType: 'mel_spectrogram';
   /** Positive integer in Hertz (e.g., 16 000). */
   sampleRateHz: number;
   /** Duration in milliseconds. > 0; typical 500–2 000 ms. */

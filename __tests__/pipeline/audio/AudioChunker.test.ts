@@ -123,13 +123,13 @@ describe('AudioChunker', () => {
     expect(chunks[0].features[0]).toHaveLength(13);
   });
 
-  it('sets featureType to mfcc', () => {
+  it('sets featureType to mel_spectrogram', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
     pushFrames(chunker, 20);
 
-    expect(chunks[0].featureType).toBe('mfcc');
+    expect(chunks[0].featureType).toBe('mel_spectrogram');
   });
 
   it('sets sampleRateHz to 16000', () => {

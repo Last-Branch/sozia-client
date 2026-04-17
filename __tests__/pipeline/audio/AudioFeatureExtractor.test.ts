@@ -18,7 +18,7 @@ import type { MFCCFrame } from '@/pipeline/audio/AudioPipeline';
 function fakeFrame(timestampMs: number, seed = 0): MFCCFrame {
   return {
     timestampMs,
-    coefficients: Array.from({ length: 13 }, (_, i) => seed + i * 0.1),
+    coefficients: Array.from({ length: 80 }, (_, i) => seed + i * 0.01),
     energy: -30 + seed,
   };
 }
@@ -66,8 +66,8 @@ describe('AudioFeatureExtractor', () => {
     expect(chunk!.sessionId).toBe('session-abc');
     expect(chunk!.timestampMs).toBe(100);
     expect(chunk!.features).toHaveLength(10);
-    expect(chunk!.features[0]).toHaveLength(13);
-    expect(chunk!.featureType).toBe('mfcc');
+    expect(chunk!.features[0]).toHaveLength(80);
+    expect(chunk!.featureType).toBe('mel_spectrogram');
     expect(chunk!.sampleRateHz).toBe(16000);
     expect(chunk!.chunkDurationMs).toBeGreaterThan(0);
   });

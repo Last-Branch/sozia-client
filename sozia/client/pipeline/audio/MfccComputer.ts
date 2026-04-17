@@ -1,22 +1,20 @@
 /**
- * Pure-JS MFCC computation.
+ * 80-bin log10-mel spectrogram for Whisper ASR.
  *
  * Pipeline per frame:
  *   pre-emphasis → Hamming window → zero-pad to FFT size →
- *   FFT → power spectrum → Mel filterbank → log → DCT → first 13 coefficients
+ *   FFT → power spectrum → 80-bin Mel filterbank → log10
  *
- * Designed to operate on exactly FRAME_SIZE_SAMPLES (400) samples of Float32
- * PCM in the [-1, 1] range, as produced by @siteed/expo-audio-studio with
- * streamFormat: 'float32' at 16 kHz mono.
+ * Output: raw log10-mel energies (80 bins). Normalization (clip + scale)
+ * is applied server-side over the full assembled (80, 3000) segment.
  */
 
-const SAMPLE_RATE = 16_000; // Hz
+const SAMPLE_RATE = 16_000;
 const FRAME_SIZE_SAMPLES = 400; // 25 ms at 16 kHz
-const FFT_SIZE = 512; // next power-of-2 above FRAME_SIZE_SAMPLES
-const NUM_MEL_FILTERS = 26;
-const NUM_MFCC_COEFFICIENTS = 13;
+const FFT_SIZE = 512;
+const NUM_MEL_FILTERS = 80;
 const PRE_EMPHASIS = 0.97;
-const MEL_LOW_HZ = 80;
+const MEL_LOW_HZ = 0;
 const MEL_HIGH_HZ = 8_000;
 
 // ---------------------------------------------------------------------------
@@ -32,7 +30,7 @@ function melToHz(mel: number): number {
 }
 
 // ---------------------------------------------------------------------------
-// Hamming window (pre-computed once per MfccComputer instance)
+// Hamming window
 // ---------------------------------------------------------------------------
 
 function buildHammingWindow(N: number): Float32Array {
@@ -44,8 +42,7 @@ function buildHammingWindow(N: number): Float32Array {
 }
 
 // ---------------------------------------------------------------------------
-// Mel filterbank — returns NUM_MEL_FILTERS × (FFT_SIZE/2+1) weight matrix,
-// stored row-major as a single Float32Array for cache efficiency.
+// Mel filterbank — NUM_MEL_FILTERS × (FFT_SIZE/2+1) weight matrix
 // ---------------------------------------------------------------------------
 
 function buildMelFilterbank(
@@ -61,13 +58,11 @@ function buildMelFilterbank(
   const lowMel = hzToMel(lowHz);
   const highMel = hzToMel(highHz);
 
-  // numFilters + 2 centre points equally spaced in Mel
   const melPoints = new Float32Array(numFilters + 2);
   for (let i = 0; i < numFilters + 2; i++) {
     melPoints[i] = lowMel + (i * (highMel - lowMel)) / (numFilters + 1);
   }
 
-  // Convert centre points to FFT bin indices
   const binPoints = new Float32Array(numFilters + 2);
   for (let i = 0; i < numFilters + 2; i++) {
     binPoints[i] = Math.floor(((fftSize + 1) * melToHz(melPoints[i])) / sampleRate);
@@ -79,11 +74,13 @@ function buildMelFilterbank(
     const right = binPoints[m + 2];
     const row = m * numBins;
 
+    const upSlope = centre - left;
     for (let k = left; k < centre; k++) {
-      bank[row + k] = (k - left) / (centre - left);
+      bank[row + k] = upSlope > 0 ? (k - left) / upSlope : 0;
     }
+    const downSlope = right - centre;
     for (let k = centre; k <= right; k++) {
-      bank[row + k] = (right - k) / (right - centre);
+      bank[row + k] = downSlope > 0 ? (right - k) / downSlope : 0;
     }
   }
 
@@ -97,7 +94,6 @@ function buildMelFilterbank(
 function fftInPlace(real: Float32Array, imag: Float32Array): void {
   const N = real.length;
 
-  // Bit-reversal permutation
   for (let i = 1, j = 0; i < N; i++) {
     let bit = N >> 1;
     for (; j & bit; bit >>= 1) j ^= bit;
@@ -112,7 +108,6 @@ function fftInPlace(real: Float32Array, imag: Float32Array): void {
     }
   }
 
-  // Butterfly passes
   for (let len = 2; len <= N; len <<= 1) {
     const ang = (2 * Math.PI) / len;
     const wReal = Math.cos(ang);
@@ -142,31 +137,13 @@ function fftInPlace(real: Float32Array, imag: Float32Array): void {
 }
 
 // ---------------------------------------------------------------------------
-// DCT-II — maps NUM_MEL_FILTERS log-Mel energies to NUM_MFCC_COEFFICIENTS
+// MelComputer — 80-bin log10-mel spectrogram with Whisper normalization
 // ---------------------------------------------------------------------------
 
-function dctCoefficients(logMel: Float32Array, numCoeffs: number): number[] {
-  const N = logMel.length;
-  const coeffs: number[] = new Array(numCoeffs);
-  for (let k = 0; k < numCoeffs; k++) {
-    let sum = 0;
-    for (let n = 0; n < N; n++) {
-      sum += logMel[n] * Math.cos((Math.PI / N) * (n + 0.5) * k);
-    }
-    coeffs[k] = sum;
-  }
-  return coeffs;
-}
-
-// ---------------------------------------------------------------------------
-// MfccComputer — stateless computation with pre-built, reusable buffers
-// ---------------------------------------------------------------------------
-
-export class MfccComputer {
+export class MelComputer {
   private readonly hammingWindow: Float32Array;
   private readonly melBank: Float32Array;
 
-  // Reusable work buffers (avoids GC pressure at 40 Hz)
   private readonly fftReal: Float32Array;
   private readonly fftImag: Float32Array;
   private readonly melEnergies: Float32Array;
@@ -186,38 +163,29 @@ export class MfccComputer {
   }
 
   /**
-   * Compute 13 MFCC coefficients from a single audio frame.
+   * Compute 80-bin log10-mel spectrogram from a single audio frame.
    *
-   * @param samples - Exactly FRAME_SIZE_SAMPLES (400) Float32 PCM values in [-1, 1].
-   *   If fewer samples are provided the remainder is treated as zero-padded silence.
+   * @param samples - Exactly 400 Float32 PCM values in [-1, 1].
    */
   compute(samples: Float32Array): number[] {
-    // 1. Pre-emphasis
     this.fftReal[0] = samples[0];
     const len = Math.min(samples.length, FRAME_SIZE_SAMPLES);
     for (let i = 1; i < len; i++) {
       this.fftReal[i] = samples[i] - PRE_EMPHASIS * samples[i - 1];
     }
-    // Zero-pad beyond FRAME_SIZE_SAMPLES
     for (let i = len; i < FFT_SIZE; i++) {
       this.fftReal[i] = 0;
     }
 
-    // 2. Apply Hamming window (only over the live samples)
     for (let i = 0; i < len; i++) {
       this.fftReal[i] *= this.hammingWindow[i];
     }
 
-    // 3. FFT (imaginary part starts as zero)
     this.fftImag.fill(0);
     fftInPlace(this.fftReal, this.fftImag);
 
-    // 4. Power spectrum (first FFT_SIZE/2+1 bins)
     const numBins = FFT_SIZE / 2 + 1;
-
-    // 5. Mel filterbank
-    const numFilters = NUM_MEL_FILTERS;
-    for (let m = 0; m < numFilters; m++) {
+    for (let m = 0; m < NUM_MEL_FILTERS; m++) {
       let energy = 0;
       const rowOffset = m * numBins;
       for (let k = 0; k < numBins; k++) {
@@ -227,13 +195,14 @@ export class MfccComputer {
       this.melEnergies[m] = energy;
     }
 
-    // 6. Log (with floor to avoid log(0))
-    for (let m = 0; m < numFilters; m++) {
-      this.melEnergies[m] = Math.log(this.melEnergies[m] + 1e-10);
+    // Raw log10-mel — normalization (clip + scale) is applied server-side
+    // over the full assembled (80, 3000) segment in _prepare_mel().
+    const result = new Array<number>(NUM_MEL_FILTERS);
+    for (let m = 0; m < NUM_MEL_FILTERS; m++) {
+      result[m] = Math.log10(this.melEnergies[m] + 1e-10);
     }
 
-    // 7. DCT → first 13 coefficients
-    return dctCoefficients(this.melEnergies, NUM_MFCC_COEFFICIENTS);
+    return result;
   }
 }
 

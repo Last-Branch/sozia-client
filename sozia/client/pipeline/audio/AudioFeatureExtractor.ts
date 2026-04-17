@@ -63,7 +63,7 @@ export class AudioFeatureExtractor
       sessionId: this.sessionId,
       timestampMs: firstTimestamp,
       features: rawInput.map((f) => f.coefficients),
-      featureType: 'mfcc',
+      featureType: 'mel_spectrogram',
       sampleRateHz: this.sampleRateHz,
       chunkDurationMs: Math.round(rawInput.length * frameDuration),
     };
