@@ -9,8 +9,8 @@ import { MelComputer, frameLogEnergy } from './MelComputer';
 import type { SensitivityLevel } from './VoiceActivityDetector';
 
 const SAMPLE_RATE = 16_000;
-const FRAME_INTERVAL_MS = 25; // 40 Hz → 400 samples per frame at 16 kHz
-const FRAME_SIZE_SAMPLES = (SAMPLE_RATE * FRAME_INTERVAL_MS) / 1000; // 400
+const WINDOW_SIZE_SAMPLES = 400; // 25 ms window at 16 kHz
+const HOP_SIZE_SAMPLES = 160; // 10 ms hop → 100 Hz frame rate (matches Whisper)
 const NOISE_FLOOR_DBFS = -60;
 
 /**
@@ -37,9 +37,9 @@ interface AudioRecorder {
  *           `AudioStudioModule`, emitting `'AudioData'` with `event.pcmFloat32`
  *           (Android = `Float32Array`, iOS = `number[]`).
  *
- * `MelComputer` performs pre-emphasis → Hamming window → FFT → 80-bin Mel filterbank → log10.
- * Frames are sliced from a rolling sample accumulator so each mel frame always receives
- * exactly FRAME_SIZE_SAMPLES samples regardless of how the native bridge chunks the data.
+ * `MelComputer` performs Hann window → FFT → 80-bin Mel filterbank → log10.
+ * Frames are sliced from a rolling sample accumulator with a 160-sample hop
+ * (10 ms, 100 Hz) matching Whisper's expected frame rate.
  *
  * Platform normalisation: `_resolveRecorder()` returns the object that carries
  * `startRecording`/`stopRecording`/etc. On web this is the `AudioStudioWeb` singleton
@@ -98,7 +98,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
       channels: 1,
       encoding: 'pcm_16bit',
       streamFormat: 'float32',
-      interval: FRAME_INTERVAL_MS,
+      interval: 10,
       output: { primary: { enabled: false } },
     };
 
@@ -216,9 +216,8 @@ export class ExpoAudioPipeline implements IAudioPipeline {
   }
 
   /**
-   * Append incoming PCM samples to the rolling accumulator and emit one MFCC
-   * frame for every FRAME_SIZE_SAMPLES available. Any leftover samples are
-   * retained for the next callback invocation.
+   * Append incoming PCM samples to the rolling accumulator and emit
+   * overlapping mel frames (400-sample window, 160-sample hop).
    */
   private _processBuffer(incoming: Float32Array): void {
     const prev = this.sampleAccumulator;
@@ -227,10 +226,10 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     combined.set(incoming, prev.length);
 
     let offset = 0;
-    while (offset + FRAME_SIZE_SAMPLES <= combined.length) {
-      const frameSamples = combined.subarray(offset, offset + FRAME_SIZE_SAMPLES);
+    while (offset + WINDOW_SIZE_SAMPLES <= combined.length) {
+      const frameSamples = combined.subarray(offset, offset + WINDOW_SIZE_SAMPLES);
       this._emitFrame(frameSamples);
-      offset += FRAME_SIZE_SAMPLES;
+      offset += HOP_SIZE_SAMPLES;
     }
 
     this.sampleAccumulator = combined.slice(offset);

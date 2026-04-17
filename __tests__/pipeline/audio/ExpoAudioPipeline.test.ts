@@ -401,7 +401,7 @@ describe('ExpoAudioPipeline.onFrame() and chunk forwarding', () => {
   it('TP-CLIENT-EXPOPIPELINE-005c: chunks are forwarded to tx.sendFeatures when tx is provided', async () => {
     // Use a chunker configured for a very small window (1 frame) so we get a
     // chunk immediately on the first push without waiting for 20 frames.
-    const chunker = new AudioChunker(25 /* chunkDurationMs = 1 frame */);
+    const chunker = new AudioChunker(10 /* chunkDurationMs = 1 frame at 10ms hop */);
     const tx = makeTx();
     const pipeline = new ExpoAudioPipeline(chunker);
 

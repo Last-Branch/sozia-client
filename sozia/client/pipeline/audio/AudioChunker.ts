@@ -3,8 +3,8 @@ import type { MFCCFrame } from './AudioPipeline';
 import { AudioFeatureExtractor } from './AudioFeatureExtractor';
 import { VoiceActivityDetector } from './VoiceActivityDetector';
 
-/** Duration in ms of each captured frame — must match ExpoAudioPipeline.FRAME_INTERVAL_MS. */
-const FRAME_INTERVAL_MS = 25;
+/** Duration in ms of each captured frame hop — must match ExpoAudioPipeline hop (10 ms, 100 Hz). */
+const FRAME_INTERVAL_MS = 10;
 
 /**
  * Accumulates MFCCFrames from the audio pipeline and emits AudioFeatureChunks
