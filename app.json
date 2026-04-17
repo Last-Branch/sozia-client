@@ -25,7 +25,15 @@
         {
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for speech transcription."
         }
-      ]
+      ],
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermission": "$(PRODUCT_NAME) uses the camera for sign language recognition."
+        }
+      ],
+      "./modules/sozia-mediapipe/app.plugin",
+      "expo-asset"
     ],
     "ios": {
       "supportsTablet": true,

@@ -126,6 +126,20 @@ export interface ErrorMessage {
   message: string;
 }
 
+/**
+ * 83 linguistically-relevant face landmark indices from the full 478-point
+ * MediaPipe Face Mesh. Mirrors tsl_recognition/config.py FACE_LANDMARK_INDICES.
+ * Shared by web and native backends so both filter identically.
+ */
+export const FACE_LANDMARK_INDICES: readonly number[] = [
+  0, 1, 4, 5, 13, 14, 17, 33, 37, 39, 40, 46, 52, 53, 55, 61, 65,
+  78, 80, 81, 82, 84, 87, 88, 91, 95, 133, 144, 145, 146, 152, 157,
+  158, 159, 160, 175, 178, 181, 185, 191, 199, 200, 263, 267, 269,
+  270, 276, 282, 283, 285, 291, 295, 308, 310, 311, 312, 314, 317,
+  318, 321, 324, 362, 373, 374, 375, 384, 385, 386, 387, 402, 405,
+  409, 415, 468, 469, 470, 471, 472, 473, 474, 475, 476, 477,
+];
+
 /** Time-aligned transcript text with metadata (LLD §3.1.2). */
 export interface TranscriptSegment {
   /** UUID v4. Globally unique. */

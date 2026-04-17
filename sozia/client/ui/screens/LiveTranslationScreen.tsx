@@ -1,8 +1,9 @@
 import { CameraView, type CameraType } from 'expo-camera';
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, ChevronDown, CircleX, Hand, Mic, PauseCircle, PlayCircle, Settings, SwitchCamera } from 'lucide-react-native';
+import { NativeCameraView } from '../components/NativeCameraView';
 import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath, SessionState } from '@common/models';
@@ -25,6 +26,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
     resumeSession,
     store,
     setCameraVideoElement,
+    setNativeLandmarks
   } = useSessionController();
   const cameraContainerRef = useRef<View>(null);
 
@@ -94,7 +96,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                     style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
                     facing={cameraFacing}
                     mirror={cameraFacing === 'front'}
-                    active
+                    active={state !== SessionState.PAUSED}
                     onCameraReady={() => {
                       setTimeout(() => {
                         if (typeof document === 'undefined') return;
