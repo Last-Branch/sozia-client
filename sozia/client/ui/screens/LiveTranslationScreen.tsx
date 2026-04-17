@@ -20,6 +20,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
     healthReports,
     startSession,
     stopSession,
+    restartSession,
     pauseSession,
     resumeSession,
     store,
@@ -110,7 +111,13 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
             </TouchableOpacity>
           </View>
 
-          <StatusBar state={state} healthReports={healthReports} onRestart={stopSession} />
+          <StatusBar
+            state={state}
+            healthReports={healthReports}
+            onRestart={() => {
+              void restartSession();
+            }}
+          />
 
           <View className="relative flex-1">
             {/* Camera background */}
