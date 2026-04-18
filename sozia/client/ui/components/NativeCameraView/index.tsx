@@ -6,6 +6,7 @@ import { normalizeLandmarkFrame } from './helpers';
 export interface NativeCameraViewProps {
   facing: 'front' | 'back';
   active: boolean;
+  sessionId?: string;
   onLandmarks: (frame: LandmarkFrame | null) => void;
   onError?: (message: string) => void;
   style?: StyleProp<ViewStyle>;
@@ -26,6 +27,7 @@ if (Platform.OS !== 'web') {
   NativeCameraViewImpl = function NativeCameraViewNative({
     facing,
     active,
+    sessionId = '',
     onLandmarks,
     onError,
     style,
@@ -51,11 +53,11 @@ if (Platform.OS !== 'web') {
         'worklet';
         const plugin = pluginRef.current;
         if (plugin != null) {
-          const result = plugin.call(frame);
+          const result = plugin.call(frame, { sessionId });
           void dispatchLandmarks(result);
         }
       },
-      [dispatchLandmarks],
+      [dispatchLandmarks, sessionId],
     );
 
     if (!device) {
