@@ -20,12 +20,12 @@ export type RawAudioHandle = Record<string, never>;
  * Frames are consumed locally by the audio pipeline and transmitted to the
  * server as anonymized feature vectors — raw audio is never sent.
  */
-export interface MFCCFrame {
+export interface MelFrame {
   /** Milliseconds elapsed since the session started (monotonically increasing). */
   timestampMs: number;
   /**
-   * Mel-frequency cepstral coefficients — 13 values representing the spectral
-   * envelope of the audio frame. Primary input for ASR and lip-reading fusion.
+   * Log10-mel spectogram values for a single audio frame(80 or 128 bins depending 
+   * on the deployed Whisper model). Primary input for Whisper ASR.
    */
   coefficients: number[];
   /**
@@ -39,7 +39,7 @@ export interface MFCCFrame {
  * Public contract for the audio capture and feature-extraction pipeline.
  *
  * Lifecycle:
- *   start() → (running: emitting MFCCFrames)
+ *   start() → (running: emitting MelFrames)
  *             → pause() → resume() → stop()
  *
  * Only one session is active at a time. Calling start() while already running
@@ -47,7 +47,7 @@ export interface MFCCFrame {
  */
 export interface IAudioPipeline {
   /**
-   * Begin microphone capture and MFCC extraction for the given session.
+   * Begin microphone capture and mel spectrogram extraction for the given session.
    * Resolves once the pipeline is ready to emit frames.
    * Rejects if the device is unavailable.
    *
@@ -90,11 +90,11 @@ export interface IAudioPipeline {
   getHealth(): PipelineHealth;
 
   /**
-   * Register a callback to receive MFCC frames as they are extracted.
+   * Register a callback to receive mel frames as they are extracted.
    * Returns an unsubscribe function; call it to stop receiving frames.
    * Multiple listeners may be registered simultaneously.
    */
-  onFrame(callback: (frame: MFCCFrame) => void): () => void;
+  onFrame(callback: (frame: MelFrame) => void): () => void;
 
   /**
    * Adjust the sensitivity of the internal Voice Activity Detector.

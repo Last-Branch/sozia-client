@@ -4,7 +4,7 @@
 /**
  * Unit tests — AudioChunker
  *
- * Verifies that MFCCFrames are batched into AudioFeatureChunks correctly,
+ * Verifies that MelFrames are batched into AudioFeatureChunks correctly,
  * listeners are notified, and start/stop resets internal state.
  *
  * Test plan reference: TP-CLIENT-AUDIO-005 through TP-CLIENT-AUDIO-008
@@ -13,28 +13,31 @@
 import { AudioChunker } from '@/pipeline/audio/AudioChunker';
 import { VoiceActivityDetector } from '@/pipeline/audio/VoiceActivityDetector';
 import { AudioFeatureExtractor } from '@/pipeline/audio/AudioFeatureExtractor';
-import type { MFCCFrame } from '@/pipeline/audio/AudioPipeline';
+import type { MelFrame } from '@/pipeline/audio/AudioPipeline';
 import type { AudioFeatureChunk } from '@common/models';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Build a fake MFCCFrame with a given timestamp and deterministic coefficients. */
-function fakeFrame(timestampMs: number, seed = 0): MFCCFrame {
+/** Build a fake MelFrame with a given timestamp and deterministic coefficients. */
+function fakeFrame(timestampMs: number, seed = 0): MelFrame {
   return {
     timestampMs,
-    coefficients: Array.from({ length: 13 }, (_, i) => seed + i * 0.1),
+    coefficients: Array.from({ length: 80 }, (_, i) => seed + i * 0.1),
     energy: 0.5 + seed * 0.01,
   };
 }
 
-/** Push `count` fake frames into the chunker, spaced 25 ms apart starting at `startMs`. */
+/** Push `count` fake frames into the chunker, spaced 10 ms apart starting at `startMs`. */
 function pushFrames(chunker: AudioChunker, count: number, startMs = 0): void {
   for (let i = 0; i < count; i++) {
-    chunker.push(fakeFrame(startMs + i * 25, i));
+    chunker.push(fakeFrame(startMs + i * 10, i));
   }
 }
+
+// framesPerChunk = 500ms / 10ms = 50
+const FRAMES_PER_CHUNK = 50;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -54,29 +57,29 @@ describe('AudioChunker', () => {
 
   // -- TP-CLIENT-AUDIO-005: chunk emission after FRAMES_PER_CHUNK frames ---
 
-  it('emits a chunk after 20 frames', () => {
+  it('emits a chunk after 50 frames', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
-    pushFrames(chunker, 20);
+    pushFrames(chunker, FRAMES_PER_CHUNK);
 
     expect(chunks).toHaveLength(1);
   });
 
-  it('does not emit a chunk before 20 frames', () => {
+  it('does not emit a chunk before 50 frames', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
-    pushFrames(chunker, 19);
+    pushFrames(chunker, FRAMES_PER_CHUNK - 1);
 
     expect(chunks).toHaveLength(0);
   });
 
-  it('emits two chunks after 40 frames', () => {
+  it('emits two chunks after 100 frames', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
-    pushFrames(chunker, 40);
+    pushFrames(chunker, FRAMES_PER_CHUNK * 2);
 
     expect(chunks).toHaveLength(2);
   });
@@ -85,11 +88,11 @@ describe('AudioChunker', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
-    pushFrames(chunker, 25);
+    pushFrames(chunker, FRAMES_PER_CHUNK + 10);
     expect(chunks).toHaveLength(1);
 
-    // 5 leftover + 15 more = 20 → second chunk
-    pushFrames(chunker, 15, 25 * 25);
+    // 10 leftover + 40 more = 50 → second chunk
+    pushFrames(chunker, FRAMES_PER_CHUNK - 10, (FRAMES_PER_CHUNK + 10) * 10);
     expect(chunks).toHaveLength(2);
   });
 
@@ -99,7 +102,7 @@ describe('AudioChunker', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
-    pushFrames(chunker, 20);
+    pushFrames(chunker, FRAMES_PER_CHUNK);
 
     expect(chunks[0].sessionId).toBe('session-1');
   });
@@ -108,7 +111,7 @@ describe('AudioChunker', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
-    pushFrames(chunker, 20, 1000);
+    pushFrames(chunker, FRAMES_PER_CHUNK, 1000);
 
     expect(chunks[0].timestampMs).toBe(1000);
   });
@@ -117,35 +120,35 @@ describe('AudioChunker', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
-    pushFrames(chunker, 20);
+    pushFrames(chunker, FRAMES_PER_CHUNK);
 
-    expect(chunks[0].features).toHaveLength(20);
-    expect(chunks[0].features[0]).toHaveLength(13);
+    expect(chunks[0].features).toHaveLength(FRAMES_PER_CHUNK);
+    expect(chunks[0].features[0]).toHaveLength(80);
   });
 
-  it('sets featureType to mfcc', () => {
+  it('sets featureType to mel_spectrogram', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
-    pushFrames(chunker, 20);
+    pushFrames(chunker, FRAMES_PER_CHUNK);
 
-    expect(chunks[0].featureType).toBe('mfcc');
+    expect(chunks[0].featureType).toBe('mel_spectrogram');
   });
 
   it('sets sampleRateHz to 16000', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
-    pushFrames(chunker, 20);
+    pushFrames(chunker, FRAMES_PER_CHUNK);
 
     expect(chunks[0].sampleRateHz).toBe(16000);
   });
 
-  it('calculates chunkDurationMs as frames × 25ms', () => {
+  it('calculates chunkDurationMs as frames × 10ms', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
-    pushFrames(chunker, 20);
+    pushFrames(chunker, FRAMES_PER_CHUNK);
 
     expect(chunks[0].chunkDurationMs).toBe(500);
   });
@@ -158,7 +161,7 @@ describe('AudioChunker', () => {
     chunker.onChunk(() => countA++);
     chunker.onChunk(() => countB++);
 
-    pushFrames(chunker, 20);
+    pushFrames(chunker, FRAMES_PER_CHUNK);
 
     expect(countA).toBe(1);
     expect(countB).toBe(1);
@@ -168,11 +171,11 @@ describe('AudioChunker', () => {
     let count = 0;
     const unsub = chunker.onChunk(() => count++);
 
-    pushFrames(chunker, 20);
+    pushFrames(chunker, FRAMES_PER_CHUNK);
     expect(count).toBe(1);
 
     unsub();
-    pushFrames(chunker, 20, 20 * 25);
+    pushFrames(chunker, FRAMES_PER_CHUNK, FRAMES_PER_CHUNK * 10);
     expect(count).toBe(1);
   });
 
@@ -185,7 +188,7 @@ describe('AudioChunker', () => {
     pushFrames(chunker, 10);
     chunker.stop();
     chunker.start('session-2');
-    pushFrames(chunker, 20);
+    pushFrames(chunker, FRAMES_PER_CHUNK);
 
     expect(chunks).toHaveLength(1);
     expect(chunks[0].sessionId).toBe('session-2');
@@ -195,10 +198,10 @@ describe('AudioChunker', () => {
     const chunks: AudioFeatureChunk[] = [];
     chunker.onChunk((c) => chunks.push(c));
 
-    pushFrames(chunker, 20);
+    pushFrames(chunker, FRAMES_PER_CHUNK);
     chunker.stop();
     chunker.start('session-2');
-    pushFrames(chunker, 20, 20 * 25);
+    pushFrames(chunker, FRAMES_PER_CHUNK, FRAMES_PER_CHUNK * 10);
 
     expect(chunks[0].sessionId).toBe('session-1');
     expect(chunks[1].sessionId).toBe('session-2');
@@ -210,7 +213,7 @@ describe('AudioChunker', () => {
 
     pushFrames(chunker, 15);
     chunker.start('session-2'); // restart without stop — should clear buffer
-    pushFrames(chunker, 20);
+    pushFrames(chunker, FRAMES_PER_CHUNK);
 
     expect(chunks).toHaveLength(1);
     expect(chunks[0].sessionId).toBe('session-2');
@@ -232,7 +235,7 @@ describe('AudioChunker', () => {
       const chunks: AudioFeatureChunk[] = [];
       silentChunker.onChunk((c) => chunks.push(c));
 
-      pushFrames(silentChunker, 20);
+      pushFrames(silentChunker, FRAMES_PER_CHUNK);
 
       expect(chunks).toHaveLength(0);
       silentChunker.stop();
@@ -251,7 +254,7 @@ describe('AudioChunker', () => {
       const chunks: AudioFeatureChunk[] = [];
       speechChunker.onChunk((c) => chunks.push(c));
 
-      pushFrames(speechChunker, 20);
+      pushFrames(speechChunker, FRAMES_PER_CHUNK);
 
       expect(chunks).toHaveLength(1);
       speechChunker.stop();
@@ -276,7 +279,7 @@ describe('AudioChunker', () => {
       const chunks: AudioFeatureChunk[] = [];
       c.onChunk((ch) => chunks.push(ch));
 
-      pushFrames(c, 20);
+      pushFrames(c, FRAMES_PER_CHUNK);
 
       expect(extractSpy).toHaveBeenCalledTimes(1);
       expect(chunks).toHaveLength(1);
@@ -289,7 +292,7 @@ describe('AudioChunker', () => {
       const chunks: AudioFeatureChunk[] = [];
       c.onChunk((ch) => chunks.push(ch));
 
-      pushFrames(c, 20);
+      pushFrames(c, FRAMES_PER_CHUNK);
 
       expect(chunks).toHaveLength(0);
     });

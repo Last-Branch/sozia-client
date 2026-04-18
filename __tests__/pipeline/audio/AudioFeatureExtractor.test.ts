@@ -4,26 +4,26 @@
 /**
  * Unit tests — AudioFeatureExtractor
  *
- * Verifies lifecycle (init/teardown), chunk production from MFCCFrames,
+ * Verifies lifecycle (init/teardown), chunk production from MelFrames,
  * and null-safety for uninitialised or empty-input scenarios.
  */
 
 import { AudioFeatureExtractor } from '@/pipeline/audio/AudioFeatureExtractor';
-import type { MFCCFrame } from '@/pipeline/audio/AudioPipeline';
+import type { MelFrame } from '@/pipeline/audio/AudioPipeline';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function fakeFrame(timestampMs: number, seed = 0): MFCCFrame {
+function fakeFrame(timestampMs: number, seed = 0): MelFrame {
   return {
     timestampMs,
-    coefficients: Array.from({ length: 13 }, (_, i) => seed + i * 0.1),
+    coefficients: Array.from({ length: 80 }, (_, i) => seed + i * 0.01),
     energy: -30 + seed,
   };
 }
 
-function fakeFrames(count: number, startMs = 0): MFCCFrame[] {
+function fakeFrames(count: number, startMs = 0): MelFrame[] {
   return Array.from({ length: count }, (_, i) => fakeFrame(startMs + i * 25, i));
 }
 
@@ -66,8 +66,8 @@ describe('AudioFeatureExtractor', () => {
     expect(chunk!.sessionId).toBe('session-abc');
     expect(chunk!.timestampMs).toBe(100);
     expect(chunk!.features).toHaveLength(10);
-    expect(chunk!.features[0]).toHaveLength(13);
-    expect(chunk!.featureType).toBe('mfcc');
+    expect(chunk!.features[0]).toHaveLength(80);
+    expect(chunk!.featureType).toBe('mel_spectrogram');
     expect(chunk!.sampleRateHz).toBe(16000);
     expect(chunk!.chunkDurationMs).toBeGreaterThan(0);
   });

@@ -9,13 +9,13 @@
  */
 
 import { VoiceActivityDetector } from '@/pipeline/audio/VoiceActivityDetector';
-import type { MFCCFrame } from '@/pipeline/audio/AudioPipeline';
+import type { MelFrame } from '@/pipeline/audio/AudioPipeline';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function frame(energy: number, timestampMs = 0): MFCCFrame {
+function frame(energy: number, timestampMs = 0): MelFrame {
   return {
     timestampMs,
     coefficients: Array.from({ length: 13 }, (_, i) => i * 0.1),
@@ -23,7 +23,7 @@ function frame(energy: number, timestampMs = 0): MFCCFrame {
   };
 }
 
-function frames(energies: number[]): MFCCFrame[] {
+function frames(energies: number[]): MelFrame[] {
   return energies.map((e, i) => frame(e, i * 25));
 }
 

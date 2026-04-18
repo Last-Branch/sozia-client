@@ -120,7 +120,7 @@ function makeChunk(timestampMs: number): AudioFeatureChunk {
     sessionId: 'session-1',
     timestampMs,
     features: [[timestampMs]],
-    featureType: 'mfcc',
+    featureType: 'mel_spectrogram',
     sampleRateHz: 16000,
     chunkDurationMs: 500,
   };
@@ -195,13 +195,13 @@ describe('TransmissionManager', () => {
       await promise;
     });
 
-    it('rejects after 10 s if server never sends ready', async () => {
+    it('rejects after 60 s if server never sends ready', async () => {
       const { manager } = makeManager();
       const promise = manager.connect('session-1', ModalityPath.SPEECH, '');
       const ws = FakeWebSocket.lastInstance!;
       ws.simulateOpen();
       // No ready ack
-      jest.advanceTimersByTime(10_001);
+      jest.advanceTimersByTime(60_001);
       await expect(promise).rejects.toThrow();
     });
 

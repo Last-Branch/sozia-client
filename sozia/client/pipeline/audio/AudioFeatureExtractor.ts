@@ -1,9 +1,9 @@
 import type { FeatureExtractor } from '@common/interfaces';
 import type { AudioFeatureChunk } from '@common/models';
-import type { MFCCFrame } from './AudioPipeline';
+import type { MelFrame } from './AudioPipeline';
 
 /**
- * Converts a batch of MFCCFrames into an AudioFeatureChunk ready for
+ * Converts a batch of MelFrames into an AudioFeatureChunk ready for
  * transmission to the inference server.
  *
  * Implements the FeatureExtractor contract from LLD Section 3.2.3.
@@ -15,7 +15,7 @@ import type { MFCCFrame } from './AudioPipeline';
  *                TransmissionManager (consumes chunks).
  */
 export class AudioFeatureExtractor
-  implements FeatureExtractor<MFCCFrame[], AudioFeatureChunk>
+  implements FeatureExtractor<MelFrame[], AudioFeatureChunk>
 {
   private ready = false;
   private sessionId = '';
@@ -43,14 +43,14 @@ export class AudioFeatureExtractor
   }
 
   /**
-   * Converts an array of MFCCFrames into a single AudioFeatureChunk.
+   * Converts an array of MelFrames into a single AudioFeatureChunk.
    *
    * Returns null if the extractor has not been initialised or the input
    * is empty — callers should silently skip null results.
    *
-   * @param rawInput - Batch of MFCCFrames from a single chunker window.
+   * @param rawInput - Batch of MelFrames from a single chunker window.
    */
-  extract(rawInput: MFCCFrame[]): AudioFeatureChunk | null {
+  extract(rawInput: MelFrame[]): AudioFeatureChunk | null {
     if (!this.ready || rawInput.length === 0) return null;
 
     const firstTimestamp = rawInput[0].timestampMs;
@@ -63,7 +63,7 @@ export class AudioFeatureExtractor
       sessionId: this.sessionId,
       timestampMs: firstTimestamp,
       features: rawInput.map((f) => f.coefficients),
-      featureType: 'mfcc',
+      featureType: 'mel_spectrogram',
       sampleRateHz: this.sampleRateHz,
       chunkDurationMs: Math.round(rawInput.length * frameDuration),
     };

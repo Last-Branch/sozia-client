@@ -28,7 +28,7 @@ import type { IDeviceEnumerator } from '@/device/DeviceEnumerator';
 import type { DeviceHandle } from '@/device/DeviceHandle';
 import type {
   IAudioPipeline,
-  MFCCFrame,
+  MelFrame,
   RawAudioHandle,
   SensitivityLevel,
 } from '@/pipeline/audio';
@@ -114,7 +114,7 @@ class MockAudioPipeline implements IAudioPipeline {
     };
   }
 
-  onFrame(_callback: (frame: MFCCFrame) => void): () => void {
+  onFrame(_callback: (frame: MelFrame) => void): () => void {
     return () => {};
   }
 

@@ -4,7 +4,7 @@
 /**
  * Unit tests — sozia.client.pipeline.audio
  *
- * Scope: IAudioPipeline contract and MFCCFrame structure.
+ * Scope: IAudioPipeline contract and MelFrame structure.
  * These tests use a MockAudioPipeline to verify the interface contract is
  * correct and complete. They serve as the acceptance baseline for any
  * concrete implementation (e.g. ExpoAudioPipeline) that ships later.
@@ -12,7 +12,7 @@
  * Test plan reference: TP-CLIENT-AUDIO-001 through TP-CLIENT-AUDIO-007
  */
 
-import type { IAudioPipeline, MFCCFrame, RawAudioHandle, SensitivityLevel } from '@/pipeline/audio';
+import type { IAudioPipeline, MelFrame, RawAudioHandle, SensitivityLevel } from '@/pipeline/audio';
 import type { AudioFeatureChunk, PipelineHealth } from '@common/models';
 import type { TransmissionManager } from '@/transmission/TransmissionManager';
 
@@ -24,7 +24,7 @@ class MockAudioPipeline implements IAudioPipeline {
   private sessionId = '';
   private available = false;
   private lastUpdatedMs = 0;
-  private listeners: Set<(frame: MFCCFrame) => void> = new Set();
+  private listeners: Set<(frame: MelFrame) => void> = new Set();
   lastStartArgs: { sessionId: string; micHandle: RawAudioHandle; tx: TransmissionManager | undefined } | null = null;
   lastVadSensitivity: SensitivityLevel | null = null;
 
@@ -65,7 +65,7 @@ class MockAudioPipeline implements IAudioPipeline {
     };
   }
 
-  onFrame(callback: (frame: MFCCFrame) => void): () => void {
+  onFrame(callback: (frame: MelFrame) => void): () => void {
     this.listeners.add(callback);
     return () => this.listeners.delete(callback);
   }
@@ -75,7 +75,7 @@ class MockAudioPipeline implements IAudioPipeline {
   }
 
   /** Test helper: emit a frame to all registered listeners. */
-  _emit(frame: MFCCFrame): void {
+  _emit(frame: MelFrame): void {
     this.listeners.forEach((cb) => cb(frame));
   }
 }
@@ -94,7 +94,7 @@ function makeFakeTx(): TransmissionManager & { sent: AudioFeatureChunk[] } {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeMockFrame(overrides: Partial<MFCCFrame> = {}): MFCCFrame {
+function makeMockFrame(overrides: Partial<MelFrame> = {}): MelFrame {
   return {
     timestampMs: 1000,
     coefficients: Array.from({ length: 13 }, (_, i) => i * 0.1),
@@ -104,17 +104,17 @@ function makeMockFrame(overrides: Partial<MFCCFrame> = {}): MFCCFrame {
 }
 
 // ---------------------------------------------------------------------------
-// TP-CLIENT-AUDIO-001: MFCCFrame structure
+// TP-CLIENT-AUDIO-001: MelFrame structure
 // ---------------------------------------------------------------------------
 
-describe('MFCCFrame', () => {
+describe('MelFrame', () => {
   it('TP-CLIENT-AUDIO-001a: contains timestampMs as a non-negative number', () => {
     const frame = makeMockFrame({ timestampMs: 0 });
     expect(typeof frame.timestampMs).toBe('number');
     expect(frame.timestampMs).toBeGreaterThanOrEqual(0);
   });
 
-  it('TP-CLIENT-AUDIO-001b: contains 13 MFCC coefficients', () => {
+  it('TP-CLIENT-AUDIO-001b: contains mel spectrogram coefficients', () => {
     const frame = makeMockFrame();
     expect(Array.isArray(frame.coefficients)).toBe(true);
     expect(frame.coefficients).toHaveLength(13);
@@ -228,7 +228,7 @@ describe('IAudioPipeline.onFrame()', () => {
 
   it('TP-CLIENT-AUDIO-004b: registered callback receives emitted frames', async () => {
     await pipeline.start('session-001');
-    const received: MFCCFrame[] = [];
+    const received: MelFrame[] = [];
     pipeline.onFrame((f) => received.push(f));
 
     const frame = makeMockFrame({ timestampMs: 500 });
@@ -240,7 +240,7 @@ describe('IAudioPipeline.onFrame()', () => {
 
   it('TP-CLIENT-AUDIO-004c: unsubscribe stops frame delivery', async () => {
     await pipeline.start('session-001');
-    const received: MFCCFrame[] = [];
+    const received: MelFrame[] = [];
     const unsub = pipeline.onFrame((f) => received.push(f));
 
     pipeline._emit(makeMockFrame({ timestampMs: 100 }));
@@ -265,7 +265,7 @@ describe('IAudioPipeline.onFrame()', () => {
 
   it('TP-CLIENT-AUDIO-004e: stop() removes all listeners', async () => {
     await pipeline.start('session-001');
-    const received: MFCCFrame[] = [];
+    const received: MelFrame[] = [];
     pipeline.onFrame((f) => received.push(f));
 
     pipeline.stop();
