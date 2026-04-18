@@ -2,8 +2,13 @@ import { CameraView, type CameraType } from 'expo-camera';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+<<<<<<< HEAD
 import { Camera, ChevronDown, CircleX, Hand, Mic, PauseCircle, PlayCircle, Settings, SwitchCamera } from 'lucide-react-native';
 import { NativeCameraView } from '../components/NativeCameraView';
+=======
+import { NativeCameraView } from '../components/NativeCameraView';
+import { Camera, ChevronDown, CircleX, PauseCircle, PlayCircle, Settings, SwitchCamera } from 'lucide-react-native';
+>>>>>>> origin/chore/implement-native-feature-extraction
 import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath, SessionState } from '@common/models';
