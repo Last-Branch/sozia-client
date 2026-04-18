@@ -206,7 +206,8 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
         actions.onConnectionLost();
       });
 
-      setState(SessionState.RUNNING);
+      deviceManager.current.pauseAllPipelines();
+      setState(SessionState.PAUSED);
     } catch (e) {
       setState(SessionState.ERROR);
       throw e;
