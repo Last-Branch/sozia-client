@@ -149,6 +149,10 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
   const startSession = useCallback(async (path: ModalityPath) => {
     try {
+      deviceManager.current.stopAllPipelines();
+      transmissionManager.current?.disconnect();
+      transmissionManager.current = null;
+
       setState(SessionState.INITIALIZING);
       store.clear();
       const newSessionId = uuidV4();
