@@ -33,6 +33,7 @@ export function buildSessionActions(accessor: SessionStateAccessor): SessionActi
   }
 
   function onConnectionLost(): void {
+    if (accessor.getState() === SessionState.IDLE) return;
     accessor.setState(SessionState.ERROR);
   }
 
