@@ -2,7 +2,7 @@ import { CameraView, type CameraType } from 'expo-camera';
 import React, { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Camera, ChevronDown, CircleX, PauseCircle, PlayCircle, Settings, SwitchCamera } from 'lucide-react-native';
+import { Camera, ChevronDown, CircleX, Hand, Mic, PauseCircle, PlayCircle, Settings, SwitchCamera } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath, SessionState } from '@common/models';
@@ -123,8 +123,33 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               )}
             </View>
 
-            {/* Active indicator — sits below the controls row */}
-            <View className="absolute left-6 top-20 z-30 flex-row items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 py-1.5">
+            {/* Modality switch button */}
+            <View className="absolute left-6 top-6 z-30">
+              <TouchableOpacity
+                className={`flex-row items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-3 py-2 ${state === SessionState.INITIALIZING ? 'opacity-50' : ''}`}
+                disabled={state === SessionState.INITIALIZING}
+                onPress={async () => {
+                  const newPath = activePath === ModalityPath.SPEECH ? ModalityPath.SIGN : ModalityPath.SPEECH;
+                  stopSession();
+                  try {
+                    await startSession(newPath);
+                  } catch (e: unknown) {
+                    if (__DEV__) console.warn('Modality switch failed', e);
+                  }
+                }}
+              >
+                {activePath === ModalityPath.SPEECH
+                  ? <Hand size={14} color="#fff" />
+                  : <Mic size={14} color="#fff" />
+                }
+                <Text className="text-xs font-semibold text-white">
+                  {activePath === ModalityPath.SPEECH ? t('modality.sign') : t('modality.speech')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Active indicator */}
+            <View className="absolute left-6 top-[88px] z-30 flex-row items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 py-1.5">
               <View className={`h-2.5 w-2.5 rounded-full ${
                 state === SessionState.RUNNING || state === SessionState.DEGRADED
                   ? 'bg-[#2ECC71]'
