@@ -18,7 +18,7 @@ export function DashboardScreen({
   onOpenSettings: () => void;
   onOpenHelp: () => void;
 }) {
-  const { state, activePath, startSession, stopSession, enumerateDevices, selectMicrophone, selectCamera } = useSessionController();
+  const { state, activePath, startSession, enumerateDevices, selectMicrophone, selectCamera } = useSessionController();
   const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'home' | 'help' | 'profile'>('home');
@@ -28,7 +28,7 @@ export function DashboardScreen({
   const [selectedMicId, setSelectedMicId] = useState('');
   const [selectedCamId, setSelectedCamId] = useState('');
 
-  const isIdle = state === SessionState.IDLE;
+  const canStart = state === SessionState.IDLE || state === SessionState.ERROR;
 
   const loadDevices = useCallback(async () => {
     const list = await enumerateDevices();
@@ -75,18 +75,6 @@ export function DashboardScreen({
               </TouchableOpacity>
             </View>
 
-            {!isIdle && (
-              <View className="px-6 pb-3">
-                <TouchableOpacity
-                  className="items-center rounded-2xl bg-red-600 py-3.5 active:bg-red-700"
-                  onPress={() => {
-                    stopSession();
-                  }}
-                >
-                  <Text className="text-center text-base font-bold text-white">{t('live.stop')}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
 
             {/* Device Setup */}
             <View className="px-6 pb-2">
@@ -129,10 +117,10 @@ export function DashboardScreen({
 
             <View className="gap-6 px-6 pb-6">
               <TouchableOpacity
-                className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#2ECC71] p-8 shadow-xl ${!isIdle ? 'opacity-50' : ''}`}
-                disabled={!isIdle}
+                className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#2ECC71] p-8 shadow-xl ${!canStart ? 'opacity-50' : ''}`}
+                disabled={!canStart}
                 onPress={async () => {
-                  if (!isIdle) return;
+                  if (!canStart) return;
                   onOpenLive();
                   try {
                     await startSession(ModalityPath.SPEECH);
@@ -149,10 +137,10 @@ export function DashboardScreen({
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#1E8449] p-8 shadow-xl ${!isIdle ? 'opacity-50' : ''}`}
-                disabled={!isIdle}
+                className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#1E8449] p-8 shadow-xl ${!canStart ? 'opacity-50' : ''}`}
+                disabled={!canStart}
                 onPress={async () => {
-                  if (!isIdle) return;
+                  if (!canStart) return;
                   onOpenLive();
                   try {
                     await startSession(ModalityPath.SIGN);
