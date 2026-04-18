@@ -43,7 +43,8 @@ class SoziaMediaPipePlugin(private val proxy: VisionCameraProxy, options: Map<St
         val ts = System.currentTimeMillis()
         val result = holistic.detect(image, ts)
         bitmap.recycle()
-        return if (result != null) buildWritableMap(result, ts) else null
+        val sessionId = arguments?.get("sessionId") as? String ?: ""
+        return if (result != null) buildWritableMap(result, ts, sessionId) else null
     }
 
     private fun frameToBitmap(frame: Frame): Bitmap? {
@@ -72,10 +73,11 @@ class SoziaMediaPipePlugin(private val proxy: VisionCameraProxy, options: Map<St
 
     private fun buildWritableMap(
         result: SoziaMediaPipeHolistic.LandmarkResult,
-        ts: Long
+        ts: Long,
+        sessionId: String
     ): HashMap<String, Any?> {
         return hashMapOf(
-            "sessionId"          to "",
+            "sessionId"          to sessionId,
             "timestampMs"        to ts.toDouble(),
             "faceLandmarks"      to toLandmarkList(result.faceLandmarks),
             "leftHandLandmarks"  to toLandmarkList(result.leftHandLandmarks),
