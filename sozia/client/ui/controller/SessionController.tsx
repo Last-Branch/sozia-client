@@ -299,7 +299,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       const health = deviceManager.current.getVideoHealth();
       actions.onPipelineHealthChanged(health);
       transmissionManager.current?.sendHealth(health);
-    }, 1000);
+    }, 3000);
 
     return () => {
       mounted = false;

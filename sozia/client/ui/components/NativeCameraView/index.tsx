@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Platform, StyleProp, ViewStyle } from 'react-native';
 import type { LandmarkFrame } from '@common/models';
 import { normalizeLandmarkFrame } from './helpers';
@@ -34,18 +34,19 @@ if (Platform.OS !== 'web') {
   }: NativeCameraViewProps) {
     const device = useCameraDevice(facing);
 
-    // Initialize the JSI plugin once per component instance.
-    // VisionCameraProxy installs it into the worklet runtime so plugin.call()
-    // can be invoked synchronously inside the frame processor worklet.
     const pluginRef = useRef(VisionCameraProxy.initFrameProcessorPlugin('extractLandmarks', {}));
 
-    // useRunOnJS creates a worklet-callable function that hops back to the JS
-    // thread to call onLandmarks (which updates React state).
+    // Keep a mutable ref so dispatchLandmarks never needs to change when onLandmarks changes.
+    // This prevents useFrameProcessor from tearing down and re-creating the frame processor
+    // on every React re-render of the parent (e.g., health polling state updates).
+    const onLandmarksRef = useRef(onLandmarks);
+    useEffect(() => { onLandmarksRef.current = onLandmarks; });
+
     const dispatchLandmarks = useRunOnJS(
       (raw: unknown) => {
-        onLandmarks(normalizeLandmarkFrame(raw));
+        onLandmarksRef.current(normalizeLandmarkFrame(raw));
       },
-      [onLandmarks],
+      [],
     );
 
     const frameProcessor = useFrameProcessor(
@@ -54,7 +55,9 @@ if (Platform.OS !== 'web') {
         const plugin = pluginRef.current;
         if (plugin != null) {
           const result = plugin.call(frame, { sessionId });
-          void dispatchLandmarks(result);
+          if (result != null) {
+            void dispatchLandmarks(result);
+          }
         }
       },
       [dispatchLandmarks, sessionId],
