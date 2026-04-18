@@ -96,7 +96,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                     <NativeCameraView
                       style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
                       facing={cameraFacing}
-                      active={state !== SessionState.PAUSED}
+                      active={true}
                       sessionId={sessionId ?? undefined}
                       onLandmarks={setNativeLandmarks}
                       onError={(message) => setCameraMountError(message)}
