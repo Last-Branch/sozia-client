@@ -1,1 +1,1 @@
-export { TransmissionManager } from './TransmissionManager';
+export { DisconnectBeforeReadyError, TransmissionManager } from './TransmissionManager';

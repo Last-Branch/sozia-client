@@ -28,6 +28,14 @@ interface WebSocketInstance {
 
 const WS_OPEN = 1;
 
+/** Thrown when `disconnect()` cancels a `connect()` that has not received `ready` yet. Not a network failure. */
+export class DisconnectBeforeReadyError extends Error {
+  constructor() {
+    super('TransmissionManager: disconnected before ready');
+    this.name = 'DisconnectBeforeReadyError';
+  }
+}
+
 function openSocket(url: string): WebSocketInstance {
   // WebSocket is a global in React Native and is replaced by FakeWebSocket in tests.
   return new (globalThis as any).WebSocket(url) as WebSocketInstance;
@@ -150,7 +158,7 @@ export class TransmissionManager {
     }
 
     if (this.readyResolver !== null) {
-      this.readyResolver.reject(new Error('TransmissionManager: disconnected before ready'));
+      this.readyResolver.reject(new DisconnectBeforeReadyError());
       this.readyResolver = null;
     }
 
