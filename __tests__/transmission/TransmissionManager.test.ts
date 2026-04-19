@@ -13,7 +13,7 @@
  * Test plan reference: TP-CLIENT-TX-003
  */
 
-import { TransmissionManager } from '@/transmission/TransmissionManager';
+import { DisconnectBeforeReadyError, TransmissionManager } from '@/transmission/TransmissionManager';
 import { TranscriptStore } from '@/store/TranscriptStore';
 import { ModalityPath, SegmentStatus, ModalityType } from '@common/models';
 import type { AudioFeatureChunk, LandmarkFrame, PipelineHealth } from '@common/models';
@@ -336,6 +336,18 @@ describe('TransmissionManager', () => {
   // -- disconnect() ----------------------------------------------------------
 
   describe('disconnect()', () => {
+    it('rejects pending connect with DisconnectBeforeReadyError and does not call onLost', async () => {
+      const { manager, onLost } = makeManager();
+      const promise = manager.connect('session-1', ModalityPath.SPEECH, '');
+      const ws = FakeWebSocket.lastInstance!;
+      ws.simulateOpen();
+
+      manager.disconnect();
+
+      await expect(promise).rejects.toBeInstanceOf(DisconnectBeforeReadyError);
+      expect(onLost).not.toHaveBeenCalled();
+    });
+
     it('sends session_end before closing', async () => {
       const { manager } = makeManager();
       const ws = await connectManager(manager);

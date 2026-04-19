@@ -13,7 +13,7 @@ import {
 } from '@/pipeline/video';
 import { DeviceManager, ExpoDeviceEnumerator } from '@/device';
 import { TranscriptStore } from '@/store';
-import { TransmissionManager } from '@/transmission';
+import { DisconnectBeforeReadyError, TransmissionManager } from '@/transmission';
 import { Configuration, type IConfigurationManager } from '@/config';
 import { buildSessionActions } from './sessionActions';
 
@@ -222,7 +222,8 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
       // Connect in the background — the send buffer holds frames produced
       // during the connection window. onConnectionLost handles failure.
-      void transmissionManager.current.connect(newSessionId, path, apiKey).catch(() => {
+      void transmissionManager.current.connect(newSessionId, path, apiKey).catch((err: unknown) => {
+        if (err instanceof DisconnectBeforeReadyError) return;
         actions.onConnectionLost();
       });
 
