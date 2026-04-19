@@ -1,8 +1,9 @@
 import { CameraView, type CameraType } from 'expo-camera';
 import React, { useEffect, useRef, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, ChevronDown, CircleX, Hand, Mic, PauseCircle, PlayCircle, Settings, SwitchCamera } from 'lucide-react-native';
+import { NativeCameraView } from '../components/NativeCameraView';
 import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath, SessionState } from '@common/models';
@@ -25,6 +26,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
     resumeSession,
     store,
     setCameraVideoElement,
+    setNativeLandmarks
   } = useSessionController();
   const cameraContainerRef = useRef<View>(null);
 
@@ -90,21 +92,32 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
             <View ref={cameraContainerRef} className="absolute inset-0 items-center justify-center bg-gray-800" pointerEvents="none">
               {shouldShowLiveCamera ? (
                 <>
-                  <CameraView
-                    style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-                    facing={cameraFacing}
-                    mirror={cameraFacing === 'front'}
-                    active
-                    onCameraReady={() => {
-                      setTimeout(() => {
-                        if (typeof document === 'undefined') return;
-                        const container = cameraContainerRef.current as unknown as HTMLElement | null;
-                        const videoEl = container?.querySelector?.('video') ?? document.querySelector('video');
-                        setCameraVideoElement(videoEl as HTMLVideoElement | null);
-                      }, 500);
-                    }}
-                    onMountError={(event) => setCameraMountError(event.message)}
-                  />
+                  {Platform.OS !== 'web' ? (
+                    <NativeCameraView
+                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                      facing={cameraFacing}
+                      active={true}
+                      sessionId={sessionId ?? undefined}
+                      onLandmarks={setNativeLandmarks}
+                      onError={(message) => setCameraMountError(message)}
+                    />
+                  ) : (
+                    <CameraView
+                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                      facing={cameraFacing}
+                      mirror={cameraFacing === 'front'}
+                      active={state !== SessionState.PAUSED}
+                      onCameraReady={() => {
+                        setTimeout(() => {
+                          if (typeof document === 'undefined') return;
+                          const container = cameraContainerRef.current as unknown as HTMLElement | null;
+                          const videoEl = container?.querySelector?.('video') ?? document.querySelector('video');
+                          setCameraVideoElement(videoEl as HTMLVideoElement | null);
+                        }, 500);
+                      }}
+                      onMountError={(event) => setCameraMountError(event.message)}
+                    />
+                  )}
                   <View className="absolute inset-0 bg-black/20" />
                 </>
               ) : (

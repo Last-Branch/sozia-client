@@ -16,6 +16,16 @@ export function buildSessionActions(accessor: SessionStateAccessor): SessionActi
   function onPipelineHealthChanged(health: PipelineHealth): void {
     const current = accessor.getHealthReports();
     const idx = current.findIndex((r) => r.pipeline === health.pipeline);
+    const existing = idx >= 0 ? current[idx] : null;
+
+    // Skip the state update (and React re-render) if observable fields are unchanged.
+    if (
+      existing != null &&
+      existing.available === health.available &&
+      existing.fps === health.fps &&
+      existing.faceDetected === health.faceDetected
+    ) return;
+
     const updated = idx >= 0
       ? [...current.slice(0, idx), health, ...current.slice(idx + 1)]
       : [...current, health];

@@ -11,6 +11,16 @@
  * Test plan reference: TP-CLIENT-DEVICE-001 through TP-CLIENT-DEVICE-010
  */
 
+jest.mock('react-native', () => ({
+  Platform: { OS: 'web' },
+}));
+
+jest.mock('react-native-vision-camera', () => ({
+  Camera: {
+    requestCameraPermission: jest.fn(),
+  },
+}));
+
 jest.mock('expo-audio', () => ({
   requestRecordingPermissionsAsync: jest.fn(),
 }));
