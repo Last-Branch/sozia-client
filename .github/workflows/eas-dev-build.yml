@@ -1,0 +1,35 @@
+name: EAS Dev Build (Android)
+
+on:
+  push:
+    paths:
+      - 'modules/**'
+      - 'app.json'
+      - 'app.config.js'
+      - 'app.config.ts'
+      - 'package.json'
+      - 'eas.json'
+
+jobs:
+  build:
+    name: EAS Android Development Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Trigger EAS development build for Android
+        run: eas build --profile development --platform android --non-interactive --no-wait
