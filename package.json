@@ -8,7 +8,7 @@
     "ios": "node scripts/expo.js start --ios",
     "web": "node scripts/expo.js start --web",
     "test": "jest",
-    "lint": "eslint sozia --ext .ts,.tsx",
+    "lint": "eslint sozia --ext .ts,.tsx --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint && npm run test"
   },
