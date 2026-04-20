@@ -47,6 +47,10 @@ export function DashboardScreen({
     }
   }, [deviceSetupOpen, devices.length, loadDevices]);
 
+  useEffect(() => {
+    console.log(process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID);
+  }, []);
+
   const mics = devices.filter((d) => d.kind === 'audioinput');
   const cameras = devices.filter((d) => d.kind === 'videoinput');
 

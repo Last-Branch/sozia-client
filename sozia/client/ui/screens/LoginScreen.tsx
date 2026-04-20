@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Eye, EyeOff, Lock, Mail, MessageCircle } from 'lucide-react-native';
@@ -17,7 +17,11 @@ export function LoginScreen({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { t, language, setLanguage } = useLanguage();
-  const { isSigning, authError, signInWithEmail } = useAuth();
+  const { isSigning, authError, clearAuthError, signInWithEmail } = useAuth();
+
+  useEffect(() => {
+    clearAuthError();
+  }, [clearAuthError]);
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/10 via-white dark:via-gray-900 to-[#2ECC71]/5">
@@ -113,7 +117,7 @@ export function LoginScreen({
             </View>
 
             {authError && (
-              <Text className="mb-3 text-center text-sm text-red-500">{authError}</Text>
+              <Text className="mb-3 text-center text-sm text-red-500">{t(authError)}</Text>
             )}
 
             <TouchableOpacity

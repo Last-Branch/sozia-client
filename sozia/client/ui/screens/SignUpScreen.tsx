@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Eye, EyeOff, Lock, Mail, MessageCircle, User } from 'lucide-react-native';
@@ -23,16 +23,19 @@ export function SignUpScreen({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
   const { t, language, setLanguage } = useLanguage();
-  const { isSigning, authError, signUpWithEmail } = useAuth();
+  const { isSigning, authError, clearAuthError, signUpWithEmail } = useAuth();
+
+  useEffect(() => {
+    clearAuthError();
+  }, [clearAuthError]);
 
   const handleSignUp = async () => {
     setValidationError(null);
     if (password !== confirmPassword) {
-      setValidationError('Passwords do not match.');
+      setValidationError('auth.errors.passwordsDoNotMatch');
       return;
     }
     await signUpWithEmail(email, password, fullName);
-    onNext();
   };
 
   return (
@@ -158,7 +161,7 @@ export function SignUpScreen({
             </View>
 
             {(validationError ?? authError) && (
-              <Text className="mb-3 text-center text-sm text-red-500">{validationError ?? authError}</Text>
+              <Text className="mb-3 text-center text-sm text-red-500">{t((validationError ?? authError) as string)}</Text>
             )}
 
             <TouchableOpacity

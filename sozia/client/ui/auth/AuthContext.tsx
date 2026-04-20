@@ -26,6 +26,7 @@ interface AuthContextValue {
   isLoading: boolean;
   isSigning: boolean;
   authError: string | null;
+  clearAuthError: () => void;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
@@ -96,15 +97,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (Platform.OS === 'web' || !response) return;
     if (response.type === 'dismiss') { setIsSigning(false); return; }
-    if (response.type === 'error') { setAuthError('Google sign-in failed. Please try again.'); setIsSigning(false); return; }
+    if (response.type === 'error') { setAuthError('auth.errors.googleSignInFailed'); setIsSigning(false); return; }
     if (response.type !== 'success') return;
 
     const idToken = response.authentication?.idToken ?? (response.params as Record<string, string> | undefined)?.id_token;
-    if (!idToken) { setAuthError('Google sign-in failed. Please try again.'); setIsSigning(false); return; }
+    if (!idToken) { setAuthError('auth.errors.googleSignInFailed'); setIsSigning(false); return; }
 
     const credential = GoogleAuthProvider.credential(idToken);
     signInWithCredential(firebaseAuth, credential).catch(() => {
-      setAuthError('Google sign-in failed. Please try again.');
+      setAuthError('auth.errors.googleSignInFailed');
       setIsSigning(false);
     });
   }, [response]);
@@ -119,10 +120,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await promptAsync();
       }
     } catch {
-      setAuthError('Google sign-in failed. Please try again.');
+      setAuthError('auth.errors.googleSignInFailed');
       setIsSigning(false);
     }
   }, [promptAsync]);
+
+  const clearAuthError = useCallback(() => setAuthError(null), []);
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     setAuthError(null);
@@ -135,12 +138,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json() as { token?: string; user?: { id: string; email: string; name: string }; error?: string };
-      if (!res.ok) throw new Error(data.error ?? 'Sign in failed');
+      if (!res.ok) throw new Error(data.error ?? 'auth.errors.signInFailed');
       await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token: data.token, user: data.user }));
       setUser({ id: data.user!.id, email: data.user!.email, displayName: data.user!.name, photoURL: null });
       authSource.current = 'custom';
     } catch (e) {
-      setAuthError(e instanceof Error ? e.message : 'Sign in failed');
+      setAuthError(e instanceof Error ? e.message : 'auth.errors.signInFailed');
     } finally {
       setIsSigning(false);
     }
@@ -157,12 +160,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password, name }),
       });
       const data = await res.json() as { token?: string; user?: { id: string; email: string; name: string }; error?: string };
-      if (!res.ok) throw new Error(data.error ?? 'Sign up failed');
+      if (!res.ok) throw new Error(data.error ?? 'auth.errors.signUpFailed');
       await AsyncStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token: data.token, user: data.user }));
       setUser({ id: data.user!.id, email: data.user!.email, displayName: data.user!.name, photoURL: null });
       authSource.current = 'custom';
     } catch (e) {
-      setAuthError(e instanceof Error ? e.message : 'Sign up failed');
+      setAuthError(e instanceof Error ? e.message : 'auth.errors.signUpFailed');
     } finally {
       setIsSigning(false);
     }
@@ -179,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isSigning, authError, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut }}>
+    <AuthContext.Provider value={{ user, isLoading, isSigning, authError, clearAuthError, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut }}>
       {children}
     </AuthContext.Provider>
   );
