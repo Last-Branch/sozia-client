@@ -7,6 +7,7 @@ import { ExpoAudioPipeline } from '@/pipeline/audio';
 import {
   LandmarkExtractor,
   NativeLandmarkBridge,
+  NativeLandmarkDiagnostics,
   NativeMediaPipeLandmarkBackend,
   VideoPipeline,
   WebMediaPipeLandmarkBackend,
@@ -164,6 +165,8 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
   );
 
   const setNativeLandmarks = useCallback((frame: LandmarkFrame | null) => {
+    NativeLandmarkDiagnostics.inc('dispatched');
+    if (frame !== null) NativeLandmarkDiagnostics.inc('normalized');
     NativeLandmarkBridge.setLatestFrame(frame);
   }, []);
 
@@ -175,6 +178,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
       setState(SessionState.INITIALIZING);
       store.clear();
+      NativeLandmarkDiagnostics.reset();
       const newSessionId = uuidV4();
       setSessionId(newSessionId);
       setActivePath(path);

@@ -7,6 +7,7 @@ import { NativeCameraView } from '../components/NativeCameraView';
 import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath, SessionState } from '@common/models';
+import { NativeLandmarkDiagnostics, type NativeLandmarkCounters } from '@/pipeline/video';
 import { StatusBar } from '../components/StatusBar';
 import { TranscriptView } from '../components/TranscriptView';
 import { useSessionController } from '../controller/SessionController';
@@ -160,6 +161,8 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {__DEV__ && <NativeLandmarkDiagnosticsOverlay />}
 
             {/* Active indicator */}
             <View className="absolute left-6 top-[88px] z-30 flex-row items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 py-1.5">
@@ -327,11 +330,30 @@ function SimpleSlider({ value, onValueChange, min, max }: { value: number; onVal
       <View className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700" pointerEvents="none">
         <View className="h-2 rounded-full bg-[#2ECC71]" style={{ width: `${percent * 100}%` }} />
       </View>
-      <View 
-        className="absolute h-6 w-6 rounded-full bg-white shadow-md border border-gray-200 dark:border-gray-600 dark:bg-gray-800" 
-        style={{ left: `${percent * 100}%`, transform: [{ translateX: -12 }] }} 
+      <View
+        className="absolute h-6 w-6 rounded-full bg-white shadow-md border border-gray-200 dark:border-gray-600 dark:bg-gray-800"
+        style={{ left: `${percent * 100}%`, transform: [{ translateX: -12 }] }}
         pointerEvents="none"
       />
+    </View>
+  );
+}
+
+function NativeLandmarkDiagnosticsOverlay() {
+  const [counters, setCounters] = useState<NativeLandmarkCounters>(NativeLandmarkDiagnostics.get());
+
+  useEffect(() => {
+    const unsubscribe = NativeLandmarkDiagnostics.subscribe(setCounters);
+    return unsubscribe;
+  }, []);
+
+  return (
+    <View className="absolute left-6 top-[128px] z-30 rounded-2xl border border-white/20 bg-black/70 px-3 py-2">
+      <Text className="mb-1 text-[10px] font-bold uppercase tracking-wide text-gray-300">landmarks</Text>
+      <Text className="text-[11px] font-mono text-white">dispatched: {counters.dispatched}</Text>
+      <Text className="text-[11px] font-mono text-white">normalized: {counters.normalized}</Text>
+      <Text className="text-[11px] font-mono text-white">polled:     {counters.polled}</Text>
+      <Text className="text-[11px] font-mono text-white">sent:       {counters.sent}</Text>
     </View>
   );
 }

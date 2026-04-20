@@ -91,8 +91,9 @@ See `.env.example` for required variables.
 
 ## Notes
 
-- Backend integration is not yet connected — all transcript data is local/demo.
-- Some flows use placeholder data while the backend is pending.
+- Backend URL and API key are configured via `EXPO_PUBLIC_SERVER_URL` and `EXPO_PUBLIC_API_KEY` in `.env.local`.
+- A demo mode is available in the live translation screen for UI testing without a backend connection.
+- iOS SIGN path (MediaPipe landmarks) is not yet implemented — requires the Swift native plugin.
 
 ## Troubleshooting
 

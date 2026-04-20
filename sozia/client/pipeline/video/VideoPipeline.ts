@@ -4,6 +4,7 @@ import {
   LandmarkExtractor,
   type RawVideoFrame,
 } from './LandmarkExtractor';
+import { NativeLandmarkDiagnostics } from './NativeLandmarkDiagnostics';
 import { TrackingHealthMonitor } from './TrackingHealthMonitor';
 
 const DEFAULT_TARGET_FPS = 30;
@@ -119,7 +120,11 @@ export class VideoPipeline implements IVideoPipeline {
 
       this.healthMonitor.update(landmarkFrame);
       if (landmarkFrame !== null) {
-        this.transmissionManager?.sendFeatures(landmarkFrame);
+        NativeLandmarkDiagnostics.inc('polled');
+        if (this.transmissionManager !== null) {
+          this.transmissionManager.sendFeatures(landmarkFrame);
+          NativeLandmarkDiagnostics.inc('sent');
+        }
       }
     }, intervalMs);
   }
