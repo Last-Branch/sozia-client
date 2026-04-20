@@ -76,13 +76,13 @@ describe('TranscriptStore — receiveSegment and retrieval', () => {
     expect(first).toEqual(second);  // same contents
   });
 
-  it('TP-CLIENT-STORE-001d: segments are sorted by timestampMs after receiveSegment', () => {
-    store.receiveSegment(makeSegment({ timestampMs: 3000 }));
-    store.receiveSegment(makeSegment({ timestampMs: 1000 }));
-    store.receiveSegment(makeSegment({ timestampMs: 2000 }));
+  it('TP-CLIENT-STORE-001d: segments are sorted by createdAtMs after receiveSegment', () => {
+    store.receiveSegment(makeSegment({ createdAtMs: 3000 }));
+    store.receiveSegment(makeSegment({ createdAtMs: 1000 }));
+    store.receiveSegment(makeSegment({ createdAtMs: 2000 }));
 
-    const timestamps = store.getSegments().map((s) => s.timestampMs);
-    expect(timestamps).toEqual([1000, 2000, 3000]);
+    const order = store.getSegments().map((s) => s.createdAtMs);
+    expect(order).toEqual([1000, 2000, 3000]);
   });
 });
 
@@ -122,12 +122,12 @@ describe('TranscriptStore — partial → final replacement', () => {
   });
 
   it('TP-CLIENT-STORE-002b: replacement preserves display order', () => {
-    const p1 = makeSegment({ segmentId: 'p1', status: SegmentStatus.PARTIAL, timestampMs: 1000 });
-    const p2 = makeSegment({ segmentId: 'p2', status: SegmentStatus.PARTIAL, timestampMs: 2000 });
+    const p1 = makeSegment({ segmentId: 'p1', status: SegmentStatus.PARTIAL, createdAtMs: 1000 });
+    const p2 = makeSegment({ segmentId: 'p2', status: SegmentStatus.PARTIAL, createdAtMs: 2000 });
     const f1 = makeSegment({
       segmentId: 'f1',
       status: SegmentStatus.FINAL,
-      timestampMs: 1000,
+      createdAtMs: 1000,
       replacesSegmentId: 'p1',
     });
 
