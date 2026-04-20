@@ -3,7 +3,7 @@ import React from 'react';
 import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-import { AuthProvider, useAuth } from './sozia/client/auth/AuthContext';
+import { AuthProvider, useAuth } from './sozia/client/ui/auth/AuthContext';
 import { LanguageProvider } from './sozia/client/ui/context/LanguageContext';
 import { SessionControllerProvider } from './sozia/client/ui/controller/SessionController';
 import { DashboardScreen } from './sozia/client/ui/screens/DashboardScreen';

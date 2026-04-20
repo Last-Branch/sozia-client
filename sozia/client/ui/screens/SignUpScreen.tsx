@@ -3,7 +3,7 @@ import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Eye, EyeOff, Lock, Mail, MessageCircle, User } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../../auth/AuthContext';
+import { useAuth } from '../auth/AuthContext';
 import { GoogleLogo } from '../components/GoogleLogo';
 
 export function SignUpScreen({

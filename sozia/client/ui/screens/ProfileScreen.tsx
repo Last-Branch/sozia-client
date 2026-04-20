@@ -3,7 +3,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, CircleUser, LogOut } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../../auth/AuthContext';
+import { useAuth } from '../auth/AuthContext';
 
 export function ProfileScreen({ onBack }: { onBack: () => void }) {
   const { t } = useLanguage();
