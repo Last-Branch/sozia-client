@@ -4,10 +4,11 @@ import type { TranscriptSegment } from '@common/models';
  * Observable in-memory transcript timeline for the active session.
  *
  * Maintains an ordered list of {@link TranscriptSegment} objects sorted by
- * `timestampMs`. Handles the optimistic-then-revise pattern: when a FINAL
- * segment arrives with a non-null `replacesSegmentId`, the referenced PARTIAL
- * segment is replaced in-place (preserving display order); if the PARTIAL is
- * not found, the FINAL is appended as a new entry.
+ * `createdAtMs` (server-side Unix epoch ms, always monotonically increasing).
+ * Handles the optimistic-then-revise pattern: when a FINAL segment arrives
+ * with a non-null `replacesSegmentId`, the referenced PARTIAL segment is
+ * replaced in-place and the list is re-sorted; if the PARTIAL is not found,
+ * the FINAL is appended as a new entry.
  *
  * Collaborators: {@link TranscriptExporter} reads snapshots from this store.
  * The UI `TranscriptView` subscribes via {@link subscribe} to re-render on
@@ -31,16 +32,21 @@ export class TranscriptStore {
     if (segment.replacesSegmentId !== null) {
       const idx = this.segmentIndex.get(segment.replacesSegmentId);
       if (idx !== undefined && idx < this.segments.length && this.segments[idx].segmentId === segment.replacesSegmentId) {
+        const existing = this.segments[idx];
+        // Inherit the PARTIAL's timestampMs if the FINAL arrives with zero
+        // (some server paths omit it on standalone FINALs).
+        const resolved = segment.timestampMs > 0 ? segment : { ...segment, timestampMs: existing.timestampMs };
         this.segmentIndex.delete(segment.replacesSegmentId);
-        this.segments[idx] = segment;
-        this.segmentIndex.set(segment.segmentId, idx);
+        this.segments[idx] = resolved;
+        this.segments.sort((a, b) => a.createdAtMs - b.createdAtMs);
+        this._rebuildIndex();
         this._notify();
         return;
       }
     }
 
     this.segments.push(segment);
-    this.segments.sort((a, b) => a.timestampMs - b.timestampMs);
+    this.segments.sort((a, b) => a.createdAtMs - b.createdAtMs);
     this._rebuildIndex();
     this._notify();
   }
@@ -56,7 +62,7 @@ export class TranscriptStore {
   }
 
   /**
-   * Returns a read-only copy of the current segment list, ordered by `timestampMs`.
+   * Returns a read-only copy of the current segment list, ordered by `createdAtMs`.
    *
    * @returns Ordered array of transcript segments.
    */
