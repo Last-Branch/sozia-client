@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronDown, ChevronUp, CircleCheckBig, CircleHelp, CircleUser, Hand, House, Mic } from 'lucide-react-native';
+import { ChevronDown, ChevronUp, CircleCheckBig, CircleHelp, CircleUser, Hand, House, Mic, Settings } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath, SessionState } from '@common/models';
@@ -13,10 +13,12 @@ export function DashboardScreen({
   onOpenLive,
   onOpenSettings,
   onOpenHelp,
+  onOpenProfile,
 }: {
   onOpenLive: () => void;
   onOpenSettings: () => void;
   onOpenHelp: () => void;
+  onOpenProfile: () => void;
 }) {
   const { state, activePath, startSession, enumerateDevices, selectMicrophone, selectCamera } = useSessionController();
   const { t } = useLanguage();
@@ -71,7 +73,7 @@ export function DashboardScreen({
                 className="h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
                 onPress={onOpenSettings}
               >
-                <CircleUser size={20} color="#374151" />
+                <Settings size={20} color="#374151" />
               </TouchableOpacity>
             </View>
 
@@ -207,7 +209,7 @@ export function DashboardScreen({
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => { setActiveTab('profile'); onOpenSettings(); }}
+                  onPress={() => { setActiveTab('profile'); onOpenProfile(); }}
                   className={`items-center gap-1 ${
                     activeTab === 'profile' ? 'text-[#2ECC71]' : 'text-gray-400'
                   }`}

@@ -155,6 +155,18 @@
       "degraded": "Running in degraded mode",
       "restart": "Restart"
     },
+    "auth": {
+      "signOut": "Sign Out",
+      "errors": {
+        "signInFailed": "Sign in failed. Please check your credentials and try again.",
+        "signUpFailed": "Sign up failed. Please try again.",
+        "googleSignInFailed": "Google sign-in failed. Please try again.",
+        "passwordsDoNotMatch": "Passwords do not match."
+      }
+    },
+    "profile": {
+      "title": "Profile"
+    },
     "transcript": {
       "sourceASR": "ASR",
       "sourceLIP": "LIP",

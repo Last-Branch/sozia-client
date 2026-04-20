@@ -155,6 +155,18 @@
       "degraded": "Düşük performanslı modda çalışıyor",
       "restart": "Yeniden Başlat"
     },
+    "auth": {
+      "signOut": "Çıkış Yap",
+      "errors": {
+        "signInFailed": "Giriş başarısız. Lütfen bilgilerinizi kontrol edip tekrar deneyin.",
+        "signUpFailed": "Kayıt başarısız. Lütfen tekrar deneyin.",
+        "googleSignInFailed": "Google ile giriş başarısız. Lütfen tekrar deneyin.",
+        "passwordsDoNotMatch": "Şifreler eşleşmiyor."
+      }
+    },
+    "profile": {
+      "title": "Profil"
+    },
     "transcript": {
       "sourceASR": "ASR",
       "sourceLIP": "DUD",

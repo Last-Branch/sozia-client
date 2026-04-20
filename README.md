@@ -81,9 +81,16 @@ npm run start
 
 To view device logs: shake the phone → React Native dev menu → Open DevTools.
 
+## Environment Variables
+
+```bash
+cp .env.example .env.local
+```
+
+See `.env.example` for required variables.
+
 ## Notes
 
-- No `.env` file is required.
 - Backend integration is not yet connected — all transcript data is local/demo.
 - Some flows use placeholder data while the backend is pending.
 
