@@ -38,11 +38,11 @@ const DEFAULT_CONFIG: AppConfig = {
   fontSize: 16,
   confidenceThreshold: 0.3,
   chunkDurationMs: 1000,
-  serverUrl: 'wss://...',
+  serverUrl: process.env.EXPO_PUBLIC_SERVER_URL ?? 'wss://...',
   maxReconnectAttempts: 5,
   diagnosticsEnabled: false,
   vadSensitivity: 'high',
-  apiKey: '',
+  apiKey: process.env.EXPO_PUBLIC_API_KEY ?? '',
 };
 
 function getBrowserStorage(): KeyValueStorage | null {

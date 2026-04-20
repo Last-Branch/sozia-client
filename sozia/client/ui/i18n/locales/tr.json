@@ -155,6 +155,12 @@
       "degraded": "Düşük performanslı modda çalışıyor",
       "restart": "Yeniden Başlat"
     },
+    "auth": {
+      "signOut": "Çıkış Yap"
+    },
+    "profile": {
+      "title": "Profil"
+    },
     "transcript": {
       "sourceASR": "ASR",
       "sourceLIP": "DUD",

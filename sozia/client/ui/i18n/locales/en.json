@@ -155,6 +155,12 @@
       "degraded": "Running in degraded mode",
       "restart": "Restart"
     },
+    "auth": {
+      "signOut": "Sign Out"
+    },
+    "profile": {
+      "title": "Profile"
+    },
     "transcript": {
       "sourceASR": "ASR",
       "sourceLIP": "LIP",
