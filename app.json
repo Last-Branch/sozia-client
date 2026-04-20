@@ -40,7 +40,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.lastbranch.soziaclient"
+      "bundleIdentifier": "com.lastbranch.soziaclient",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access your camera"
+      }
     },
     "android": {
       "package": "com.lastbranch.soziaclient",
@@ -59,15 +62,18 @@
               "path": "/oauthredirect"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
+    "owner": "mehmetkaratekin",
     "extra": {
       "eas": {
-        "projectId": "e1dc5c9f-dc85-4ddb-ac54-4445426a49e6"
+        "projectId": "085b7ff2-14bc-4239-9ba2-98e3a3f68e07"
       }
-    },
-    "owner": "last-branch"
+    }
   }
 }
