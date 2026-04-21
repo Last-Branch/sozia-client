@@ -387,7 +387,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: (noticeKey?: string)
       .finally(() => {
         setRequestingWebPermission(false);
       });
-  }, [activeWebCameraId, config, requestingWebPermission, selectCamera, switchingAfterMountError, webCameraIds, skipNextFailedCameraId, showDeviceNotice, t, switchMicrophoneIfNeeded, activePath, backToMainMenu]);
+  }, [activeWebCameraId, config, requestingWebPermission, selectCamera, switchingAfterMountError, webCameraIds, skipNextFailedCameraId, showDeviceNotice, t, switchMicrophoneIfNeeded, activePath, backToMainMenu, enumerateDevices]);
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
