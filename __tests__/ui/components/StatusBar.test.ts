@@ -91,6 +91,38 @@ describe('getStatusBanner', () => {
     expect(banner!.messageKey).toBe('health.cameraObstructed');
   });
 
+  it('SPEECH: video rolling-unavailable but live stream prefers no-face over obstructed', () => {
+    const health = [
+      makeVideoHealth({
+        available: false,
+        fps: 28,
+        faceFrameRatio: 0.1,
+        faceDetected: false,
+      }),
+    ];
+    const banner = getStatusBanner(SessionState.DEGRADED, health, ModalityPath.SPEECH);
+    expect(banner!.messageKey).toBe('health.noFaceDetected');
+  });
+
+  it('SPEECH: video rolling-unavailable but live stream prefers keep-face when ratio low and last had face', () => {
+    const health = [
+      makeVideoHealth({
+        available: false,
+        fps: 28,
+        faceFrameRatio: 0.35,
+        faceDetected: true,
+      }),
+    ];
+    const banner = getStatusBanner(SessionState.DEGRADED, health, ModalityPath.SPEECH);
+    expect(banner!.messageKey).toBe('health.keepFaceInCamera');
+  });
+
+  it('SPEECH: truly dead video (low fps) still shows obstructed', () => {
+    const health = [makeVideoHealth({ available: false, fps: 0, faceFrameRatio: 0 })];
+    const banner = getStatusBanner(SessionState.DEGRADED, health, ModalityPath.SPEECH);
+    expect(banner!.messageKey).toBe('health.cameraObstructed');
+  });
+
   it('returns low-signal DEGRADED banner when audio SNR is low', () => {
     const health = [makeAudioHealth({ available: true, snr: 3 })];
     const banner = getStatusBanner(SessionState.DEGRADED, health, null);

@@ -13,12 +13,44 @@ export interface Banner {
   showSpinner: boolean;
 }
 
+/** SPEECH: rolling `available` flips when >50% of frames lack landmarks; use fps + faceFrameRatio to avoid mislabeling that as a blocked camera. */
+function speechVideoLooksLive(video: PipelineHealth): boolean {
+  if ((video.fps ?? 0) < 2) return false;
+  const r = video.faceFrameRatio;
+  return typeof r === 'number' && Number.isFinite(r);
+}
+
 function degradedMessage(healthReports: PipelineHealth[], activePath: ModalityPath | null): string {
   const audio = healthReports.find((r) => r.pipeline === 'audio');
   const video = healthReports.find((r) => r.pipeline === 'video');
 
   if (audio && !audio.available) return 'health.microphoneUnavailable';
-  if (video && !video.available) return 'health.cameraObstructed';
+
+  const treatVideoUnavailableAsObstructed =
+    video &&
+    !video.available &&
+    !(activePath === ModalityPath.SPEECH && speechVideoLooksLive(video));
+
+  if (treatVideoUnavailableAsObstructed) return 'health.cameraObstructed';
+
+  // SPEECH: video "unavailable" by rolling null-landmark rule but stream still live → face UX, not lens.
+  if (
+    activePath === ModalityPath.SPEECH &&
+    video &&
+    !video.available &&
+    speechVideoLooksLive(video)
+  ) {
+    if (video.faceDetected === false) return 'health.noFaceDetected';
+    if (
+      typeof video.faceFrameRatio === 'number' &&
+      Number.isFinite(video.faceFrameRatio) &&
+      video.faceFrameRatio < SPEECH_FACE_IN_FRAME_MIN_RATIO
+    ) {
+      return 'health.keepFaceInCamera';
+    }
+  }
+
+  if (video && video.faceDetected === false) return 'health.noFaceDetected';
   if (
     activePath === ModalityPath.SPEECH &&
     video &&
@@ -29,7 +61,6 @@ function degradedMessage(healthReports: PipelineHealth[], activePath: ModalityPa
   ) {
     return 'health.keepFaceInCamera';
   }
-  if (video && video.faceDetected === false) return 'health.keepFaceInCamera';
   if (audio && audio.snr !== null && audio.snr < LOW_SNR_THRESHOLD) return 'health.lowSignalQuality';
 
   return 'health.degraded';
