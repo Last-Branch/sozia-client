@@ -1,9 +1,10 @@
-import { CameraView, type CameraType } from 'expo-camera';
-import React, { useEffect, useRef, useState } from 'react';
+import type { CameraType } from 'expo-camera';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, ChevronDown, CircleX, Hand, Mic, PauseCircle, PlayCircle, Settings, SwitchCamera } from 'lucide-react-native';
 import { NativeCameraView } from '../components/NativeCameraView';
+import { WebCameraView } from '../components/WebCameraView';
 import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath, SessionState } from '@common/models';
@@ -13,7 +14,7 @@ import { useSessionController } from '../controller/SessionController';
 import type { MockTranscriptSource as MockTranscriptSourceType } from '../testing/MockTranscriptSource';
 
 
-export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
+export function LiveTranslationScreen({ onBack }: { onBack: (noticeKey?: string) => void }) {
   const {
     state,
     sessionId,
@@ -26,18 +27,98 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
     resumeSession,
     store,
     setCameraVideoElement,
-    setNativeLandmarks
+    setNativeLandmarks,
+    config,
+    enumerateDevices,
+    selectMicrophone,
+    selectCamera,
+    restartAudioPipeline,
   } = useSessionController();
   const cameraContainerRef = useRef<View>(null);
 
   const { t } = useLanguage();
+  const preferredCameraId = config.get('selectedCameraId');
+  const [webCameraIds, setWebCameraIds] = useState<string[]>([]);
+  const [activeWebCameraId, setActiveWebCameraId] = useState<string | null>(preferredCameraId);
   const [showSettings, setShowSettings] = useState(false);
   const [textSize, setTextSize] = useState(100);
   const [cameraFacing, setCameraFacing] = useState<CameraType>('front');
   const [cameraMountError, setCameraMountError] = useState<string | null>(null);
+  const [webMountAttempt, setWebMountAttempt] = useState(0);
+  const [requestingWebPermission, setRequestingWebPermission] = useState(false);
+  const [switchingAfterMountError, setSwitchingAfterMountError] = useState(false);
+  const [skipNextFailedCameraId, setSkipNextFailedCameraId] = useState<string | null>(null);
+  const [deviceNotice, setDeviceNotice] = useState<string | null>(null);
+  const mountErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deviceNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previousAudioProblemRef = useRef<boolean | null>(null);
+  const micHealthySeenRef = useRef(false);
+  const selectedMicDisconnectedRef = useRef(false);
+  const activeMicIdRef = useRef<string | null>(config.get('selectedMicId'));
+  const cameraProblemRef = useRef(false);
+  const hasForcedExitRef = useRef(false);
 
   const baseFontSize = (textSize / 100) * 30;
   const shouldShowLiveCamera = activePath === ModalityPath.SIGN || activePath === ModalityPath.SPEECH;
+  const showDeviceNotice = useCallback((message: string) => {
+    if (deviceNoticeTimerRef.current) {
+      clearTimeout(deviceNoticeTimerRef.current);
+    }
+    setDeviceNotice(message);
+    deviceNoticeTimerRef.current = setTimeout(() => {
+      setDeviceNotice(null);
+      deviceNoticeTimerRef.current = null;
+    }, 3000);
+  }, []);
+
+  const backToMainMenu = useCallback((noticeKey: string) => {
+    if (hasForcedExitRef.current) return;
+    hasForcedExitRef.current = true;
+    stopSession();
+    onBack(noticeKey);
+  }, [onBack, stopSession]);
+
+  const audioHotplugRestartingRef = useRef(false);
+  const runAudioHotplugRestart = useCallback(async () => {
+    if (audioHotplugRestartingRef.current) return;
+    audioHotplugRestartingRef.current = true;
+    try {
+      await restartAudioPipeline();
+    } finally {
+      audioHotplugRestartingRef.current = false;
+    }
+  }, [restartAudioPipeline]);
+
+  const switchMicrophoneIfNeeded = useCallback(async (): Promise<boolean> => {
+    if (Platform.OS !== 'web' || typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) {
+      return false;
+    }
+    const selectedMicId = activeMicIdRef.current ?? config.get('selectedMicId');
+    if (!selectedMicId) return false;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioIds = devices
+        .filter((d) => d.kind === 'audioinput' && d.deviceId.length > 0)
+        .map((d) => d.deviceId);
+      const hasSelectedMic = audioIds.includes(selectedMicId);
+      if (hasSelectedMic) {
+        selectedMicDisconnectedRef.current = false;
+        return false;
+      }
+      const fallbackMicId = audioIds.find((id) => id !== selectedMicId) ?? null;
+      if (!fallbackMicId) {
+        selectedMicDisconnectedRef.current = true;
+        return false;
+      }
+      activeMicIdRef.current = fallbackMicId;
+      selectMicrophone(fallbackMicId);
+      config.set('selectedMicId', fallbackMicId);
+      selectedMicDisconnectedRef.current = false;
+      return true;
+    } catch {
+      return false;
+    }
+  }, [config, selectMicrophone]);
 
   // Demo mode: MockTranscriptSource (dev-only, dynamically imported)
   const [demoActive, setDemoActive] = useState(false);
@@ -61,12 +142,270 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     return () => {
       demoSource.current?.stop();
+      if (deviceNoticeTimerRef.current) {
+        clearTimeout(deviceNoticeTimerRef.current);
+        deviceNoticeTimerRef.current = null;
+      }
     };
   }, []);
 
   useEffect(() => {
     setCameraMountError(null);
-  }, [cameraFacing, activePath]);
+  }, [cameraFacing, activePath, preferredCameraId]);
+
+  useEffect(() => {
+    activeMicIdRef.current = config.get('selectedMicId');
+  }, [config, sessionId]);
+
+  useEffect(() => {
+    // New session: clear transient skip state.
+    setSkipNextFailedCameraId(null);
+    previousAudioProblemRef.current = null;
+    micHealthySeenRef.current = false;
+    selectedMicDisconnectedRef.current = false;
+    cameraProblemRef.current = false;
+    hasForcedExitRef.current = false;
+    if (mountErrorTimerRef.current) {
+      clearTimeout(mountErrorTimerRef.current);
+      mountErrorTimerRef.current = null;
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    if (activePath !== ModalityPath.SPEECH) return;
+    if (state !== SessionState.RUNNING && state !== SessionState.DEGRADED) return;
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return;
+
+    let cancelled = false;
+    const evaluateMicPresence = async () => {
+      const selectedMicId = activeMicIdRef.current ?? config.get('selectedMicId');
+      if (!selectedMicId) return;
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        if (cancelled) return;
+        const audioIds = devices
+          .filter((d) => d.kind === 'audioinput' && d.deviceId.length > 0)
+          .map((d) => d.deviceId);
+        const hasSelectedMic = audioIds.includes(selectedMicId);
+        const isDisconnected = !hasSelectedMic;
+        const fallbackMicId = audioIds.find((id) => id !== selectedMicId) ?? null;
+        if (isDisconnected && fallbackMicId) {
+          activeMicIdRef.current = fallbackMicId;
+          selectMicrophone(fallbackMicId);
+          config.set('selectedMicId', fallbackMicId);
+          selectedMicDisconnectedRef.current = false;
+          showDeviceNotice(t('live.micSwitchedToAnother'));
+          await runAudioHotplugRestart();
+          return;
+        }
+        if (isDisconnected && !fallbackMicId) {
+          backToMainMenu('dashboard.noMicrophoneReturnMain');
+          return;
+        }
+        const isStillSelected = devices.some(
+          (d) => d.kind === 'audioinput' && d.deviceId === selectedMicId
+        );
+        const nextDisconnected = !isStillSelected;
+        const wasDisconnected = selectedMicDisconnectedRef.current;
+        selectedMicDisconnectedRef.current = nextDisconnected;
+        if (nextDisconnected && cameraProblemRef.current) {
+          backToMainMenu('dashboard.devicesMissingReturnMain');
+          return;
+        }
+        if (wasDisconnected === nextDisconnected) return;
+        showDeviceNotice(
+          nextDisconnected
+            ? t('live.micDisconnectedContinue')
+            : t('live.micRecovered')
+        );
+      } catch {
+        // Ignore transient enumerate failures.
+      }
+    };
+
+    void evaluateMicPresence();
+    navigator.mediaDevices.addEventListener('devicechange', evaluateMicPresence);
+    return () => {
+      cancelled = true;
+      navigator.mediaDevices.removeEventListener('devicechange', evaluateMicPresence);
+    };
+  }, [activePath, state, config, selectMicrophone, showDeviceNotice, t, backToMainMenu, runAudioHotplugRestart]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    let cancelled = false;
+    void enumerateDevices()
+      .then((devices) => {
+        if (cancelled) return;
+        const ids = devices
+          .filter((d) => d.kind === 'videoinput')
+          .map((d) => d.deviceId)
+          .filter((id) => id.length > 0);
+        setWebCameraIds(ids);
+        const preferred = config.get('selectedCameraId');
+        const nextId =
+          preferred && ids.includes(preferred)
+            ? preferred
+            : (ids[0] ?? null);
+        setActiveWebCameraId(nextId);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [enumerateDevices, config, activePath]);
+
+  useEffect(() => {
+    if (activePath !== ModalityPath.SPEECH) return;
+    if (state !== SessionState.RUNNING && state !== SessionState.DEGRADED) return;
+    const audioHealth = healthReports.find((h) => h.pipeline === 'audio');
+    if (!audioHealth) return;
+
+    const hasLowSignal = audioHealth.snr !== null && audioHealth.snr < 5;
+    const audioProblem = !audioHealth.available || hasLowSignal;
+    const previousProblem = previousAudioProblemRef.current;
+    previousAudioProblemRef.current = audioProblem;
+
+    if (!audioProblem) {
+      micHealthySeenRef.current = true;
+    }
+
+    if (previousProblem === null || previousProblem === audioProblem) return;
+    if (audioProblem && !micHealthySeenRef.current) return;
+    if (audioProblem && cameraProblemRef.current) {
+      backToMainMenu('dashboard.devicesMissingReturnMain');
+      return;
+    }
+
+    showDeviceNotice(
+      audioProblem
+        ? t('live.micDisconnectedContinue')
+        : t('live.micRecovered')
+    );
+  }, [healthReports, activePath, state, showDeviceNotice, t, backToMainMenu]);
+
+  const switchCamera = async () => {
+    if (!shouldShowLiveCamera) return;
+    if (Platform.OS !== 'web') {
+      setCameraFacing((current) => (current === 'front' ? 'back' : 'front'));
+      return;
+    }
+
+    let ids = webCameraIds;
+    try {
+      const devices = await enumerateDevices();
+      ids = devices
+        .filter((d) => d.kind === 'videoinput')
+        .map((d) => d.deviceId)
+        .filter((id) => id.length > 0);
+      setWebCameraIds(ids);
+    } catch {
+      // Keep last known list if enumeration fails transiently.
+    }
+
+    if (ids.length === 0) return;
+    if (ids.length === 1) return;
+
+    const currentId = activeWebCameraId && ids.includes(activeWebCameraId)
+      ? activeWebCameraId
+      : ids[0];
+    const currentIdx = ids.indexOf(currentId);
+    const nextId = ids[(currentIdx + 1) % ids.length];
+    setActiveWebCameraId(nextId);
+    selectCamera(nextId);
+    config.set('selectedCameraId', nextId);
+  };
+
+  const onWebMountError = useCallback((message: string, attemptedDeviceId?: string | null): void => {
+    setCameraMountError(message);
+    cameraProblemRef.current = true;
+    if (Platform.OS !== 'web' || requestingWebPermission || switchingAfterMountError) return;
+
+    if (mountErrorTimerRef.current) {
+      clearTimeout(mountErrorTimerRef.current);
+      mountErrorTimerRef.current = null;
+    }
+
+    const failedId = attemptedDeviceId ?? activeWebCameraId;
+    const looksLikePermissionIssue = /denied|notallowed|permission/i.test(message);
+    const switchToNextCamera = async () => {
+      let currentIds = webCameraIds;
+      try {
+        const devices = await enumerateDevices();
+        currentIds = devices
+          .filter((d) => d.kind === 'videoinput')
+          .map((d) => d.deviceId)
+          .filter((id) => id.length > 0);
+        setWebCameraIds(currentIds);
+      } catch {
+        // Keep last known list when enumeration temporarily fails.
+      }
+
+      if (currentIds.length <= 1) {
+        if (activePath === ModalityPath.SIGN) {
+          backToMainMenu('dashboard.signCameraMissingReturnMain');
+          return;
+        }
+        if (activePath === ModalityPath.SPEECH && previousAudioProblemRef.current === true) {
+          backToMainMenu('dashboard.devicesMissingReturnMain');
+        }
+        return;
+      }
+      const currentId = failedId && currentIds.includes(failedId)
+        ? failedId
+        : currentIds[0];
+      const nextPool = currentIds.filter((id) => id !== currentId && id !== skipNextFailedCameraId);
+      if (nextPool.length === 0) {
+        if (activePath === ModalityPath.SIGN) {
+          backToMainMenu('dashboard.signCameraMissingReturnMain');
+          return;
+        }
+        if (activePath === ModalityPath.SPEECH && previousAudioProblemRef.current === true) {
+          backToMainMenu('dashboard.devicesMissingReturnMain');
+        }
+        return;
+      }
+      const nextId = nextPool[0];
+      setSkipNextFailedCameraId(currentId);
+      setSwitchingAfterMountError(true);
+      const micSwitched = await switchMicrophoneIfNeeded();
+      if (micSwitched) await runAudioHotplugRestart();
+      showDeviceNotice(micSwitched ? t('live.cameraAndMicSwitchedToAnother') : t('live.cameraSwitchedToAnother'));
+      setActiveWebCameraId(nextId);
+      selectCamera(nextId);
+      config.set('selectedCameraId', nextId);
+      setWebMountAttempt((n) => n + 1);
+      setTimeout(() => setSwitchingAfterMountError(false), 250);
+    };
+
+    if (!looksLikePermissionIssue) {
+      // Grace period: some cameras report transient mount errors while warming up.
+      mountErrorTimerRef.current = setTimeout(() => {
+        void switchToNextCamera();
+        mountErrorTimerRef.current = null;
+      }, 500);
+      return;
+    }
+
+    setRequestingWebPermission(true);
+    void navigator.mediaDevices.getUserMedia({ audio: false, video: true })
+      .then((stream) => {
+        stream.getTracks().forEach((t) => t.stop());
+        // Permission granted now -> retry same selected camera first.
+        setWebMountAttempt((n) => n + 1);
+      })
+      .catch(() => {
+        // Still failing -> generic fallback to next available camera.
+        mountErrorTimerRef.current = setTimeout(() => {
+          void switchToNextCamera();
+          mountErrorTimerRef.current = null;
+        }, 500);
+      })
+      .finally(() => {
+        setRequestingWebPermission(false);
+      });
+  }, [activeWebCameraId, config, requestingWebPermission, selectCamera, switchingAfterMountError, webCameraIds, skipNextFailedCameraId, showDeviceNotice, t, switchMicrophoneIfNeeded, activePath, backToMainMenu, enumerateDevices, runAudioHotplugRestart]);
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
@@ -86,6 +425,13 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               void restartSession();
             }}
           />
+          {deviceNotice && (
+            <View className="z-50 w-full flex-row items-center justify-center gap-2 px-4 py-2 bg-yellow-500/80">
+              <Text className="text-xs font-semibold text-black">
+                {deviceNotice}
+              </Text>
+            </View>
+          )}
 
           <View className="relative flex-1">
             {/* Camera background */}
@@ -102,20 +448,26 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                       onError={(message) => setCameraMountError(message)}
                     />
                   ) : (
-                    <CameraView
+                    <WebCameraView
                       style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                      deviceId={activeWebCameraId}
                       facing={cameraFacing}
                       mirror={cameraFacing === 'front'}
-                      active={state !== SessionState.PAUSED}
-                      onCameraReady={() => {
-                        setTimeout(() => {
-                          if (typeof document === 'undefined') return;
-                          const container = cameraContainerRef.current as unknown as HTMLElement | null;
-                          const videoEl = container?.querySelector?.('video') ?? document.querySelector('video');
-                          setCameraVideoElement(videoEl as HTMLVideoElement | null);
-                        }, 500);
+                      active={true}
+                      sessionKey={`${sessionId ?? ''}:${webMountAttempt}`}
+                      onVideoElement={(el) => {
+                        setCameraVideoElement(el);
                       }}
-                      onMountError={(event) => setCameraMountError(event.message)}
+                      onCameraReady={() => {
+                        if (mountErrorTimerRef.current) {
+                          clearTimeout(mountErrorTimerRef.current);
+                          mountErrorTimerRef.current = null;
+                        }
+                        setCameraMountError(null);
+                        cameraProblemRef.current = false;
+                        setSkipNextFailedCameraId(null);
+                      }}
+                      onMountError={onWebMountError}
                     />
                   )}
                   <View className="absolute inset-0 bg-black/20" />
@@ -184,10 +536,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               <TouchableOpacity
                 className={`h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/60 ${shouldShowLiveCamera ? '' : 'opacity-50'}`}
                 disabled={!shouldShowLiveCamera}
-                onPress={() => {
-                  if (!shouldShowLiveCamera) return;
-                  setCameraFacing((current) => (current === 'front' ? 'back' : 'front'));
-                }}
+                onPress={() => { void switchCamera(); }}
               >
                 <SwitchCamera size={20} color="#fff" />
               </TouchableOpacity>

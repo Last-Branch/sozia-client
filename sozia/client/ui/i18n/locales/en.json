@@ -50,6 +50,9 @@
       "home": "Home",
       "help": "Help",
       "profile": "Profile",
+      "signCameraMissingReturnMain": "Camera unavailable in Sign mode. Returning to main menu.",
+      "devicesMissingReturnMain": "Camera and microphone unavailable. Returning to main menu.",
+      "noMicrophoneReturnMain": "No microphone is available. Returning to main menu.",
       "tips": [
         "Tip: Ensure you are in a well-lit environment for accurate lip and sign tracking.",
         "Tip: Position your camera at eye level for best results.",
@@ -129,7 +132,12 @@
       "paused": "Paused",
       "idle": "Ready",
       "listening": "Listening…",
-      "reading": "Reading…"
+      "reading": "Reading…",
+      "cameraSwitchedToAnother": "Camera disconnected. Switching to another available camera...",
+      "cameraAndMicSwitchedToAnother": "Camera and microphone disconnected. Switching to other available devices...",
+      "micDisconnectedContinue": "Microphone disconnected. Trying to continue without speech input.",
+      "micRecovered": "Microphone recovered. Speech recognition resumed.",
+      "micSwitchedToAnother": "Microphone disconnected. Switching to another available microphone..."
     },
     "device": {
       "selectMicrophone": "Select Microphone",

@@ -17,6 +17,9 @@ import { DisconnectBeforeReadyError, TransmissionManager } from '@/transmission'
 import { Configuration, type IConfigurationManager } from '@/config';
 import { buildSessionActions } from './sessionActions';
 
+const AUDIO_HEALTH_STALE_MS = 3000;
+const VIDEO_HEALTH_STALE_MS = 5000;
+
 export type SessionControllerValue = {
   sessionId: string | null;
   state: SessionState;
@@ -31,6 +34,8 @@ export type SessionControllerValue = {
   stopSession: () => void;
   /** Stops the session then starts again with the same modality (live screen Restart). */
   restartSession: () => Promise<void>;
+  /** Re-opens mic capture without tearing down the whole session (e.g. after hot-plug). */
+  restartAudioPipeline: () => Promise<void>;
   getState: () => SessionState;
   onPipelineHealthChanged: (health: PipelineHealth) => void;
   onConnectionLost: () => void;
@@ -77,6 +82,10 @@ function uuidV4(): string {
   );
 }
 
+function isLiveWebPreview(el: HTMLVideoElement | null): boolean {
+  return Boolean(el && el.readyState >= 2 && el.videoWidth > 0 && el.videoHeight > 0);
+}
+
 export function SessionControllerProvider({ children }: { children: React.ReactNode }) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [state, setState] = useState<SessionState>(SessionState.IDLE);
@@ -97,12 +106,14 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     ),
   );
   const config = useRef<IConfigurationManager>(new Configuration());
+  const configLoadPromise = useRef<Promise<void> | null>(null);
   const transmissionManager = useRef<TransmissionManager | null>(null);
 
   useEffect(() => {
-    void config.current.load().then(() => {
+    configLoadPromise.current = config.current.load().then(() => {
       deviceManager.current.setAudioVadSensitivity(config.current.get('vadSensitivity'));
     });
+    void configLoadPromise.current;
     if (!isNative) {
       // WebMediaPipeLandmarkBackend requires async model loading; native backend
       // is model-loaded by the JSI plugin on a background thread.
@@ -167,8 +178,20 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     NativeLandmarkBridge.setLatestFrame(frame);
   }, []);
 
+  const normalizeHealthStaleness = useCallback((health: PipelineHealth): PipelineHealth => {
+    if (!health.available || health.lastUpdatedMs <= 0) return health;
+    const now = Date.now();
+    const staleMs = health.pipeline === 'audio' ? AUDIO_HEALTH_STALE_MS : VIDEO_HEALTH_STALE_MS;
+    if (now - health.lastUpdatedMs <= staleMs) return health;
+    return { ...health, available: false };
+  }, []);
+
   const startSession = useCallback(async (path: ModalityPath) => {
     try {
+      if (configLoadPromise.current) {
+        await configLoadPromise.current;
+      }
+
       deviceManager.current.stopAllPipelines();
       transmissionManager.current?.disconnect();
       transmissionManager.current = null;
@@ -180,8 +203,39 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       setActivePath(path);
 
       const savedCameraId = config.current.get('selectedCameraId');
-      if (savedCameraId) deviceManager.current.selectCamera(savedCameraId);
-      await deviceManager.current.activateCamera();
+      if (savedCameraId) {
+        try {
+          const devices = await deviceManager.current.enumerateDevices();
+          const cameraExists = devices.some(
+            (d) => d.kind === 'videoinput' && d.deviceId === savedCameraId
+          );
+          if (cameraExists) {
+            deviceManager.current.selectCamera(savedCameraId);
+          } else {
+            config.current.set('selectedCameraId', null);
+          }
+        } catch {
+          // Keep startup resilient if enumeration fails temporarily.
+          deviceManager.current.selectCamera(savedCameraId);
+        }
+      }
+      let hasLiveWebPreview = false;
+      if (Platform.OS === 'web') {
+        const timeoutAt = Date.now() + 1500;
+        while (Date.now() < timeoutAt) {
+          if (isLiveWebPreview(cameraVideoRef.current)) {
+            hasLiveWebPreview = true;
+            break;
+          }
+          await new Promise<void>((resolve) => setTimeout(resolve, 50));
+        }
+      }
+
+      if (hasLiveWebPreview) {
+        deviceManager.current.markCameraAvailable();
+      } else {
+        await deviceManager.current.activateCamera();
+      }
 
       if (path === ModalityPath.SPEECH) {
         const savedMicId = config.current.get('selectedMicId');
@@ -205,7 +259,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
         actions.onConnectionLost,
         maxReconnectAttempts,
         handleSessionStatus,
-        () => { actions.onConnectionLost(); },
+        () => {},
       );
 
       const videoEl = cameraVideoRef.current;
@@ -270,6 +324,22 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     }
   }, [stopSession, startSession]);
 
+  const restartAudioPipeline = useCallback(async () => {
+    const path = activePathRef.current;
+    if (path !== ModalityPath.SPEECH) return;
+    const sid = sessionId;
+    const tx = transmissionManager.current;
+    if (!sid || !tx) return;
+    try {
+      await deviceManager.current.restartAudioPipeline(sid, tx);
+      if (stateRef.current === SessionState.PAUSED) {
+        deviceManager.current.pauseAllPipelines();
+      }
+    } catch (e) {
+      if (__DEV__) console.warn('restartAudioPipeline failed', e);
+    }
+  }, [sessionId]);
+
   // Poll audio pipeline health every second while a SPEECH session is active.
   // Transitions RUNNING → DEGRADED if the pipeline becomes unavailable.
   useEffect(() => {
@@ -280,15 +350,16 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     const interval = setInterval(() => {
       if (!mounted) return;
       const health = deviceManager.current.getAudioHealth();
-      actions.onPipelineHealthChanged(health);
-      transmissionManager.current?.sendHealth(health);
+      const normalized = normalizeHealthStaleness(health);
+      actions.onPipelineHealthChanged(normalized);
+      transmissionManager.current?.sendHealth(normalized);
     }, 1000);
 
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, [state, activePath, actions]);
+  }, [state, activePath, actions, normalizeHealthStaleness]);
 
   useEffect(() => {
     if (!activePath) return;
@@ -298,15 +369,16 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     const interval = setInterval(() => {
       if (!mounted) return;
       const health = deviceManager.current.getVideoHealth();
-      actions.onPipelineHealthChanged(health);
-      transmissionManager.current?.sendHealth(health);
+      const normalized = normalizeHealthStaleness(health);
+      actions.onPipelineHealthChanged(normalized);
+      transmissionManager.current?.sendHealth(normalized);
     }, 3000);
 
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, [state, activePath, actions]);
+  }, [state, activePath, actions, normalizeHealthStaleness]);
 
   const value = useMemo<SessionControllerValue>(
     () => ({
@@ -321,6 +393,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       resumeSession,
       stopSession,
       restartSession,
+      restartAudioPipeline,
       getState,
       onPipelineHealthChanged: actions.onPipelineHealthChanged,
       onConnectionLost: actions.onConnectionLost,
@@ -330,7 +403,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       setCameraVideoElement,
       setNativeLandmarks,
     }),
-    [actions, activePath, enumerateDevices, getState, healthReports, pauseSession, restartSession, resumeSession, selectCamera, selectMicrophone, sessionId, startSession, state, stopSession, store, setCameraVideoElement, setNativeLandmarks]
+    [actions, activePath, enumerateDevices, getState, healthReports, pauseSession, restartAudioPipeline, restartSession, resumeSession, selectCamera, selectMicrophone, sessionId, startSession, state, stopSession, store, setCameraVideoElement, setNativeLandmarks]
   );
 
   return <SessionControllerContext.Provider value={value}>{children}</SessionControllerContext.Provider>;

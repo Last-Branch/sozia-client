@@ -388,6 +388,35 @@ describe('DeviceManager.startAudioPipeline()', () => {
   });
 });
 
+describe('DeviceManager.restartAudioPipeline()', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockRequestPermissions.mockResolvedValue({ granted: true, status: 'granted' });
+  });
+
+  it('stops then starts the audio pipeline with the same session id', async () => {
+    const pipeline = new MockAudioPipeline();
+    const manager = new DeviceManager(new MockDeviceEnumerator(), pipeline);
+    await manager.activateMicrophone();
+    const fakeTx = { sendFeatures: () => {} } as unknown as TransmissionManager;
+    await manager.startAudioPipeline('sess-restart', {}, fakeTx);
+    pipeline.stopCalled = false;
+
+    await manager.restartAudioPipeline('sess-restart', fakeTx);
+
+    expect(pipeline.stopCalled).toBe(true);
+    expect(pipeline.startCalledWith).toBe('sess-restart');
+    expect(pipeline.startCalledWithTx).toBe(fakeTx);
+  });
+
+  it('throws when microphone has not been activated', async () => {
+    const pipeline = new MockAudioPipeline();
+    const manager = new DeviceManager(new MockDeviceEnumerator(), pipeline);
+
+    await expect(manager.restartAudioPipeline('sess-x')).rejects.toThrow(/activated/i);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // TP-CLIENT-DEVICE-006: startVideoPipeline()
 // ---------------------------------------------------------------------------

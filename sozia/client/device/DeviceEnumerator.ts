@@ -55,7 +55,17 @@ export class ExpoDeviceEnumerator implements IDeviceEnumerator {
   private async _listWeb(): Promise<DeviceHandle[]> {
     const infos = await navigator.mediaDevices.enumerateDevices();
     const audioInputs = infos.filter((d) => d.kind === 'audioinput');
-    const videoInputs = infos.filter((d) => d.kind === 'videoinput');
+    const rawVideoInputs = infos.filter((d) => d.kind === 'videoinput');
+    // Keep all video inputs (including default/communications) so built-in
+    // laptop camera options are not hidden on browsers that expose them that way.
+    // Deduplicate by deviceId to avoid repeated aliases in UI.
+    const seen = new Set<string>();
+    const videoInputs = rawVideoInputs.filter((d, idx) => {
+      const id = d.deviceId || `fallback-videoinput-${idx}`;
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
 
     const toHandle = (d: MediaDeviceInfo, index: number): DeviceHandle => ({
       deviceId: d.deviceId || `default-${d.kind}-${index}`,

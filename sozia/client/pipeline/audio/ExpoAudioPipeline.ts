@@ -12,6 +12,7 @@ const SAMPLE_RATE = 16_000;
 const WINDOW_SIZE_SAMPLES = 400; // 25 ms window at 16 kHz
 const HOP_SIZE_SAMPLES = 160; // 10 ms hop → 100 Hz frame rate (matches Whisper)
 const NOISE_FLOOR_DBFS = -60;
+const AUDIO_STALE_TIMEOUT_MS = 2500;
 
 /**
  * Minimal interface covering the recording methods we call on the underlying
@@ -53,6 +54,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
   private recordingActive = false;
   private lastUpdatedMs = 0;
   private currentSnr: number | null = null;
+  private staleWatchdog: ReturnType<typeof setInterval> | null = null;
 
   private sampleAccumulator = new Float32Array(0);
   private frameListeners = new Set<(frame: MelFrame) => void>();
@@ -129,6 +131,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     }
 
     await recorder.startRecording(recordingConfig);
+    this.startWatchdog();
   }
 
   pause(): void {
@@ -140,6 +143,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
         console.warn('[ExpoAudioPipeline] pauseRecording failed:', err);
       });
     }
+    this.stopWatchdog();
   }
 
   resume(): void {
@@ -151,6 +155,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
         console.warn('[ExpoAudioPipeline] resumeRecording failed:', err);
       });
     }
+    this.startWatchdog();
   }
 
   stop(): void {
@@ -166,6 +171,8 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     this.sessionId = '';
     this.currentSnr = null;
     this.sampleAccumulator = new Float32Array(0);
+    this.lastUpdatedMs = 0;
+    this.stopWatchdog();
 
     if (this.recordingActive) {
       this.recordingActive = false;
@@ -241,9 +248,28 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     const energy = frameLogEnergy(samples);
     const frame: MelFrame = { timestampMs, coefficients, energy };
 
-    this.lastUpdatedMs = timestampMs;
+    this.available = true;
+    this.lastUpdatedMs = Date.now();
     this.currentSnr = Math.max(0, energy - NOISE_FLOOR_DBFS);
     this.chunker.push(frame);
     this.frameListeners.forEach((cb) => cb(frame));
+  }
+
+  private startWatchdog(): void {
+    this.stopWatchdog();
+    this.staleWatchdog = setInterval(() => {
+      if (!this.recordingActive || this.paused) return;
+      if (this.lastUpdatedMs === 0) return;
+      if (Date.now() - this.lastUpdatedMs > AUDIO_STALE_TIMEOUT_MS) {
+        this.available = false;
+      }
+    }, 500);
+  }
+
+  private stopWatchdog(): void {
+    if (this.staleWatchdog) {
+      clearInterval(this.staleWatchdog);
+      this.staleWatchdog = null;
+    }
   }
 }

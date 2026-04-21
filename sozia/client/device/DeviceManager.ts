@@ -89,6 +89,24 @@ export class DeviceManager {
       this.cameraAvailable = true;
       return;
     }
+    // On web, trust the browser camera API first. In practice this is the
+    // same permission gate used by the preview stream and is more reliable
+    // than Expo's permission shim for external webcams.
+    const mediaDevices = (globalThis as { navigator?: { mediaDevices?: MediaDevices } }).navigator?.mediaDevices;
+    if (mediaDevices?.getUserMedia) {
+      try {
+        const preferredConstraint: MediaTrackConstraints | boolean = this.selectedCameraId
+          ? { deviceId: { exact: this.selectedCameraId } }
+          : true;
+        const stream = await mediaDevices.getUserMedia({ video: preferredConstraint, audio: false });
+        stream.getTracks().forEach((t) => t.stop());
+        this.cameraAvailable = true;
+        return;
+      } catch {
+        // Fall through to Expo permission API check for a clearer denial signal.
+      }
+    }
+
     const { granted } = await ExpoCamera.requestCameraPermissionsAsync();
     if (!granted) {
       this.cameraAvailable = false;
@@ -122,6 +140,23 @@ export class DeviceManager {
   }
 
   /**
+   * Stops and restarts the audio pipeline for the same session. Use after the
+   * effective default microphone changes (USB unplug, OS device switch) so a
+   * new capture stream opens; `selectMicrophone()` alone does not rebind the
+   * recorder backing `IAudioPipeline`.
+   */
+  async restartAudioPipeline(sessionId: string, tx?: TransmissionManager): Promise<void> {
+    if (!this.micAvailable) {
+      throw new Error('Cannot restart audio pipeline: microphone has not been activated.');
+    }
+    if (!this.audioPipeline) {
+      throw new Error('Cannot restart audio pipeline: no IAudioPipeline configured.');
+    }
+    this.audioPipeline.stop();
+    await this.audioPipeline.start(sessionId, {}, tx);
+  }
+
+  /**
    * Starts the video capture pipeline for the given session.
    * Requires `activateCamera()` to have been called first.
    */
@@ -137,6 +172,11 @@ export class DeviceManager {
 
   updateVideoCameraHandle(handle: RawMediaHandle): void {
     this.videoPipeline?.setCameraHandle(handle);
+  }
+
+  /** Marks camera as available when preview is already live (web path). */
+  markCameraAvailable(): void {
+    this.cameraAvailable = true;
   }
 
   pauseAllPipelines(): void {
