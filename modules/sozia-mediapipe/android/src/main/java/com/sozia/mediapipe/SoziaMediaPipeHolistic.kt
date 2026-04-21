@@ -82,12 +82,14 @@ class SoziaMediaPipeHolistic(private val context: Context) {
         val poseResult = poseLandmarker?.detectForVideo(image, timestampMs) ?: return null
 
         val allFace: List<NormalizedLandmark>? = faceResult.faceLandmarks().firstOrNull()
+        // Always emit exactly 83 entries; zero-fill any index beyond the mesh size.
+        // Matches the web backend convention and prevents server validation errors on partial occlusion.
         val faceLandmarks: List<List<Float>>? = if (allFace != null) {
-            FACE_INDICES.toList().mapNotNull { idx: Int ->
+            FACE_INDICES.toList().map { idx: Int ->
                 if (idx < allFace.size) {
                     val lm: NormalizedLandmark = allFace[idx]
                     listOf(lm.x(), lm.y(), lm.z())
-                } else null
+                } else listOf(0f, 0f, 0f)
             }
         } else null
 
