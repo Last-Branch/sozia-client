@@ -2,6 +2,8 @@ import type { LandmarkFrame } from '@common/models';
 import type { LandmarkExtractionBackend, RawVideoFrame } from './LandmarkExtractor';
 import { NativeLandmarkBridge } from './NativeLandmarkBridge';
 
+const STALE_THRESHOLD_MULTIPLIER = 3;
+
 /**
  * Native MediaPipe landmark extraction backend.
  *
@@ -9,12 +11,26 @@ import { NativeLandmarkBridge } from './NativeLandmarkBridge';
  * The bridge is populated by the VisionCamera JSI frame processor plugin
  * (SoziaMediaPipePlugin) running inference on a dedicated native thread.
  *
- * This backend does NOT perform any inference itself — it is a thin reader
- * that decouples the VideoPipeline polling rate from the native inference rate.
+ * consumeFreshFrame() ensures each inference result is forwarded at most once,
+ * preventing the 30 Hz poll loop from re-broadcasting stale landmark frames
+ * to the server while the native thread is still busy.
  */
 export class NativeMediaPipeLandmarkBackend implements LandmarkExtractionBackend {
+  private readonly targetIntervalMs: number;
+
+  constructor(targetFps = 30) {
+    this.targetIntervalMs = 1000 / targetFps;
+  }
+
   extract(_rawInput: RawVideoFrame): LandmarkFrame | null {
-    return NativeLandmarkBridge.getLatestFrame();
+    const frame = NativeLandmarkBridge.consumeFreshFrame();
+    if (frame === null) return null;
+
+    // Guard against a frozen inference thread re-emitting an ancient frame.
+    const ageMs = Date.now() - frame.timestampMs;
+    if (ageMs > this.targetIntervalMs * STALE_THRESHOLD_MULTIPLIER) return null;
+
+    return frame;
   }
 
   isReady(): boolean {
