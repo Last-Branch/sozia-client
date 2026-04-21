@@ -52,6 +52,7 @@
       "profile": "Profil",
       "signCameraMissingReturnMain": "İşaret modunda kamera kullanılamıyor. Ana menüye dönülüyor.",
       "devicesMissingReturnMain": "Kamera ve mikrofon kullanılamıyor. Ana menüye dönülüyor.",
+      "noMicrophoneReturnMain": "Kullanılabilir mikrofon yok. Ana menüye dönülüyor.",
       "tips": [
         "İpucu: Doğru dudak ve işaret takibi için iyi aydınlatılmış bir ortamda olduğunuzdan emin olun.",
         "İpucu: En iyi sonuçlar için kameranızı göz hizasına yerleştirin.",

@@ -140,6 +140,23 @@ export class DeviceManager {
   }
 
   /**
+   * Stops and restarts the audio pipeline for the same session. Use after the
+   * effective default microphone changes (USB unplug, OS device switch) so a
+   * new capture stream opens; `selectMicrophone()` alone does not rebind the
+   * recorder backing `IAudioPipeline`.
+   */
+  async restartAudioPipeline(sessionId: string, tx?: TransmissionManager): Promise<void> {
+    if (!this.micAvailable) {
+      throw new Error('Cannot restart audio pipeline: microphone has not been activated.');
+    }
+    if (!this.audioPipeline) {
+      throw new Error('Cannot restart audio pipeline: no IAudioPipeline configured.');
+    }
+    this.audioPipeline.stop();
+    await this.audioPipeline.start(sessionId, {}, tx);
+  }
+
+  /**
    * Starts the video capture pipeline for the given session.
    * Requires `activateCamera()` to have been called first.
    */

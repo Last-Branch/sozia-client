@@ -34,6 +34,8 @@ export type SessionControllerValue = {
   stopSession: () => void;
   /** Stops the session then starts again with the same modality (live screen Restart). */
   restartSession: () => Promise<void>;
+  /** Re-opens mic capture without tearing down the whole session (e.g. after hot-plug). */
+  restartAudioPipeline: () => Promise<void>;
   getState: () => SessionState;
   onPipelineHealthChanged: (health: PipelineHealth) => void;
   onConnectionLost: () => void;
@@ -322,6 +324,22 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     }
   }, [stopSession, startSession]);
 
+  const restartAudioPipeline = useCallback(async () => {
+    const path = activePathRef.current;
+    if (path !== ModalityPath.SPEECH) return;
+    const sid = sessionId;
+    const tx = transmissionManager.current;
+    if (!sid || !tx) return;
+    try {
+      await deviceManager.current.restartAudioPipeline(sid, tx);
+      if (stateRef.current === SessionState.PAUSED) {
+        deviceManager.current.pauseAllPipelines();
+      }
+    } catch (e) {
+      if (__DEV__) console.warn('restartAudioPipeline failed', e);
+    }
+  }, [sessionId]);
+
   // Poll audio pipeline health every second while a SPEECH session is active.
   // Transitions RUNNING → DEGRADED if the pipeline becomes unavailable.
   useEffect(() => {
@@ -375,6 +393,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       resumeSession,
       stopSession,
       restartSession,
+      restartAudioPipeline,
       getState,
       onPipelineHealthChanged: actions.onPipelineHealthChanged,
       onConnectionLost: actions.onConnectionLost,
@@ -384,7 +403,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       setCameraVideoElement,
       setNativeLandmarks,
     }),
-    [actions, activePath, enumerateDevices, getState, healthReports, pauseSession, restartSession, resumeSession, selectCamera, selectMicrophone, sessionId, startSession, state, stopSession, store, setCameraVideoElement, setNativeLandmarks]
+    [actions, activePath, enumerateDevices, getState, healthReports, pauseSession, restartAudioPipeline, restartSession, resumeSession, selectCamera, selectMicrophone, sessionId, startSession, state, stopSession, store, setCameraVideoElement, setNativeLandmarks]
   );
 
   return <SessionControllerContext.Provider value={value}>{children}</SessionControllerContext.Provider>;

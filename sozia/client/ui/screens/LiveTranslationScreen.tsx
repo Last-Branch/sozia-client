@@ -32,6 +32,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: (noticeKey?: string)
     enumerateDevices,
     selectMicrophone,
     selectCamera,
+    restartAudioPipeline,
   } = useSessionController();
   const cameraContainerRef = useRef<View>(null);
 
@@ -76,6 +77,17 @@ export function LiveTranslationScreen({ onBack }: { onBack: (noticeKey?: string)
     stopSession();
     onBack(noticeKey);
   }, [onBack, stopSession]);
+
+  const audioHotplugRestartingRef = useRef(false);
+  const runAudioHotplugRestart = useCallback(async () => {
+    if (audioHotplugRestartingRef.current) return;
+    audioHotplugRestartingRef.current = true;
+    try {
+      await restartAudioPipeline();
+    } finally {
+      audioHotplugRestartingRef.current = false;
+    }
+  }, [restartAudioPipeline]);
 
   const switchMicrophoneIfNeeded = useCallback(async (): Promise<boolean> => {
     if (Platform.OS !== 'web' || typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) {
@@ -184,6 +196,11 @@ export function LiveTranslationScreen({ onBack }: { onBack: (noticeKey?: string)
           config.set('selectedMicId', fallbackMicId);
           selectedMicDisconnectedRef.current = false;
           showDeviceNotice(t('live.micSwitchedToAnother'));
+          await runAudioHotplugRestart();
+          return;
+        }
+        if (isDisconnected && !fallbackMicId) {
+          backToMainMenu('dashboard.noMicrophoneReturnMain');
           return;
         }
         const isStillSelected = devices.some(
@@ -213,7 +230,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: (noticeKey?: string)
       cancelled = true;
       navigator.mediaDevices.removeEventListener('devicechange', evaluateMicPresence);
     };
-  }, [activePath, state, config, selectMicrophone, showDeviceNotice, t, backToMainMenu]);
+  }, [activePath, state, config, selectMicrophone, showDeviceNotice, t, backToMainMenu, runAudioHotplugRestart]);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return;
@@ -353,6 +370,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: (noticeKey?: string)
       setSkipNextFailedCameraId(currentId);
       setSwitchingAfterMountError(true);
       const micSwitched = await switchMicrophoneIfNeeded();
+      if (micSwitched) await runAudioHotplugRestart();
       showDeviceNotice(micSwitched ? t('live.cameraAndMicSwitchedToAnother') : t('live.cameraSwitchedToAnother'));
       setActiveWebCameraId(nextId);
       selectCamera(nextId);
@@ -387,7 +405,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: (noticeKey?: string)
       .finally(() => {
         setRequestingWebPermission(false);
       });
-  }, [activeWebCameraId, config, requestingWebPermission, selectCamera, switchingAfterMountError, webCameraIds, skipNextFailedCameraId, showDeviceNotice, t, switchMicrophoneIfNeeded, activePath, backToMainMenu, enumerateDevices]);
+  }, [activeWebCameraId, config, requestingWebPermission, selectCamera, switchingAfterMountError, webCameraIds, skipNextFailedCameraId, showDeviceNotice, t, switchMicrophoneIfNeeded, activePath, backToMainMenu, enumerateDevices, runAudioHotplugRestart]);
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">

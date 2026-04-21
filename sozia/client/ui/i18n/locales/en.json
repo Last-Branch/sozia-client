@@ -52,6 +52,7 @@
       "profile": "Profile",
       "signCameraMissingReturnMain": "Camera unavailable in Sign mode. Returning to main menu.",
       "devicesMissingReturnMain": "Camera and microphone unavailable. Returning to main menu.",
+      "noMicrophoneReturnMain": "No microphone is available. Returning to main menu.",
       "tips": [
         "Tip: Ensure you are in a well-lit environment for accurate lip and sign tracking.",
         "Tip: Position your camera at eye level for best results.",
