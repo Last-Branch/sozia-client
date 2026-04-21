@@ -12,6 +12,16 @@ function isNumberArray(value: unknown): value is number[][] {
 }
 
 /**
+ * Extracts the monotonic seq counter from raw plugin output.
+ * Returns 0 if the field is absent (e.g., legacy plugin builds).
+ */
+export function extractSeq(raw: unknown): number {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return 0;
+  const seq = (raw as Record<string, unknown>)['seq'];
+  return typeof seq === 'number' && seq > 0 ? seq : 0;
+}
+
+/**
  * Validates and normalizes raw plugin output into a typed LandmarkFrame.
  *
  * Returns null if the input is malformed, missing required fields, or
