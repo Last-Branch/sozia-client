@@ -131,6 +131,12 @@
       "listening": "Listening…",
       "reading": "Reading…"
     },
+    "consent": {
+      "title": "Before We Begin",
+      "body": "Sozia processes your camera and microphone to assist communication. Raw audio and video never leave your device — only anonymised numerical features are transmitted over an encrypted connection for inference.\n\nBy continuing you confirm you have read and understood this notice.",
+      "accept": "I Understand, Continue",
+      "decline": "Cancel"
+    },
     "device": {
       "selectMicrophone": "Select Microphone",
       "selectCamera": "Select Camera",

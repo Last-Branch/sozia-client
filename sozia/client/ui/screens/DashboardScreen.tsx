@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, ChevronUp, CircleCheckBig, CircleHelp, CircleUser, Hand, House, Mic, Settings } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
@@ -20,7 +20,7 @@ export function DashboardScreen({
   onOpenHelp: () => void;
   onOpenProfile: () => void;
 }) {
-  const { state, activePath, startSession, enumerateDevices, selectMicrophone, selectCamera } = useSessionController();
+  const { state, activePath, startSession, enumerateDevices, selectMicrophone, selectCamera, config } = useSessionController();
   const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'home' | 'help' | 'profile'>('home');
@@ -29,23 +29,48 @@ export function DashboardScreen({
   const [devices, setDevices] = useState<DeviceHandle[]>([]);
   const [selectedMicId, setSelectedMicId] = useState('');
   const [selectedCamId, setSelectedCamId] = useState('');
+  const [showConsent, setShowConsent] = useState(false);
+  const pendingPath = useRef<ModalityPath | null>(null);
 
   const canStart = state === SessionState.IDLE || state === SessionState.ERROR;
+
+  const requestSession = useCallback((path: ModalityPath) => {
+    if (!canStart) return;
+    if (!config.get('hasConsented')) {
+      pendingPath.current = path;
+      setShowConsent(true);
+      return;
+    }
+    onOpenLive();
+    void (async () => {
+      try { await startSession(path); } catch (e) {
+        if (__DEV__) console.warn('Session start failed', e);
+      }
+    })();
+  }, [canStart, config, onOpenLive, startSession]);
 
   const loadDevices = useCallback(async () => {
     const list = await enumerateDevices();
     setDevices(list);
-    const defaultMic = list.find((d) => d.kind === 'audioinput' && d.isDefault);
-    const defaultCam = list.find((d) => d.kind === 'videoinput' && d.isDefault);
-    if (defaultMic && !selectedMicId) setSelectedMicId(defaultMic.deviceId);
-    if (defaultCam && !selectedCamId) setSelectedCamId(defaultCam.deviceId);
-  }, [enumerateDevices, selectedMicId, selectedCamId]);
+
+    const savedMic = config.get('selectedMicId');
+    const micId = (savedMic && list.some((d) => d.deviceId === savedMic))
+      ? savedMic
+      : list.find((d) => d.kind === 'audioinput' && d.isDefault)?.deviceId ?? '';
+    setSelectedMicId(micId);
+
+    const savedCam = config.get('selectedCameraId');
+    const camId = (savedCam && list.some((d) => d.deviceId === savedCam))
+      ? savedCam
+      : list.find((d) => d.kind === 'videoinput' && d.isDefault)?.deviceId ?? '';
+    setSelectedCamId(camId);
+  }, [enumerateDevices, config]);
 
   useEffect(() => {
-    if (deviceSetupOpen && devices.length === 0) {
-      loadDevices();
+    if (deviceSetupOpen) {
+      void loadDevices();
     }
-  }, [deviceSetupOpen, devices.length, loadDevices]);
+  }, [deviceSetupOpen, loadDevices]);
 
   const mics = devices.filter((d) => d.kind === 'audioinput');
   const cameras = devices.filter((d) => d.kind === 'videoinput');
@@ -121,15 +146,7 @@ export function DashboardScreen({
               <TouchableOpacity
                 className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#2ECC71] p-8 shadow-xl ${!canStart ? 'opacity-50' : ''}`}
                 disabled={!canStart}
-                onPress={async () => {
-                  if (!canStart) return;
-                  onOpenLive();
-                  try {
-                    await startSession(ModalityPath.SPEECH);
-                  } catch (e: unknown) {
-                    if (__DEV__) console.warn('Session start failed (SPEECH)', e);
-                  }
-                }}
+                onPress={() => requestSession(ModalityPath.SPEECH)}
               >
                 <View className="mb-4 h-24 w-24 items-center justify-center rounded-full bg-white/20">
                   <Mic size={56} color="#fff" />
@@ -141,15 +158,7 @@ export function DashboardScreen({
               <TouchableOpacity
                 className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#1E8449] p-8 shadow-xl ${!canStart ? 'opacity-50' : ''}`}
                 disabled={!canStart}
-                onPress={async () => {
-                  if (!canStart) return;
-                  onOpenLive();
-                  try {
-                    await startSession(ModalityPath.SIGN);
-                  } catch (e: unknown) {
-                    if (__DEV__) console.warn('Session start failed (SIGN)', e);
-                  }
-                }}
+                onPress={() => requestSession(ModalityPath.SIGN)}
               >
                 <View className="mb-4 h-24 w-24 items-center justify-center rounded-full bg-white/20">
                   <Hand size={56} color="#fff" />
@@ -226,6 +235,48 @@ export function DashboardScreen({
               </View>
             </View>
           </View>
+      <Modal
+        visible={showConsent}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConsent(false)}
+      >
+        <View className="flex-1 items-center justify-center bg-black/60 px-6">
+          <View className="w-full rounded-3xl bg-white dark:bg-gray-900 p-6 gap-4">
+            <Text className="text-xl font-black text-gray-900 dark:text-white">
+              {t('consent.title')}
+            </Text>
+            <Text className="text-sm leading-6 text-gray-600 dark:text-gray-300">
+              {t('consent.body')}
+            </Text>
+            <TouchableOpacity
+              className="items-center rounded-2xl bg-[#2ECC71] py-3"
+              onPress={() => {
+                config.set('hasConsented', true);
+                setShowConsent(false);
+                const path = pendingPath.current;
+                if (path !== null) {
+                  pendingPath.current = null;
+                  onOpenLive();
+                  void (async () => {
+                    try { await startSession(path); } catch (e) {
+                      if (__DEV__) console.warn('Session start failed', e);
+                    }
+                  })();
+                }
+              }}
+            >
+              <Text className="font-bold text-white">{t('consent.accept')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="items-center py-2"
+              onPress={() => { setShowConsent(false); pendingPath.current = null; }}
+            >
+              <Text className="text-sm text-gray-500 dark:text-gray-400">{t('consent.decline')}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

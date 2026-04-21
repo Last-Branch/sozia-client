@@ -131,6 +131,12 @@
       "listening": "Dinleniyor",
       "reading": "Okunuyor"
     },
+    "consent": {
+      "title": "Başlamadan Önce",
+      "body": "Sozia, iletişimi desteklemek için kamera ve mikrofonunuzu işler. Ham ses ve görüntü hiçbir zaman cihazınızı terk etmez; yalnızca anonimleştirilmiş sayısal özellikler çıkarım için şifreli bağlantı üzerinden iletilir.\n\nDevam ederek bu bildirimi okuduğunuzu ve anladığınızı onaylıyorsunuz.",
+      "accept": "Anladım, Devam Et",
+      "decline": "İptal"
+    },
     "device": {
       "selectMicrophone": "Mikrofon Seçin",
       "selectCamera": "Kamera Seçin",
