@@ -20,6 +20,7 @@ type Route = 'login' | 'signup' | 'permissions' | 'dashboard' | 'live-translatio
 function AppContent() {
   const { user, isLoading, signInWithGoogle, signOut } = useAuth();
   const [route, setRoute] = React.useState<Route>('login');
+  const [dashboardNoticeKey, setDashboardNoticeKey] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (isLoading) return;
@@ -68,6 +69,7 @@ function AppContent() {
         )}
         {route === 'dashboard' && (
           <DashboardScreen
+            noticeKey={dashboardNoticeKey}
             onOpenLive={() => setRoute('live-translation')}
             onOpenSettings={() => setRoute('settings')}
             onOpenHelp={() => setRoute('help')}
@@ -75,7 +77,14 @@ function AppContent() {
           />
         )}
         {route === 'help' && <HelpScreen onBack={() => setRoute('dashboard')} />}
-        {route === 'live-translation' && <LiveTranslationScreen onBack={() => setRoute('dashboard')} />}
+        {route === 'live-translation' && (
+          <LiveTranslationScreen
+            onBack={(noticeKey?: string) => {
+              setDashboardNoticeKey(noticeKey ?? null);
+              setRoute('dashboard');
+            }}
+          />
+        )}
         {route === 'settings' && <SettingsScreen onBack={() => setRoute('dashboard')} />}
         {route === 'profile' && <ProfileScreen onBack={() => setRoute('dashboard')} />}
 

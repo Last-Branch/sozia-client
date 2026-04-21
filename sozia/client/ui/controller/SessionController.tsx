@@ -17,6 +17,9 @@ import { DisconnectBeforeReadyError, TransmissionManager } from '@/transmission'
 import { Configuration, type IConfigurationManager } from '@/config';
 import { buildSessionActions } from './sessionActions';
 
+const AUDIO_HEALTH_STALE_MS = 3000;
+const VIDEO_HEALTH_STALE_MS = 5000;
+
 export type SessionControllerValue = {
   sessionId: string | null;
   state: SessionState;
@@ -173,6 +176,14 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     NativeLandmarkBridge.setLatestFrame(frame);
   }, []);
 
+  const normalizeHealthStaleness = useCallback((health: PipelineHealth): PipelineHealth => {
+    if (!health.available || health.lastUpdatedMs <= 0) return health;
+    const now = Date.now();
+    const staleMs = health.pipeline === 'audio' ? AUDIO_HEALTH_STALE_MS : VIDEO_HEALTH_STALE_MS;
+    if (now - health.lastUpdatedMs <= staleMs) return health;
+    return { ...health, available: false };
+  }, []);
+
   const startSession = useCallback(async (path: ModalityPath) => {
     try {
       if (configLoadPromise.current) {
@@ -321,15 +332,16 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     const interval = setInterval(() => {
       if (!mounted) return;
       const health = deviceManager.current.getAudioHealth();
-      actions.onPipelineHealthChanged(health);
-      transmissionManager.current?.sendHealth(health);
+      const normalized = normalizeHealthStaleness(health);
+      actions.onPipelineHealthChanged(normalized);
+      transmissionManager.current?.sendHealth(normalized);
     }, 1000);
 
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, [state, activePath, actions]);
+  }, [state, activePath, actions, normalizeHealthStaleness]);
 
   useEffect(() => {
     if (!activePath) return;
@@ -339,15 +351,16 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     const interval = setInterval(() => {
       if (!mounted) return;
       const health = deviceManager.current.getVideoHealth();
-      actions.onPipelineHealthChanged(health);
-      transmissionManager.current?.sendHealth(health);
+      const normalized = normalizeHealthStaleness(health);
+      actions.onPipelineHealthChanged(normalized);
+      transmissionManager.current?.sendHealth(normalized);
     }, 3000);
 
     return () => {
       mounted = false;
       clearInterval(interval);
     };
-  }, [state, activePath, actions]);
+  }, [state, activePath, actions, normalizeHealthStaleness]);
 
   const value = useMemo<SessionControllerValue>(
     () => ({

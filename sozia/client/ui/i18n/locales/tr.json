@@ -50,6 +50,8 @@
       "home": "Ana Sayfa",
       "help": "Yardım",
       "profile": "Profil",
+      "signCameraMissingReturnMain": "İşaret modunda kamera kullanılamıyor. Ana menüye dönülüyor.",
+      "devicesMissingReturnMain": "Kamera ve mikrofon kullanılamıyor. Ana menüye dönülüyor.",
       "tips": [
         "İpucu: Doğru dudak ve işaret takibi için iyi aydınlatılmış bir ortamda olduğunuzdan emin olun.",
         "İpucu: En iyi sonuçlar için kameranızı göz hizasına yerleştirin.",
@@ -129,7 +131,12 @@
       "paused": "Duraklatıldı",
       "idle": "Hazır",
       "listening": "Dinleniyor",
-      "reading": "Okunuyor"
+      "reading": "Okunuyor",
+      "cameraSwitchedToAnother": "Kamera bağlantısı kesildi. Başka bir kullanılabilir kameraya geçiliyor...",
+      "cameraAndMicSwitchedToAnother": "Kamera ve mikrofon bağlantısı kesildi. Diğer kullanılabilir cihazlara geçiliyor...",
+      "micDisconnectedContinue": "Mikrofon bağlantısı kesildi. Ses girişi olmadan devam edilmeye çalışılıyor.",
+      "micRecovered": "Mikrofon geri geldi. Konuşma algılama devam ediyor.",
+      "micSwitchedToAnother": "Mikrofon bağlantısı kesildi. Başka bir kullanılabilir mikrofona geçiliyor..."
     },
     "device": {
       "selectMicrophone": "Mikrofon Seçin",

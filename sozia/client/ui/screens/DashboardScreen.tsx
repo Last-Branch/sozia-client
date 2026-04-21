@@ -12,11 +12,13 @@ import { DeviceSelector } from '../components/DeviceSelector';
 import { useSessionController } from '../controller/SessionController';
 
 export function DashboardScreen({
+  noticeKey,
   onOpenLive,
   onOpenSettings,
   onOpenHelp,
   onOpenProfile,
 }: {
+  noticeKey?: string | null;
   onOpenLive: () => void;
   onOpenSettings: () => void;
   onOpenHelp: () => void;
@@ -34,6 +36,7 @@ export function DashboardScreen({
   const [permissionsGranted, setPermissionsGranted] = useState<boolean>(false);
   const [permissionsChecked, setPermissionsChecked] = useState<boolean>(false);
   const [requestingPermissions, setRequestingPermissions] = useState<boolean>(false);
+  const [noticeVisible, setNoticeVisible] = useState(false);
 
   const canStart = (state === SessionState.IDLE || state === SessionState.ERROR) && permissionsGranted;
 
@@ -122,6 +125,13 @@ export function DashboardScreen({
     void checkPermissions();
   }, [checkPermissions]);
 
+  useEffect(() => {
+    if (!noticeKey) return;
+    setNoticeVisible(true);
+    const timer = setTimeout(() => setNoticeVisible(false), 4000);
+    return () => clearTimeout(timer);
+  }, [noticeKey]);
+
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
       <View className="flex-1 w-full bg-white dark:bg-gray-800">
@@ -139,6 +149,13 @@ export function DashboardScreen({
                 <Settings size={20} color="#374151" />
               </TouchableOpacity>
             </View>
+            {noticeVisible && noticeKey && (
+              <View className="px-6 pb-3">
+                <View className="z-50 w-full flex-row items-center justify-center gap-2 px-4 py-2 bg-yellow-500/80 rounded-xl">
+                  <Text className="text-xs font-semibold text-black">{t(noticeKey)}</Text>
+                </View>
+              </View>
+            )}
 
 
             {/* Device Setup */}

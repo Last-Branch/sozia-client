@@ -14,6 +14,7 @@ export interface WebCameraViewProps {
   onVideoElement: (el: HTMLVideoElement | null) => void;
   onCameraReady?: () => void;
   onMountError?: (message: string, attemptedDeviceId: string | null | undefined) => void;
+  onTrackEnded?: (deviceId: string | null | undefined) => void;
 }
 
 /**
@@ -31,17 +32,20 @@ export function WebCameraView({
   onVideoElement,
   onCameraReady,
   onMountError,
+  onTrackEnded,
 }: WebCameraViewProps): React.ReactElement {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const onVideoElementRef = useRef(onVideoElement);
   const onCameraReadyRef = useRef(onCameraReady);
   const onMountErrorRef = useRef(onMountError);
+  const onTrackEndedRef = useRef(onTrackEnded);
 
   useEffect(() => {
     onVideoElementRef.current = onVideoElement;
     onCameraReadyRef.current = onCameraReady;
     onMountErrorRef.current = onMountError;
+    onTrackEndedRef.current = onTrackEnded;
   });
 
   useEffect(() => {
@@ -82,6 +86,13 @@ export function WebCameraView({
           video.addEventListener('loadedmetadata', notify, { once: true });
           void video.play().then(notify).catch(() => {
             notify();
+          });
+        }
+        const [videoTrack] = stream.getVideoTracks();
+        if (videoTrack) {
+          videoTrack.addEventListener('ended', () => {
+            onTrackEndedRef.current?.(deviceId);
+            onMountErrorRef.current?.('Camera disconnected during session.', deviceId);
           });
         }
     };
