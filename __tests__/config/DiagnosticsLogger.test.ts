@@ -36,6 +36,7 @@ function makeConfig(enabled: boolean): IConfigurationManager {
     diagnosticsEnabled: enabled,
     vadSensitivity: 'medium',
     apiKey: '',
+    hasConsented: false,
   };
 
   return {
