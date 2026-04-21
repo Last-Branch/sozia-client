@@ -1,9 +1,10 @@
-import { CameraView, type CameraType } from 'expo-camera';
+import { type CameraType } from 'expo-camera';
 import React, { useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, ChevronDown, CircleX, Hand, Mic, PauseCircle, PlayCircle, Settings, SwitchCamera } from 'lucide-react-native';
 import { NativeCameraView } from '../components/NativeCameraView';
+import { WebCameraView } from '../components/WebCameraView';
 import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath, SessionState } from '@common/models';
@@ -25,10 +26,11 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
     pauseSession,
     resumeSession,
     store,
+    config,
     setCameraVideoElement,
     setNativeLandmarks
   } = useSessionController();
-  const cameraContainerRef = useRef<View>(null);
+
 
   const { t } = useLanguage();
   const [showSettings, setShowSettings] = useState(false);
@@ -38,6 +40,14 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
   const baseFontSize = (textSize / 100) * 30;
   const shouldShowLiveCamera = activePath === ModalityPath.SIGN || activePath === ModalityPath.SPEECH;
+
+  const NOISE_SNR_THRESHOLD = 15;
+  const audioHealth = healthReports.find((r) => r.pipeline === 'audio');
+  const showNoiseWarning =
+    activePath === ModalityPath.SPEECH &&
+    (state === SessionState.RUNNING || state === SessionState.DEGRADED) &&
+    audioHealth?.snr != null &&
+    audioHealth.snr < NOISE_SNR_THRESHOLD;
 
   // Demo mode: MockTranscriptSource (dev-only, dynamically imported)
   const [demoActive, setDemoActive] = useState(false);
@@ -89,7 +99,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
           <View className="relative flex-1">
             {/* Camera background */}
-            <View ref={cameraContainerRef} className="absolute inset-0 items-center justify-center bg-gray-800" pointerEvents="none">
+            <View className="absolute inset-0 items-center justify-center bg-gray-800" pointerEvents="none">
               {shouldShowLiveCamera ? (
                 <>
                   {Platform.OS !== 'web' ? (
@@ -102,20 +112,12 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                       onError={(message) => setCameraMountError(message)}
                     />
                   ) : (
-                    <CameraView
-                      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                    <WebCameraView
+                      deviceId={config.get('selectedCameraId')}
                       facing={cameraFacing}
-                      mirror={cameraFacing === 'front'}
                       active={state !== SessionState.PAUSED}
-                      onCameraReady={() => {
-                        setTimeout(() => {
-                          if (typeof document === 'undefined') return;
-                          const container = cameraContainerRef.current as unknown as HTMLElement | null;
-                          const videoEl = container?.querySelector?.('video') ?? document.querySelector('video');
-                          setCameraVideoElement(videoEl as HTMLVideoElement | null);
-                        }, 500);
-                      }}
-                      onMountError={(event) => setCameraMountError(event.message)}
+                      onCameraReady={(el) => { setCameraVideoElement(el); setCameraMountError(null); }}
+                      onError={(message) => { setCameraMountError(message); setCameraVideoElement(null); }}
                     />
                   )}
                   <View className="absolute inset-0 bg-black/20" />
@@ -161,22 +163,30 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               </TouchableOpacity>
             </View>
 
-            {/* Active indicator */}
-            <View className="absolute left-6 top-[88px] z-30 flex-row items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 py-1.5">
-              <View className={`h-2.5 w-2.5 rounded-full ${
-                state === SessionState.RUNNING || state === SessionState.DEGRADED
-                  ? 'bg-[#2ECC71]'
-                  : state === SessionState.PAUSED
-                    ? 'bg-yellow-400'
-                    : 'bg-gray-400'
-              }`} />
-              <Text className="text-xs font-semibold text-white">
-                {state === SessionState.RUNNING || state === SessionState.DEGRADED
-                  ? (activePath === ModalityPath.SIGN ? t('live.reading') : t('live.listening'))
-                  : state === SessionState.PAUSED
-                    ? t('live.paused')
-                    : t('live.idle')}
-              </Text>
+            {/* Active indicator + noise advisory */}
+            <View className="absolute left-6 top-[88px] z-30 gap-2">
+              <View className="flex-row items-center gap-2 rounded-full border border-white/20 bg-black/60 px-3 py-1.5">
+                <View className={`h-2.5 w-2.5 rounded-full ${
+                  state === SessionState.RUNNING || state === SessionState.DEGRADED
+                    ? 'bg-[#2ECC71]'
+                    : state === SessionState.PAUSED
+                      ? 'bg-yellow-400'
+                      : 'bg-gray-400'
+                }`} />
+                <Text className="text-xs font-semibold text-white">
+                  {state === SessionState.RUNNING || state === SessionState.DEGRADED
+                    ? (activePath === ModalityPath.SIGN ? t('live.reading') : t('live.listening'))
+                    : state === SessionState.PAUSED
+                      ? t('live.paused')
+                      : t('live.idle')}
+                </Text>
+              </View>
+              {showNoiseWarning && (
+                <View className="flex-row items-center gap-2 rounded-full border border-yellow-400/40 bg-black/60 px-3 py-1.5">
+                  <Mic size={10} color="#FACC15" />
+                  <Text className="text-xs font-semibold text-yellow-400">{t('health.lowSignalQuality')}</Text>
+                </View>
+              )}
             </View>
 
             {/* Controls */}

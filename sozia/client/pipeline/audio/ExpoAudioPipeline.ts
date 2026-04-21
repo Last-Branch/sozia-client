@@ -12,6 +12,7 @@ const SAMPLE_RATE = 16_000;
 const WINDOW_SIZE_SAMPLES = 400; // 25 ms window at 16 kHz
 const HOP_SIZE_SAMPLES = 160; // 10 ms hop → 100 Hz frame rate (matches Whisper)
 const NOISE_FLOOR_DBFS = -60;
+const AUDIO_DISCONNECT_TIMEOUT_MS = 5_000;
 
 /**
  * Minimal interface covering the recording methods we call on the underlying
@@ -55,6 +56,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
   private currentSnr: number | null = null;
 
   private sampleAccumulator = new Float32Array(0);
+  private lastAudioDataMs = 0;
   private frameListeners = new Set<(frame: MelFrame) => void>();
 
   private readonly chunker: AudioChunker;
@@ -70,7 +72,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
 
   async start(
     sessionId: string,
-    _micHandle: RawAudioHandle = {},
+    micHandle: RawAudioHandle = {},
     tx?: TransmissionManager,
   ): Promise<void> {
     if (this.available || this.paused) return;
@@ -93,7 +95,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     const isWeb =
       typeof AudioStudioModule === 'function' && !('startRecording' in AudioStudioModule);
 
-    const recordingConfig = {
+    const recordingConfig: Record<string, unknown> = {
       sampleRate: SAMPLE_RATE,
       channels: 1,
       encoding: 'pcm_16bit',
@@ -101,6 +103,9 @@ export class ExpoAudioPipeline implements IAudioPipeline {
       interval: 10,
       output: { primary: { enabled: false } },
     };
+    if (isWeb && micHandle.deviceId) {
+      recordingConfig['deviceId'] = micHandle.deviceId;
+    }
 
     if (isWeb) {
       // On web, AudioStudioWeb emits 'AudioData' events via its own LegacyEventEmitter.
@@ -146,6 +151,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     if (!this.paused) return;
     this.paused = false;
     this.available = true;
+    this.lastAudioDataMs = Date.now();
     if (this.recordingActive) {
       this._resolveRecorder().resumeRecording?.().catch((err: unknown) => {
         console.warn('[ExpoAudioPipeline] resumeRecording failed:', err);
@@ -166,6 +172,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
     this.sessionId = '';
     this.currentSnr = null;
     this.sampleAccumulator = new Float32Array(0);
+    this.lastAudioDataMs = 0;
 
     if (this.recordingActive) {
       this.recordingActive = false;
@@ -176,10 +183,14 @@ export class ExpoAudioPipeline implements IAudioPipeline {
   }
 
   getHealth(): PipelineHealth {
+    const timeSinceData = this.available && this.sessionStartMs > 0
+      ? Date.now() - (this.lastAudioDataMs > 0 ? this.lastAudioDataMs : this.sessionStartMs)
+      : 0;
+    const disconnected = timeSinceData > AUDIO_DISCONNECT_TIMEOUT_MS;
     return {
       sessionId: this.sessionId,
       pipeline: 'audio',
-      available: this.available,
+      available: this.available && !disconnected,
       fps: null,
       faceDetected: null,
       snr: this.currentSnr,
@@ -220,6 +231,7 @@ export class ExpoAudioPipeline implements IAudioPipeline {
    * overlapping mel frames (400-sample window, 160-sample hop).
    */
   private _processBuffer(incoming: Float32Array): void {
+    this.lastAudioDataMs = Date.now();
     const prev = this.sampleAccumulator;
     const combined = new Float32Array(prev.length + incoming.length);
     combined.set(prev);
