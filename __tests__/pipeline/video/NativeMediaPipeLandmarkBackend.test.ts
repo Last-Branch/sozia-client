@@ -43,13 +43,13 @@ describe('NativeMediaPipeLandmarkBackend', () => {
 
     it('returns the frame on first extract after a new seq', () => {
       const frame = makeFrame();
-      NativeLandmarkBridge.setLatestFrame(frame, 1);
+      NativeLandmarkBridge.setLatestFrame(frame, 1, Date.now());
       expect(backend.extract(makeRawInput())).toBe(frame);
     });
 
     it('returns null on the second extract call with the same seq (dedup)', () => {
       const frame = makeFrame();
-      NativeLandmarkBridge.setLatestFrame(frame, 1);
+      NativeLandmarkBridge.setLatestFrame(frame, 1, Date.now());
       backend.extract(makeRawInput());
       expect(backend.extract(makeRawInput())).toBeNull();
     });
@@ -57,30 +57,38 @@ describe('NativeMediaPipeLandmarkBackend', () => {
     it('returns the new frame after seq advances', () => {
       const first = makeFrame({ timestampMs: Date.now() });
       const second = makeFrame({ timestampMs: Date.now() });
-      NativeLandmarkBridge.setLatestFrame(first, 1);
+      NativeLandmarkBridge.setLatestFrame(first, 1, Date.now());
       backend.extract(makeRawInput());
-      NativeLandmarkBridge.setLatestFrame(second, 2);
+      NativeLandmarkBridge.setLatestFrame(second, 2, Date.now());
       expect(backend.extract(makeRawInput())).toBe(second);
     });
 
     it('returns null after bridge is cleared', () => {
-      NativeLandmarkBridge.setLatestFrame(makeFrame(), 1);
+      NativeLandmarkBridge.setLatestFrame(makeFrame(), 1, Date.now());
       NativeLandmarkBridge.setLatestFrame(null, 0);
       expect(backend.extract(makeRawInput())).toBeNull();
     });
   });
 
   describe('extract() — staleness guard', () => {
-    it('returns null for a frame whose timestampMs is too old', () => {
+    it('returns null for a frame whose inferenceCompletedAtMs is too old', () => {
       // Default targetFps=30 → intervalMs≈33 → threshold = 33 * 3 = ~100 ms
-      const staleFrame = makeFrame({ timestampMs: Date.now() - 500 });
-      NativeLandmarkBridge.setLatestFrame(staleFrame, 1);
+      const frame = makeFrame({ timestampMs: Date.now() - 1000 });
+      NativeLandmarkBridge.setLatestFrame(frame, 1, Date.now() - 500);
       expect(backend.extract(makeRawInput())).toBeNull();
+    });
+
+    it('returns a frame whose inference completed recently even if capture time is older', () => {
+      // Simulates the real-world case: capture happened 150 ms ago (before inference
+      // started), but inference just completed — the frame should pass the guard.
+      const frame = makeFrame({ timestampMs: Date.now() - 150 });
+      NativeLandmarkBridge.setLatestFrame(frame, 1, Date.now() - 10);
+      expect(backend.extract(makeRawInput())).toBe(frame);
     });
 
     it('returns a recent frame', () => {
       const freshFrame = makeFrame({ timestampMs: Date.now() - 10 });
-      NativeLandmarkBridge.setLatestFrame(freshFrame, 1);
+      NativeLandmarkBridge.setLatestFrame(freshFrame, 1, Date.now() - 5);
       expect(backend.extract(makeRawInput())).toBe(freshFrame);
     });
   });

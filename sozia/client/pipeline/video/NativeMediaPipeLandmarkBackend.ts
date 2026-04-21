@@ -23,14 +23,17 @@ export class NativeMediaPipeLandmarkBackend implements LandmarkExtractionBackend
   }
 
   extract(_rawInput: RawVideoFrame): LandmarkFrame | null {
-    const frame = NativeLandmarkBridge.consumeFreshFrame();
-    if (frame === null) return null;
+    const entry = NativeLandmarkBridge.consumeFreshFrame();
+    if (entry === null) return null;
 
     // Guard against a frozen inference thread re-emitting an ancient frame.
-    const ageMs = Date.now() - frame.timestampMs;
+    // Age is measured from when inference completed, not capture time — native
+    // inference takes ~100 ms, which would otherwise exceed the staleness
+    // threshold and drop every fresh frame.
+    const ageMs = Date.now() - entry.inferenceCompletedAtMs;
     if (ageMs > this.targetIntervalMs * STALE_THRESHOLD_MULTIPLIER) return null;
 
-    return frame;
+    return entry.frame;
   }
 
   isReady(): boolean {

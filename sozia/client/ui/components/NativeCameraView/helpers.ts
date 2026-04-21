@@ -22,6 +22,18 @@ export function extractSeq(raw: unknown): number {
 }
 
 /**
+ * Extracts the native-side inference completion timestamp (ms, wall clock).
+ * Distinct from LandmarkFrame.timestampMs, which is the capture time set before
+ * inference starts. Used client-side for the D1 staleness guard so the threshold
+ * is measured from when the result was actually produced. Returns 0 if absent.
+ */
+export function extractInferenceCompletedAt(raw: unknown): number {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return 0;
+  const value = (raw as Record<string, unknown>)['inferenceCompletedAtMs'];
+  return typeof value === 'number' && value > 0 ? value : 0;
+}
+
+/**
  * Validates and normalizes raw plugin output into a typed LandmarkFrame.
  *
  * Returns null if the input is malformed, missing required fields, or

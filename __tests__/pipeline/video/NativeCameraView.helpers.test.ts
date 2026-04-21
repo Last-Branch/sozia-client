@@ -1,4 +1,4 @@
-import { normalizeLandmarkFrame } from '@/ui/components/NativeCameraView/helpers';
+import { normalizeLandmarkFrame, extractSeq, extractInferenceCompletedAt } from '@/ui/components/NativeCameraView/helpers';
 
 /** Build a valid raw landmark dict matching LandmarkFrame shape */
 const makeValidRaw = (overrides: Record<string, unknown> = {}): unknown => ({
@@ -105,5 +105,49 @@ describe('normalizeLandmarkFrame', () => {
   it('returns null when timestampMs is missing', () => {
     const raw = makeValidRaw({ timestampMs: undefined });
     expect(normalizeLandmarkFrame(raw)).toBeNull();
+  });
+});
+
+describe('extractSeq', () => {
+  it('returns 0 for null or non-object input', () => {
+    expect(extractSeq(null)).toBe(0);
+    expect(extractSeq('str')).toBe(0);
+    expect(extractSeq([])).toBe(0);
+  });
+
+  it('returns 0 when seq field is absent', () => {
+    expect(extractSeq({ foo: 'bar' })).toBe(0);
+  });
+
+  it('returns 0 when seq is not a positive number', () => {
+    expect(extractSeq({ seq: 0 })).toBe(0);
+    expect(extractSeq({ seq: -1 })).toBe(0);
+    expect(extractSeq({ seq: 'str' })).toBe(0);
+  });
+
+  it('returns the seq value when present and positive', () => {
+    expect(extractSeq({ seq: 42 })).toBe(42);
+  });
+});
+
+describe('extractInferenceCompletedAt', () => {
+  it('returns 0 for null or non-object input', () => {
+    expect(extractInferenceCompletedAt(null)).toBe(0);
+    expect(extractInferenceCompletedAt('str')).toBe(0);
+    expect(extractInferenceCompletedAt([])).toBe(0);
+  });
+
+  it('returns 0 when inferenceCompletedAtMs field is absent (legacy plugin)', () => {
+    expect(extractInferenceCompletedAt({ seq: 1, timestampMs: 100 })).toBe(0);
+  });
+
+  it('returns 0 when inferenceCompletedAtMs is not a positive number', () => {
+    expect(extractInferenceCompletedAt({ inferenceCompletedAtMs: 0 })).toBe(0);
+    expect(extractInferenceCompletedAt({ inferenceCompletedAtMs: -1 })).toBe(0);
+    expect(extractInferenceCompletedAt({ inferenceCompletedAtMs: 'str' })).toBe(0);
+  });
+
+  it('returns the inferenceCompletedAtMs value when present and positive', () => {
+    expect(extractInferenceCompletedAt({ inferenceCompletedAtMs: 1234567890 })).toBe(1234567890);
   });
 });

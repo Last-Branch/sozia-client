@@ -92,8 +92,9 @@ class SoziaMediaPipePlugin(private val proxy: VisionCameraProxy, options: Map<St
                 val image = BitmapImageBuilder(bitmap).build()
                 val result = holistic.detect(image, ts)
                 if (result != null) {
+                    val completedAtMs = System.currentTimeMillis()
                     val seq = frameSeq.incrementAndGet()
-                    pendingResult.set(buildWritableMap(result, ts, sessionId, seq))
+                    pendingResult.set(buildWritableMap(result, ts, completedAtMs, sessionId, seq))
                 }
             } catch (_: Exception) {
             } finally {
@@ -184,17 +185,19 @@ class SoziaMediaPipePlugin(private val proxy: VisionCameraProxy, options: Map<St
     private fun buildWritableMap(
         result: SoziaMediaPipeHolistic.LandmarkResult,
         ts: Long,
+        completedAtMs: Long,
         sessionId: String,
         seq: Long,
     ): HashMap<String, Any?> {
         return hashMapOf(
-            "sessionId"          to sessionId,
-            "timestampMs"        to ts.toDouble(),
-            "seq"                to seq.toDouble(),
-            "faceLandmarks"      to toLandmarkList(result.faceLandmarks),
-            "leftHandLandmarks"  to toLandmarkList(result.leftHandLandmarks),
-            "rightHandLandmarks" to toLandmarkList(result.rightHandLandmarks),
-            "poseLandmarks"      to toLandmarkList(result.poseLandmarks)
+            "sessionId"              to sessionId,
+            "timestampMs"            to ts.toDouble(),
+            "inferenceCompletedAtMs" to completedAtMs.toDouble(),
+            "seq"                    to seq.toDouble(),
+            "faceLandmarks"          to toLandmarkList(result.faceLandmarks),
+            "leftHandLandmarks"      to toLandmarkList(result.leftHandLandmarks),
+            "rightHandLandmarks"     to toLandmarkList(result.rightHandLandmarks),
+            "poseLandmarks"          to toLandmarkList(result.poseLandmarks)
         )
     }
 

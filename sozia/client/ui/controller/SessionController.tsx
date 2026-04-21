@@ -38,7 +38,7 @@ export type SessionControllerValue = {
   selectMicrophone: (id: string) => void;
   selectCamera: (id: string) => void;
   setCameraVideoElement: (el: HTMLVideoElement | null) => void;
-  setNativeLandmarks: (frame: LandmarkFrame | null, seq?: number) => void;
+  setNativeLandmarks: (frame: LandmarkFrame | null, seq?: number, inferenceCompletedAtMs?: number) => void;
 };
 
 const SessionControllerContext = createContext<SessionControllerValue | null>(null);
@@ -163,8 +163,8 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     []
   );
 
-  const setNativeLandmarks = useCallback((frame: LandmarkFrame | null, seq = 0) => {
-    NativeLandmarkBridge.setLatestFrame(frame, seq);
+  const setNativeLandmarks = useCallback((frame: LandmarkFrame | null, seq = 0, inferenceCompletedAtMs = 0) => {
+    NativeLandmarkBridge.setLatestFrame(frame, seq, inferenceCompletedAtMs);
   }, []);
 
   const startSession = useCallback(async (path: ModalityPath) => {
