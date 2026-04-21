@@ -103,16 +103,17 @@ export function WebCameraView({
 
     void openCamera();
 
+    const mountedVideo = video;
     return () => {
       cancelled = true;
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
+      if (mountedVideo) {
+        mountedVideo.srcObject = null;
       }
       onVideoElementRef.current(null);
     };
-  }, [deviceId, facing, sessionKey ?? '']);
+  }, [deviceId, facing, sessionKey]);
 
   useEffect(() => {
     const v = videoRef.current;
