@@ -7,8 +7,6 @@ import {
 import { TrackingHealthMonitor } from './TrackingHealthMonitor';
 
 const DEFAULT_TARGET_FPS = 30;
-/** Min interval between visibility metric console logs (avoids log spam at 30 Hz). */
-const VISIBILITY_METRICS_LOG_INTERVAL_MS = 1000;
 
 /** Opaque camera handle. Concrete camera APIs are hidden behind this shape. */
 export interface RawMediaHandle {
@@ -40,7 +38,6 @@ export class VideoPipeline implements IVideoPipeline {
   private cameraHandle: RawMediaHandle | null = null;
   private transmissionManager: TransmissionManager | null = null;
   private frameTimer: ReturnType<typeof setInterval> | null = null;
-  private lastVisibilityLogMs = 0;
 
   constructor(
     extractor: LandmarkExtractor = new LandmarkExtractor(),
@@ -91,7 +88,6 @@ export class VideoPipeline implements IVideoPipeline {
     this.sessionId = '';
     this.cameraHandle = null;
     this.transmissionManager = null;
-    this.lastVisibilityLogMs = 0;
   }
 
   getHealth(): PipelineHealth {
@@ -125,7 +121,6 @@ export class VideoPipeline implements IVideoPipeline {
       const landmarkFrame = this.toLandmarkFrame(extracted, rawFrame.timestampMs);
 
       this.healthMonitor.update(landmarkFrame);
-      this.maybeLogVisibilityMetrics(landmarkFrame);
       if (landmarkFrame !== null) {
         this.transmissionManager?.sendFeatures(landmarkFrame);
       }
@@ -148,27 +143,6 @@ export class VideoPipeline implements IVideoPipeline {
       height: 0,
       data: null,
     };
-  }
-
-  private maybeLogVisibilityMetrics(landmarkFrame: LandmarkFrame | null): void {
-    if (landmarkFrame === null) return;
-    const now = Date.now();
-    if (now - this.lastVisibilityLogMs < VISIBILITY_METRICS_LOG_INTERVAL_MS) return;
-    this.lastVisibilityLogMs = now;
-
-    const fmt = (v: number | null | undefined): string =>
-      typeof v === 'number' && Number.isFinite(v) ? v.toFixed(3) : '—';
-
-    // eslint-disable-next-line no-console -- intentional debug visibility metrics
-    console.log(
-      '[VideoPipeline] visibility',
-      'face=', fmt(landmarkFrame.faceMeanVisibility),
-      'pose=', fmt(landmarkFrame.poseVisibilityMean),
-      'leftHand=', fmt(landmarkFrame.leftHandVisibilityMean),
-      'rightHand=', fmt(landmarkFrame.rightHandVisibilityMean),
-      'sessionId',
-      landmarkFrame.sessionId,
-    );
   }
 
   private toLandmarkFrame(extracted: LandmarkFrame | null, timestampMs: number): LandmarkFrame | null {
