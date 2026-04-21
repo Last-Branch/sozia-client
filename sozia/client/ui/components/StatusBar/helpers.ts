@@ -29,7 +29,7 @@ function degradedMessage(healthReports: PipelineHealth[], activePath: ModalityPa
   ) {
     return 'health.keepFaceInCamera';
   }
-  if (video && video.faceDetected === false) return 'health.noFaceDetected';
+  if (video && video.faceDetected === false) return 'health.keepFaceInCamera';
   if (audio && audio.snr !== null && audio.snr < LOW_SNR_THRESHOLD) return 'health.lowSignalQuality';
 
   return 'health.degraded';
