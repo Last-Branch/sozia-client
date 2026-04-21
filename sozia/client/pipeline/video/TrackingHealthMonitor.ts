@@ -4,6 +4,7 @@ type RecentFrame = {
   timestampMs: number;
   detected: boolean;
   faceDetected: boolean;
+  inferenceActive: boolean;
 };
 
 /**
@@ -17,7 +18,13 @@ export class TrackingHealthMonitor {
     this.windowSizeMs = windowSizeMs;
   }
 
-  update(landmarks: LandmarkFrame | null): void {
+  /**
+   * @param landmarks - The emitted landmark frame (null when extraction produced nothing).
+   * @param inferenceActive - True when the backend produced a fresh inference result this tick.
+   *   On web this equals (landmarks !== null). On Android it's false during the ticks where
+   *   the bridge returned a stale/deduped frame, reflecting the true native inference rate.
+   */
+  update(landmarks: LandmarkFrame | null, inferenceActive = landmarks !== null): void {
     const ts =
       landmarks?.timestampMs ??
       (this.recentFrames.length > 0
@@ -27,6 +34,7 @@ export class TrackingHealthMonitor {
       timestampMs: ts,
       detected: landmarks !== null,
       faceDetected: landmarks !== null && landmarks.faceLandmarks !== null,
+      inferenceActive,
     };
 
     this.recentFrames.push(entry);
@@ -49,8 +57,10 @@ export class TrackingHealthMonitor {
     const first = this.recentFrames[0];
     const last = this.recentFrames[this.recentFrames.length - 1];
     const spanMs = Math.max(1, last.timestampMs - first.timestampMs);
-    const fps = Math.round((this.recentFrames.length / (spanMs / 1000)) * 10) / 10;
     const detectedCount = this.recentFrames.filter((f) => f.detected).length;
+    const activeCount = this.recentFrames.filter((f) => f.inferenceActive).length;
+    // fps reflects the true inference rate (fresh frames/sec), not the poll rate.
+    const fps = Math.round((activeCount / (spanMs / 1000)) * 10) / 10;
     const available = detectedCount / this.recentFrames.length > 0.5;
 
     return {

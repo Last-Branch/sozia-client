@@ -51,8 +51,12 @@ class SoziaMediaPipePlugin(private val proxy: VisionCameraProxy, options: Map<St
     // Camera thread sets false → true before submitting; inference thread resets on finish.
     private val inferenceBusy = AtomicBoolean(false)
 
-    // Latest result produced by the inference thread; drained by the camera thread.
+    // Latest result produced by the inference thread; read (not cleared) by the camera thread.
+    // JS-side NativeLandmarkBridge deduplicates via the seq field.
     private val pendingResult = AtomicReference<HashMap<String, Any?>?>(null)
+
+    // Monotonically increasing counter stamped on each completed inference result.
+    private val frameSeq = java.util.concurrent.atomic.AtomicLong(0L)
 
     // Double-buffered output bitmaps: camera thread always writes to the idle slot
     // while the inference thread reads from the active slot.
@@ -66,8 +70,8 @@ class SoziaMediaPipePlugin(private val proxy: VisionCameraProxy, options: Map<St
     private var reusableV: ByteArray? = null
 
     override fun callback(frame: Frame, arguments: Map<String, Any>?): Any? {
-        // Return the most recent inference result (null if inference is still running).
-        val toReturn = pendingResult.getAndSet(null)
+        // Peek at the latest result without clearing — JS bridge deduplicates by seq.
+        val toReturn = pendingResult.get()
 
         val mediaImage = frame.image ?: return toReturn
 
@@ -87,7 +91,11 @@ class SoziaMediaPipePlugin(private val proxy: VisionCameraProxy, options: Map<St
             try {
                 val image = BitmapImageBuilder(bitmap).build()
                 val result = holistic.detect(image, ts)
-                if (result != null) pendingResult.set(buildWritableMap(result, ts, sessionId))
+                if (result != null) {
+                    val completedAtMs = System.currentTimeMillis()
+                    val seq = frameSeq.incrementAndGet()
+                    pendingResult.set(buildWritableMap(result, ts, completedAtMs, sessionId, seq))
+                }
             } catch (_: Exception) {
             } finally {
                 inferenceBusy.set(false)
@@ -177,15 +185,19 @@ class SoziaMediaPipePlugin(private val proxy: VisionCameraProxy, options: Map<St
     private fun buildWritableMap(
         result: SoziaMediaPipeHolistic.LandmarkResult,
         ts: Long,
-        sessionId: String
+        completedAtMs: Long,
+        sessionId: String,
+        seq: Long,
     ): HashMap<String, Any?> {
         return hashMapOf(
-            "sessionId"          to sessionId,
-            "timestampMs"        to ts.toDouble(),
-            "faceLandmarks"      to toLandmarkList(result.faceLandmarks),
-            "leftHandLandmarks"  to toLandmarkList(result.leftHandLandmarks),
-            "rightHandLandmarks" to toLandmarkList(result.rightHandLandmarks),
-            "poseLandmarks"      to toLandmarkList(result.poseLandmarks)
+            "sessionId"              to sessionId,
+            "timestampMs"            to ts.toDouble(),
+            "inferenceCompletedAtMs" to completedAtMs.toDouble(),
+            "seq"                    to seq.toDouble(),
+            "faceLandmarks"          to toLandmarkList(result.faceLandmarks),
+            "leftHandLandmarks"      to toLandmarkList(result.leftHandLandmarks),
+            "rightHandLandmarks"     to toLandmarkList(result.rightHandLandmarks),
+            "poseLandmarks"          to toLandmarkList(result.poseLandmarks)
         )
     }
 

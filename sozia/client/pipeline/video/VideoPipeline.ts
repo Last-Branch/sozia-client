@@ -117,7 +117,7 @@ export class VideoPipeline implements IVideoPipeline {
       const extracted = this.extractor.extract(rawFrame);
       const landmarkFrame = this.toLandmarkFrame(extracted, rawFrame.timestampMs);
 
-      this.healthMonitor.update(landmarkFrame);
+      this.healthMonitor.update(landmarkFrame, extracted !== null);
       if (landmarkFrame !== null) {
         this.transmissionManager?.sendFeatures(landmarkFrame);
       }
@@ -142,8 +142,11 @@ export class VideoPipeline implements IVideoPipeline {
     };
   }
 
-  private toLandmarkFrame(extracted: LandmarkFrame | null, timestampMs: number): LandmarkFrame | null {
+  private toLandmarkFrame(extracted: LandmarkFrame | null, pollTimestampMs: number): LandmarkFrame | null {
     if (!extracted) return null;
+    // Prefer the backend's capture timestamp over the JS poll time so the server
+    // receives a faithful capture instant rather than an arbitrary 30 Hz tick.
+    const timestampMs = extracted.timestampMs > 0 ? extracted.timestampMs : pollTimestampMs;
     return {
       sessionId: extracted.sessionId || this.sessionId,
       timestampMs,

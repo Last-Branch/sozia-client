@@ -1,13 +1,13 @@
 import React, { useRef, useEffect } from 'react';
 import { Platform, StyleProp, ViewStyle } from 'react-native';
 import type { LandmarkFrame } from '@common/models';
-import { normalizeLandmarkFrame } from './helpers';
+import { normalizeLandmarkFrame, extractSeq, extractInferenceCompletedAt } from './helpers';
 
 export interface NativeCameraViewProps {
   facing: 'front' | 'back';
   active: boolean;
   sessionId?: string;
-  onLandmarks: (frame: LandmarkFrame | null) => void;
+  onLandmarks: (frame: LandmarkFrame | null, seq?: number, inferenceCompletedAtMs?: number) => void;
   onError?: (message: string) => void;
   style?: StyleProp<ViewStyle>;
 }
@@ -44,7 +44,11 @@ if (Platform.OS !== 'web') {
 
     const dispatchLandmarks = useRunOnJS(
       (raw: unknown) => {
-        onLandmarksRef.current(normalizeLandmarkFrame(raw));
+        onLandmarksRef.current(
+          normalizeLandmarkFrame(raw),
+          extractSeq(raw),
+          extractInferenceCompletedAt(raw),
+        );
       },
       [],
     );
