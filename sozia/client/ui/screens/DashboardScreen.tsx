@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, ChevronUp, CircleCheckBig, CircleHelp, CircleUser, Hand, House, Mic, Settings } from 'lucide-react-native';
+import { Camera as ExpoCamera } from 'expo-camera';
+import { getRecordingPermissionsAsync, requestRecordingPermissionsAsync } from 'expo-audio';
 import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath, SessionState } from '@common/models';
@@ -20,7 +22,7 @@ export function DashboardScreen({
   onOpenHelp: () => void;
   onOpenProfile: () => void;
 }) {
-  const { state, activePath, startSession, enumerateDevices, selectMicrophone, selectCamera } = useSessionController();
+  const { state, activePath, startSession, enumerateDevices, selectMicrophone, selectCamera, config } = useSessionController();
   const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'home' | 'help' | 'profile'>('home');
@@ -29,17 +31,40 @@ export function DashboardScreen({
   const [devices, setDevices] = useState<DeviceHandle[]>([]);
   const [selectedMicId, setSelectedMicId] = useState('');
   const [selectedCamId, setSelectedCamId] = useState('');
+  const [permissionsGranted, setPermissionsGranted] = useState<boolean>(false);
+  const [permissionsChecked, setPermissionsChecked] = useState<boolean>(false);
+  const [requestingPermissions, setRequestingPermissions] = useState<boolean>(false);
 
-  const canStart = state === SessionState.IDLE || state === SessionState.ERROR;
+  const canStart = (state === SessionState.IDLE || state === SessionState.ERROR) && permissionsGranted;
 
   const loadDevices = useCallback(async () => {
     const list = await enumerateDevices();
     setDevices(list);
-    const defaultMic = list.find((d) => d.kind === 'audioinput' && d.isDefault);
-    const defaultCam = list.find((d) => d.kind === 'videoinput' && d.isDefault);
-    if (defaultMic && !selectedMicId) setSelectedMicId(defaultMic.deviceId);
-    if (defaultCam && !selectedCamId) setSelectedCamId(defaultCam.deviceId);
-  }, [enumerateDevices, selectedMicId, selectedCamId]);
+
+    const savedMic = config.get('selectedMicId');
+    const savedCam = config.get('selectedCameraId');
+    const micInList = Boolean(savedMic && list.some((d) => d.kind === 'audioinput' && d.deviceId === savedMic));
+    const camInList = Boolean(savedCam && list.some((d) => d.kind === 'videoinput' && d.deviceId === savedCam));
+
+    const defaultMic =
+      list.find((d) => d.kind === 'audioinput' && d.isDefault) ?? list.find((d) => d.kind === 'audioinput');
+    const defaultCam =
+      list.find((d) => d.kind === 'videoinput' && d.isDefault) ?? list.find((d) => d.kind === 'videoinput');
+
+    const nextMicId = micInList ? savedMic! : (defaultMic?.deviceId ?? '');
+    const nextCamId = camInList ? savedCam! : (defaultCam?.deviceId ?? '');
+    setSelectedMicId(nextMicId);
+    setSelectedCamId(nextCamId);
+    if (nextMicId) selectMicrophone(nextMicId);
+    if (nextCamId) selectCamera(nextCamId);
+
+    if (!micInList && savedMic) {
+      config.set('selectedMicId', nextMicId || null);
+    }
+    if (!camInList && savedCam) {
+      config.set('selectedCameraId', nextCamId || null);
+    }
+  }, [enumerateDevices, config, selectMicrophone, selectCamera]);
 
   useEffect(() => {
     if (deviceSetupOpen && devices.length === 0) {
@@ -52,12 +77,50 @@ export function DashboardScreen({
 
   const tips = t('dashboard.tips', { returnObjects: true }) as string[];
 
+  const persistCurrentDeviceSelection = useCallback(() => {
+    config.set('selectedMicId', selectedMicId || null);
+    config.set('selectedCameraId', selectedCamId || null);
+    if (selectedMicId) selectMicrophone(selectedMicId);
+    if (selectedCamId) selectCamera(selectedCamId);
+  }, [config, selectedMicId, selectedCamId, selectMicrophone, selectCamera]);
+
+  const checkPermissions = useCallback(async () => {
+    try {
+      const cameraPermission = await ExpoCamera.getCameraPermissionsAsync();
+      const microphonePermission = await getRecordingPermissionsAsync();
+      setPermissionsGranted(Boolean(cameraPermission.granted && microphonePermission.granted));
+    } catch {
+      setPermissionsGranted(false);
+    } finally {
+      setPermissionsChecked(true);
+    }
+  }, []);
+
+  const requestPermissions = useCallback(async () => {
+    if (requestingPermissions) return;
+    setRequestingPermissions(true);
+    try {
+      const cameraPermission = await ExpoCamera.requestCameraPermissionsAsync();
+      const microphonePermission = await requestRecordingPermissionsAsync();
+      setPermissionsGranted(Boolean(cameraPermission.granted && microphonePermission.granted));
+    } catch {
+      setPermissionsGranted(false);
+    } finally {
+      setPermissionsChecked(true);
+      setRequestingPermissions(false);
+    }
+  }, [requestingPermissions]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTipIndex((prev) => (prev + 1) % tips.length);
     }, 5000);
     return () => clearInterval(interval);
   }, [tips.length]);
+
+  useEffect(() => {
+    void checkPermissions();
+  }, [checkPermissions]);
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
@@ -80,6 +143,24 @@ export function DashboardScreen({
 
             {/* Device Setup */}
             <View className="px-6 pb-2">
+              {permissionsChecked && !permissionsGranted && (
+                <View className="mb-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-950/40">
+                  <Text className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                    Grant camera and microphone permission to start a session.
+                  </Text>
+                  <TouchableOpacity
+                    className={`mt-2 self-start rounded-xl px-3 py-2 ${requestingPermissions ? 'bg-amber-300/60' : 'bg-amber-300'}`}
+                    disabled={requestingPermissions}
+                    onPress={() => {
+                      void requestPermissions();
+                    }}
+                  >
+                    <Text className="text-xs font-bold text-amber-900">
+                      {requestingPermissions ? 'Requesting...' : 'Retry permission'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
               <TouchableOpacity
                 className="flex-row items-center justify-between rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3"
                 onPress={() => setDeviceSetupOpen((v) => !v)}
@@ -100,7 +181,11 @@ export function DashboardScreen({
                     <DeviceSelector
                       devices={mics}
                       selectedDeviceId={selectedMicId}
-                      onSelect={(id) => { setSelectedMicId(id); selectMicrophone(id); }}
+                      onSelect={(id) => {
+                        setSelectedMicId(id);
+                        selectMicrophone(id);
+                        config.set('selectedMicId', id);
+                      }}
                     />
                   </View>
                   <View>
@@ -110,7 +195,11 @@ export function DashboardScreen({
                     <DeviceSelector
                       devices={cameras}
                       selectedDeviceId={selectedCamId}
-                      onSelect={(id) => { setSelectedCamId(id); selectCamera(id); }}
+                      onSelect={(id) => {
+                        setSelectedCamId(id);
+                        selectCamera(id);
+                        config.set('selectedCameraId', id);
+                      }}
                     />
                   </View>
                 </View>
@@ -122,7 +211,12 @@ export function DashboardScreen({
                 className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#2ECC71] p-8 shadow-xl ${!canStart ? 'opacity-50' : ''}`}
                 disabled={!canStart}
                 onPress={async () => {
+                  if (!permissionsGranted) {
+                    void requestPermissions();
+                    return;
+                  }
                   if (!canStart) return;
+                  persistCurrentDeviceSelection();
                   onOpenLive();
                   try {
                     await startSession(ModalityPath.SPEECH);
@@ -142,7 +236,12 @@ export function DashboardScreen({
                 className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#1E8449] p-8 shadow-xl ${!canStart ? 'opacity-50' : ''}`}
                 disabled={!canStart}
                 onPress={async () => {
+                  if (!permissionsGranted) {
+                    void requestPermissions();
+                    return;
+                  }
                   if (!canStart) return;
+                  persistCurrentDeviceSelection();
                   onOpenLive();
                   try {
                     await startSession(ModalityPath.SIGN);

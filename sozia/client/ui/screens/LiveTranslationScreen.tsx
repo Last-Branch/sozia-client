@@ -1,9 +1,10 @@
-import { CameraView, type CameraType } from 'expo-camera';
-import React, { useEffect, useRef, useState } from 'react';
+import type { CameraType } from 'expo-camera';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, ChevronDown, CircleX, Hand, Mic, PauseCircle, PlayCircle, Settings, SwitchCamera } from 'lucide-react-native';
 import { NativeCameraView } from '../components/NativeCameraView';
+import { WebCameraView } from '../components/WebCameraView';
 import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath, SessionState } from '@common/models';
@@ -26,15 +27,26 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
     resumeSession,
     store,
     setCameraVideoElement,
-    setNativeLandmarks
+    setNativeLandmarks,
+    config,
+    enumerateDevices,
+    selectCamera,
   } = useSessionController();
   const cameraContainerRef = useRef<View>(null);
 
   const { t } = useLanguage();
+  const preferredCameraId = config.get('selectedCameraId');
+  const [webCameraIds, setWebCameraIds] = useState<string[]>([]);
+  const [activeWebCameraId, setActiveWebCameraId] = useState<string | null>(preferredCameraId);
   const [showSettings, setShowSettings] = useState(false);
   const [textSize, setTextSize] = useState(100);
   const [cameraFacing, setCameraFacing] = useState<CameraType>('front');
   const [cameraMountError, setCameraMountError] = useState<string | null>(null);
+  const [webMountAttempt, setWebMountAttempt] = useState(0);
+  const [requestingWebPermission, setRequestingWebPermission] = useState(false);
+  const [switchingAfterMountError, setSwitchingAfterMountError] = useState(false);
+  const [skipNextFailedCameraId, setSkipNextFailedCameraId] = useState<string | null>(null);
+  const mountErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const baseFontSize = (textSize / 100) * 30;
   const shouldShowLiveCamera = activePath === ModalityPath.SIGN || activePath === ModalityPath.SPEECH;
@@ -66,7 +78,131 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     setCameraMountError(null);
-  }, [cameraFacing, activePath]);
+  }, [cameraFacing, activePath, preferredCameraId]);
+
+  useEffect(() => {
+    // New session: clear transient skip state.
+    setSkipNextFailedCameraId(null);
+    if (mountErrorTimerRef.current) {
+      clearTimeout(mountErrorTimerRef.current);
+      mountErrorTimerRef.current = null;
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    let cancelled = false;
+    void enumerateDevices()
+      .then((devices) => {
+        if (cancelled) return;
+        const ids = devices
+          .filter((d) => d.kind === 'videoinput')
+          .map((d) => d.deviceId)
+          .filter((id) => id.length > 0);
+        setWebCameraIds(ids);
+        const preferred = config.get('selectedCameraId');
+        const nextId =
+          preferred && ids.includes(preferred)
+            ? preferred
+            : (ids[0] ?? null);
+        setActiveWebCameraId(nextId);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [enumerateDevices, config, activePath]);
+
+  const switchCamera = async () => {
+    if (!shouldShowLiveCamera) return;
+    if (Platform.OS !== 'web') {
+      setCameraFacing((current) => (current === 'front' ? 'back' : 'front'));
+      return;
+    }
+
+    let ids = webCameraIds;
+    try {
+      const devices = await enumerateDevices();
+      ids = devices
+        .filter((d) => d.kind === 'videoinput')
+        .map((d) => d.deviceId)
+        .filter((id) => id.length > 0);
+      setWebCameraIds(ids);
+    } catch {
+      // Keep last known list if enumeration fails transiently.
+    }
+
+    if (ids.length === 0) return;
+    if (ids.length === 1) {
+      setCameraFacing((current) => (current === 'front' ? 'back' : 'front'));
+      return;
+    }
+
+    const currentId = activeWebCameraId && ids.includes(activeWebCameraId)
+      ? activeWebCameraId
+      : ids[0];
+    const currentIdx = ids.indexOf(currentId);
+    const nextId = ids[(currentIdx + 1) % ids.length];
+    setActiveWebCameraId(nextId);
+    selectCamera(nextId);
+    config.set('selectedCameraId', nextId);
+  };
+
+  const onWebMountError = useCallback((message: string, attemptedDeviceId?: string | null): void => {
+    setCameraMountError(message);
+    if (Platform.OS !== 'web' || requestingWebPermission || switchingAfterMountError) return;
+
+    if (mountErrorTimerRef.current) {
+      clearTimeout(mountErrorTimerRef.current);
+      mountErrorTimerRef.current = null;
+    }
+
+    const failedId = attemptedDeviceId ?? activeWebCameraId;
+    const looksLikePermissionIssue = /denied|notallowed|permission/i.test(message);
+    const switchToNextCamera = () => {
+      if (webCameraIds.length <= 1) return;
+      const currentId = failedId && webCameraIds.includes(failedId)
+        ? failedId
+        : webCameraIds[0];
+      const nextPool = webCameraIds.filter((id) => id !== currentId && id !== skipNextFailedCameraId);
+      if (nextPool.length === 0) return;
+      const nextId = nextPool[0];
+      setSkipNextFailedCameraId(currentId);
+      setSwitchingAfterMountError(true);
+      setActiveWebCameraId(nextId);
+      selectCamera(nextId);
+      config.set('selectedCameraId', nextId);
+      setWebMountAttempt((n) => n + 1);
+      setTimeout(() => setSwitchingAfterMountError(false), 250);
+    };
+
+    if (!looksLikePermissionIssue) {
+      // Grace period: some cameras report transient mount errors while warming up.
+      mountErrorTimerRef.current = setTimeout(() => {
+        switchToNextCamera();
+        mountErrorTimerRef.current = null;
+      }, 500);
+      return;
+    }
+
+    setRequestingWebPermission(true);
+    void navigator.mediaDevices.getUserMedia({ audio: false, video: true })
+      .then((stream) => {
+        stream.getTracks().forEach((t) => t.stop());
+        // Permission granted now -> retry same selected camera first.
+        setWebMountAttempt((n) => n + 1);
+      })
+      .catch(() => {
+        // Still failing -> generic fallback to next available camera.
+        mountErrorTimerRef.current = setTimeout(() => {
+          switchToNextCamera();
+          mountErrorTimerRef.current = null;
+        }, 500);
+      })
+      .finally(() => {
+        setRequestingWebPermission(false);
+      });
+  }, [activeWebCameraId, config, requestingWebPermission, selectCamera, switchingAfterMountError, webCameraIds, skipNextFailedCameraId]);
 
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
@@ -102,20 +238,25 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
                       onError={(message) => setCameraMountError(message)}
                     />
                   ) : (
-                    <CameraView
+                    <WebCameraView
                       style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                      deviceId={activeWebCameraId}
                       facing={cameraFacing}
                       mirror={cameraFacing === 'front'}
-                      active={state !== SessionState.PAUSED}
-                      onCameraReady={() => {
-                        setTimeout(() => {
-                          if (typeof document === 'undefined') return;
-                          const container = cameraContainerRef.current as unknown as HTMLElement | null;
-                          const videoEl = container?.querySelector?.('video') ?? document.querySelector('video');
-                          setCameraVideoElement(videoEl as HTMLVideoElement | null);
-                        }, 500);
+                      active={true}
+                      sessionKey={`${sessionId ?? ''}:${webMountAttempt}`}
+                      onVideoElement={(el) => {
+                        setCameraVideoElement(el);
                       }}
-                      onMountError={(event) => setCameraMountError(event.message)}
+                      onCameraReady={() => {
+                        if (mountErrorTimerRef.current) {
+                          clearTimeout(mountErrorTimerRef.current);
+                          mountErrorTimerRef.current = null;
+                        }
+                        setCameraMountError(null);
+                        setSkipNextFailedCameraId(null);
+                      }}
+                      onMountError={onWebMountError}
                     />
                   )}
                   <View className="absolute inset-0 bg-black/20" />
@@ -184,10 +325,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
               <TouchableOpacity
                 className={`h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-black/60 ${shouldShowLiveCamera ? '' : 'opacity-50'}`}
                 disabled={!shouldShowLiveCamera}
-                onPress={() => {
-                  if (!shouldShowLiveCamera) return;
-                  setCameraFacing((current) => (current === 'front' ? 'back' : 'front'));
-                }}
+                onPress={() => { void switchCamera(); }}
               >
                 <SwitchCamera size={20} color="#fff" />
               </TouchableOpacity>

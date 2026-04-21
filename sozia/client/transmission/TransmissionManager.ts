@@ -124,6 +124,14 @@ export class TransmissionManager {
    * replies with a `ready` ack. Rejects after 10 s if no ack is received.
    */
   connect(sessionId: string, activePath: ModalityPath, apiKey: string): Promise<void> {
+    if (__DEV__) {
+      console.log('[TransmissionManager] connect: begin', {
+        sessionId,
+        activePath,
+        serverUrl: this.serverUrl,
+        apiKeyPresent: Boolean(apiKey),
+      });
+    }
     if (!isValidWsUrl(this.serverUrl)) {
       return Promise.reject(
         new Error(`TransmissionManager: invalid server URL "${this.serverUrl}"`)
@@ -234,19 +242,23 @@ export class TransmissionManager {
    */
   private _attachSocketHandlers(socket: WebSocketInstance): void {
     socket.onopen = () => {
+      if (__DEV__) console.log('[TransmissionManager] socket.onopen');
       this._sendRaw(this.serializer.sessionInit(this.sessionId!, this.activePath!, this.apiKey));
       // Buffer is flushed once the server sends "ready" (see _handleMessage).
     };
 
     socket.onmessage = (event) => {
+      if (__DEV__) console.log('[TransmissionManager] socket.onmessage', event.data);
       this._handleMessage(event.data);
     };
 
     socket.onclose = () => {
+      if (__DEV__) console.warn('[TransmissionManager] socket.onclose');
       this._handleClose();
     };
 
     socket.onerror = () => {
+      if (__DEV__) console.warn('[TransmissionManager] socket.onerror');
       // onclose follows onerror; handle reconnect there.
     };
   }
@@ -256,6 +268,7 @@ export class TransmissionManager {
   // ---------------------------------------------------------------------------
 
   private _sendRaw(data: string): void {
+    if (__DEV__) console.log('[TransmissionManager] sendRaw: readyState=', this.socket?.readyState ?? null, 'payload=', data);
     if (this.socket !== null && this.socket.readyState === WS_OPEN) {
       this.socket.send(data);
     } else {
@@ -343,6 +356,13 @@ export class TransmissionManager {
   // ---------------------------------------------------------------------------
 
   private _handleClose(): void {
+    if (__DEV__) {
+      console.warn('[TransmissionManager] handleClose', {
+        sessionId: this.sessionId,
+        reconnectAttempts: this.reconnectAttempts,
+        maxReconnectAttempts: this.maxReconnectAttempts,
+      });
+    }
     if (this.sessionId === null) return; // intentional disconnect — do not reconnect
 
     this.reconnectAttempts += 1;

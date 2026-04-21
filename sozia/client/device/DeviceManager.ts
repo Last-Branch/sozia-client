@@ -59,7 +59,9 @@ export class DeviceManager {
    * Throws with an actionable message if permission is denied.
    */
   async activateMicrophone(): Promise<void> {
+    if (__DEV__) console.log('[DeviceManager] activateMicrophone: requesting permission');
     const { granted } = await requestRecordingPermissionsAsync();
+    if (__DEV__) console.log('[DeviceManager] activateMicrophone: permission granted=', granted);
     if (!granted) {
       this.micAvailable = false;
       throw new Error(
@@ -77,9 +79,11 @@ export class DeviceManager {
    * Throws with an actionable message if permission is denied.
    */
   async activateCamera(): Promise<void> {
+    if (__DEV__) console.log('[DeviceManager] activateCamera: platform=', Platform.OS, 'selectedCameraId=', this.selectedCameraId);
     if (Platform.OS !== 'web') {
       const { Camera: VisionCamera } = require('react-native-vision-camera') as typeof import('react-native-vision-camera');
       const status = await VisionCamera.requestCameraPermission();
+      if (__DEV__) console.log('[DeviceManager] activateCamera(native): status=', status);
       if (status !== 'granted') {
         this.cameraAvailable = false;
         throw new Error(
@@ -89,7 +93,33 @@ export class DeviceManager {
       this.cameraAvailable = true;
       return;
     }
+    // On web, trust the browser camera API first. In practice this is the
+    // same permission gate used by the preview stream and is more reliable
+    // than Expo's permission shim for external webcams.
+    const mediaDevices = (globalThis as { navigator?: { mediaDevices?: MediaDevices } }).navigator?.mediaDevices;
+    if (mediaDevices?.getUserMedia) {
+      try {
+        const preferredConstraint: MediaTrackConstraints | boolean = this.selectedCameraId
+          ? { deviceId: { exact: this.selectedCameraId } }
+          : true;
+        if (__DEV__) console.log('[DeviceManager] activateCamera(web): trying getUserMedia with constraint=', preferredConstraint);
+        const stream = await mediaDevices.getUserMedia({ video: preferredConstraint, audio: false });
+        if (__DEV__) {
+          const track = stream.getVideoTracks()[0];
+          console.log('[DeviceManager] activateCamera(web): getUserMedia success; track label=', track?.label, 'settings=', track?.getSettings?.());
+        }
+        stream.getTracks().forEach((t) => t.stop());
+        this.cameraAvailable = true;
+        return;
+      } catch (err) {
+        if (__DEV__) console.warn('[DeviceManager] activateCamera(web): getUserMedia failed', err);
+        // Fall through to Expo permission API check for a clearer denial signal.
+      }
+    }
+
+    if (__DEV__) console.log('[DeviceManager] activateCamera(web): falling back to Expo permission API');
     const { granted } = await ExpoCamera.requestCameraPermissionsAsync();
+    if (__DEV__) console.log('[DeviceManager] activateCamera(web): Expo permission granted=', granted);
     if (!granted) {
       this.cameraAvailable = false;
       throw new Error(
@@ -112,6 +142,7 @@ export class DeviceManager {
     micHandle?: RawAudioHandle,
     tx?: TransmissionManager,
   ): Promise<void> {
+    if (__DEV__) console.log('[DeviceManager] startAudioPipeline: micAvailable=', this.micAvailable, 'sessionId=', sessionId);
     if (!this.micAvailable) {
       throw new Error('Cannot start audio pipeline: microphone has not been activated.');
     }
@@ -119,6 +150,7 @@ export class DeviceManager {
       throw new Error('Cannot start audio pipeline: no IAudioPipeline configured.');
     }
     await this.audioPipeline.start(sessionId, micHandle ?? {}, tx);
+    if (__DEV__) console.log('[DeviceManager] startAudioPipeline: started');
   }
 
   /**
@@ -126,6 +158,7 @@ export class DeviceManager {
    * Requires `activateCamera()` to have been called first.
    */
   async startVideoPipeline(sessionId: string, cameraHandle?: RawMediaHandle, tx?: TransmissionManager): Promise<void> {
+    if (__DEV__) console.log('[DeviceManager] startVideoPipeline: cameraAvailable=', this.cameraAvailable, 'sessionId=', sessionId, 'hasGetFrame=', Boolean(cameraHandle?.getFrame));
     if (!this.cameraAvailable) {
       throw new Error('Cannot start video pipeline: camera has not been activated.');
     }
@@ -133,10 +166,17 @@ export class DeviceManager {
       throw new Error('Cannot start video pipeline: no IVideoPipeline configured.');
     }
     this.videoPipeline.start(sessionId, cameraHandle ?? {}, tx);
+    if (__DEV__) console.log('[DeviceManager] startVideoPipeline: started');
   }
 
   updateVideoCameraHandle(handle: RawMediaHandle): void {
+    if (__DEV__) console.log('[DeviceManager] updateVideoCameraHandle: hasGetFrame=', Boolean(handle?.getFrame));
     this.videoPipeline?.setCameraHandle(handle);
+  }
+
+  /** Marks camera as available when preview is already live (web path). */
+  markCameraAvailable(): void {
+    this.cameraAvailable = true;
   }
 
   pauseAllPipelines(): void {
