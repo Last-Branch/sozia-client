@@ -97,6 +97,20 @@ describe('normalizeLandmarkFrame', () => {
     expect(result!.poseLandmarks).toHaveLength(33);
   });
 
+  it('passes through valid faceMeanVisibility', () => {
+    const raw = makeValidRaw({ faceMeanVisibility: 0.65 });
+    const result = normalizeLandmarkFrame(raw);
+    expect(result).not.toBeNull();
+    expect(result!.faceMeanVisibility).toBe(0.65);
+  });
+
+  it('drops invalid faceMeanVisibility', () => {
+    const raw = makeValidRaw({ faceMeanVisibility: 1.5 });
+    const result = normalizeLandmarkFrame(raw);
+    expect(result).not.toBeNull();
+    expect(result!.faceMeanVisibility).toBeUndefined();
+  });
+
   it('returns null when sessionId is missing', () => {
     const raw = makeValidRaw({ sessionId: undefined });
     expect(normalizeLandmarkFrame(raw)).toBeNull();

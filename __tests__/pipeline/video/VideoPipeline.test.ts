@@ -67,6 +67,7 @@ describe('TrackingHealthMonitor', () => {
     expect(health.pipeline).toBe('video');
     expect(health.available).toBe(true);
     expect(health.snr).toBeNull();
+    expect(health.faceFrameRatio).toBeCloseTo(2 / 3, 5);
   });
 
   it('reports faceDetected=false when landmarks are null', () => {
@@ -75,6 +76,178 @@ describe('TrackingHealthMonitor', () => {
 
     const health = monitor.getHealth('s1');
     expect(health.faceDetected).toBe(false);
+  });
+
+  it('sets signVisibilitySustainedLow after both hands stay low for SIGN_VISIBILITY_LOW_MIN_MS', () => {
+    const monitor = new TrackingHealthMonitor(5000);
+    const base = 10_000;
+    const mk = (ts: number, l: number, r: number, p: number): LandmarkFrame => ({
+      sessionId: 's1',
+      timestampMs: ts,
+      faceLandmarks: [[0, 0, 0]],
+      leftHandLandmarks: [[0, 0, 0]],
+      rightHandLandmarks: [[0, 0, 0]],
+      poseLandmarks: [[0, 0, 0]],
+      leftHandVisibilityMean: l,
+      rightHandVisibilityMean: r,
+      poseVisibilityMean: p,
+    });
+    for (let i = 0; i < 50; i++) {
+      monitor.update(mk(base + i * 34, 0.2, 0.2, 0.95));
+    }
+    const health = monitor.getHealth('s1');
+    expect(health.signVisibilitySustainedLow).toBe(true);
+    expect(health.signVisibilityMessageKeys).toEqual(['health.signLowHands']);
+  });
+
+  it('hands-only alert when pose is above pose threshold but hands are low', () => {
+    const monitor = new TrackingHealthMonitor(5000);
+    const base = 15_000;
+    const mk = (ts: number): LandmarkFrame => ({
+      sessionId: 's1',
+      timestampMs: ts,
+      faceLandmarks: [[0, 0, 0]],
+      leftHandLandmarks: [[0, 0, 0]],
+      rightHandLandmarks: [[0, 0, 0]],
+      poseLandmarks: [[0, 0, 0]],
+      leftHandVisibilityMean: 0.2,
+      rightHandVisibilityMean: 0.2,
+      poseVisibilityMean: 0.95,
+    });
+    for (let i = 0; i < 50; i++) {
+      monitor.update(mk(base + i * 34));
+    }
+    expect(monitor.getHealth('s1').signVisibilityMessageKeys).toEqual(['health.signLowHands']);
+  });
+
+  it('hands-only alert when a single detected hand is below threshold', () => {
+    const monitor = new TrackingHealthMonitor(5000);
+    const base = 16_000;
+    const mk = (ts: number): LandmarkFrame => ({
+      sessionId: 's1',
+      timestampMs: ts,
+      faceLandmarks: [[0, 0, 0]],
+      leftHandLandmarks: [[0, 0, 0]],
+      rightHandLandmarks: null,
+      poseLandmarks: [[0, 0, 0]],
+      leftHandVisibilityMean: 0.2,
+      poseVisibilityMean: 0.95,
+    });
+    for (let i = 0; i < 50; i++) {
+      monitor.update(mk(base + i * 34));
+    }
+    expect(monitor.getHealth('s1').signVisibilityMessageKeys).toEqual(['health.signLowHands']);
+  });
+
+  it('hands alert when pose is tracked but neither hand mesh is present', () => {
+    const monitor = new TrackingHealthMonitor(5000);
+    const base = 50_000;
+    const mk = (ts: number): LandmarkFrame => ({
+      sessionId: 's1',
+      timestampMs: ts,
+      faceLandmarks: [[0, 0, 0]],
+      leftHandLandmarks: null,
+      rightHandLandmarks: null,
+      poseLandmarks: [[0, 0, 0]],
+      poseVisibilityMean: 0.9,
+    });
+    for (let i = 0; i < 50; i++) {
+      monitor.update(mk(base + i * 34));
+    }
+    expect(monitor.getHealth('s1').signVisibilityMessageKeys).toEqual(['health.signLowHands']);
+  });
+
+  it('general framing when no hands detected and pose visibility is low', () => {
+    const monitor = new TrackingHealthMonitor(5000);
+    const base = 60_000;
+    const mk = (ts: number): LandmarkFrame => ({
+      sessionId: 's1',
+      timestampMs: ts,
+      faceLandmarks: [[0, 0, 0]],
+      leftHandLandmarks: null,
+      rightHandLandmarks: null,
+      poseLandmarks: [[0, 0, 0]],
+      poseVisibilityMean: 0.2,
+    });
+    for (let i = 0; i < 50; i++) {
+      monitor.update(mk(base + i * 34));
+    }
+    expect(monitor.getHealth('s1').signVisibilityMessageKeys).toEqual(['health.signLowSigningFraming']);
+  });
+
+  it('sets signVisibility from pose-only sustained low visibility', () => {
+    const monitor = new TrackingHealthMonitor(5000);
+    const base = 20_000;
+    const mk = (ts: number): LandmarkFrame => ({
+      sessionId: 's1',
+      timestampMs: ts,
+      faceLandmarks: [[0, 0, 0]],
+      leftHandLandmarks: [[0, 0, 0]],
+      rightHandLandmarks: [[0, 0, 0]],
+      poseLandmarks: [[0, 0, 0]],
+      leftHandVisibilityMean: 0.95,
+      rightHandVisibilityMean: 0.95,
+      poseVisibilityMean: 0.2,
+    });
+    for (let i = 0; i < 50; i++) {
+      monitor.update(mk(base + i * 34));
+    }
+    const health = monitor.getHealth('s1');
+    expect(health.signVisibilitySustainedLow).toBe(true);
+    expect(health.signVisibilityMessageKeys).toEqual(['health.signLowUpperBody']);
+  });
+
+  it('returns a general framing key when both hands and pose stay low', () => {
+    const monitor = new TrackingHealthMonitor(5000);
+    const base = 40_000;
+    const mk = (ts: number): LandmarkFrame => ({
+      sessionId: 's1',
+      timestampMs: ts,
+      faceLandmarks: [[0, 0, 0]],
+      leftHandLandmarks: [[0, 0, 0]],
+      rightHandLandmarks: [[0, 0, 0]],
+      poseLandmarks: [[0, 0, 0]],
+      leftHandVisibilityMean: 0.2,
+      rightHandVisibilityMean: 0.2,
+      poseVisibilityMean: 0.2,
+    });
+    for (let i = 0; i < 50; i++) {
+      monitor.update(mk(base + i * 34));
+    }
+    expect(monitor.getHealth('s1').signVisibilityMessageKeys).toEqual(['health.signLowSigningFraming']);
+  });
+
+  it('clears sign sustained low when visibility recovers', () => {
+    const monitor = new TrackingHealthMonitor(5000);
+    const base = 30_000;
+    const low = (ts: number): LandmarkFrame => ({
+      sessionId: 's1',
+      timestampMs: ts,
+      faceLandmarks: [[0, 0, 0]],
+      leftHandLandmarks: [[0, 0, 0]],
+      rightHandLandmarks: [[0, 0, 0]],
+      poseLandmarks: [[0, 0, 0]],
+      leftHandVisibilityMean: 0.2,
+      rightHandVisibilityMean: 0.2,
+      poseVisibilityMean: 0.95,
+    });
+    const ok = (ts: number): LandmarkFrame => ({
+      sessionId: 's1',
+      timestampMs: ts,
+      faceLandmarks: [[0, 0, 0]],
+      leftHandLandmarks: [[0, 0, 0]],
+      rightHandLandmarks: [[0, 0, 0]],
+      poseLandmarks: [[0, 0, 0]],
+      leftHandVisibilityMean: 0.95,
+      rightHandVisibilityMean: 0.95,
+      poseVisibilityMean: 0.95,
+    });
+    for (let i = 0; i < 50; i++) monitor.update(low(base + i * 34));
+    expect(monitor.getHealth('s1').signVisibilitySustainedLow).toBe(true);
+    monitor.update(ok(base + 50 * 34));
+    const health = monitor.getHealth('s1');
+    expect(health.signVisibilitySustainedLow).toBe(false);
+    expect(health.signVisibilityMessageKeys).toBeNull();
   });
 });
 

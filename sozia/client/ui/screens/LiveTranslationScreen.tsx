@@ -82,6 +82,7 @@ export function LiveTranslationScreen({ onBack }: { onBack: () => void }) {
           <StatusBar
             state={state}
             healthReports={healthReports}
+            activePath={activePath}
             onRestart={() => {
               void restartSession();
             }}

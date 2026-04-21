@@ -53,6 +53,92 @@ function toLandmarkArray(
   return landmarks.map((lm) => [lm.x, lm.y, lm.z]);
 }
 
+/**
+ * Face Landmarker commonly reports `visibility === 0` for all points (WASM / Tasks API;
+ * see https://github.com/google-ai-edge/mediapipe/issues/5450). Above this threshold we
+ * trust the model; otherwise we use a geometric proxy from normalized x/y.
+ */
+const FACE_VISIBILITY_MODEL_TRUST_EPS = 1e-3;
+
+/** [0, 1]: 1 near frame edges inward, ~0 on the normalized border (cropping). */
+function geometricFaceEdgeScore(x: number, y: number): number {
+  const edgeDist = Math.min(x, 1 - x, y, 1 - y);
+  return Math.min(1, 4 * Math.max(0, edgeDist));
+}
+
+/** [0, 1]: 1 near image center; helps when the face sits mid-frame but some ring points hug the outline. */
+function geometricFaceCenterScore(x: number, y: number): number {
+  const d = Math.hypot(x - 0.5, y - 0.5);
+  return Math.max(0, Math.min(1, 1 - 1.85 * d));
+}
+
+function geometricFaceFramingScore(x: number, y: number): number {
+  return Math.max(geometricFaceEdgeScore(x, y), geometricFaceCenterScore(x, y));
+}
+
+function isFiniteLandmarkXY(lm: { x?: unknown; y?: unknown }): boolean {
+  return (
+    typeof lm.x === 'number' &&
+    typeof lm.y === 'number' &&
+    Number.isFinite(lm.x) &&
+    Number.isFinite(lm.y)
+  );
+}
+
+type RawNormLm = { x?: number; y?: number; z?: number; visibility?: number };
+
+/**
+ * Mean visibility-style score for a full landmark set (hands, pose).
+ * Same model-vs-geometry rule as the face mesh (`FACE_VISIBILITY_MODEL_TRUST_EPS`).
+ */
+function meanLandmarkSetVisibility(landmarks: RawNormLm[] | null | undefined): number | null {
+  if (!landmarks || landmarks.length === 0) return null;
+  let visSum = 0;
+  let presentCount = 0;
+  for (const lm of landmarks) {
+    if (!lm || !isFiniteLandmarkXY(lm)) continue;
+    presentCount += 1;
+    const modelVis =
+      typeof lm.visibility === 'number' && Number.isFinite(lm.visibility) ? lm.visibility : 0;
+    const geom = geometricFaceFramingScore(lm.x!, lm.y!);
+    const v = modelVis > FACE_VISIBILITY_MODEL_TRUST_EPS ? modelVis : geom;
+    visSum += v;
+  }
+  if (presentCount === 0) return null;
+  const meshCoverage = presentCount / landmarks.length;
+  return (visSum / presentCount) * meshCoverage;
+}
+
+/**
+ * Torso-only pose anchors in MediaPipe Pose 33-pt layout.
+ * We intentionally exclude wrist/hand-adjacent indices so visible hands do not
+ * inflate `poseVisibilityMean` when body framing is poor.
+ */
+const POSE_UPPER_BODY_VISIBILITY_INDICES: readonly number[] = [11, 12, 23, 24];
+
+function meanLandmarkSubsetVisibility(
+  landmarks: RawNormLm[] | null | undefined,
+  indices: readonly number[],
+): number | null {
+  if (!landmarks || landmarks.length === 0 || indices.length === 0) return null;
+  let visSum = 0;
+  let presentCount = 0;
+  for (const idx of indices) {
+    if (idx < 0 || idx >= landmarks.length) continue;
+    const lm = landmarks[idx];
+    if (!lm || !isFiniteLandmarkXY(lm)) continue;
+    presentCount += 1;
+    const modelVis =
+      typeof lm.visibility === 'number' && Number.isFinite(lm.visibility) ? lm.visibility : 0;
+    const geom = geometricFaceFramingScore(lm.x!, lm.y!);
+    const v = modelVis > FACE_VISIBILITY_MODEL_TRUST_EPS ? modelVis : geom;
+    visSum += v;
+  }
+  if (presentCount === 0) return null;
+  const meshCoverage = presentCount / indices.length;
+  return (visSum / presentCount) * meshCoverage;
+}
+
 export class WebMediaPipeLandmarkBackend implements LandmarkExtractionBackend {
   private faceLandmarker: FaceLandmarker | null = null;
   private handLandmarker: HandLandmarker | null = null;
@@ -135,28 +221,66 @@ export class WebMediaPipeLandmarkBackend implements LandmarkExtractionBackend {
       return null;
     }
 
-    const faceLandmarksRaw = faceResult.faceLandmarks?.[0];
-    const faceLandmarks = faceLandmarksRaw
-      ? FACE_LANDMARK_INDICES.map((idx) => {
-          const lm = faceLandmarksRaw[idx];
-          return lm ? [lm.x, lm.y, lm.z] : [0, 0, 0];
-        })
-      : null;
+    // `[]` is truthy in JS — guard length so we do not fabricate an all-zero mesh and visibility 0.
+    const rawFace = faceResult.faceLandmarks?.[0];
+    const faceLandmarksRaw =
+      Array.isArray(rawFace) && rawFace.length > 0 ? (rawFace as { x: number; y: number; z: number; visibility?: number }[]) : null;
 
-    let leftHandLandmarks: number[][] | null = null;
-    let rightHandLandmarks: number[][] | null = null;
-    if (handResult.landmarks && handResult.handedness) {
-      for (let i = 0; i < handResult.landmarks.length; i++) {
-        const label = handResult.handedness[i]?.[0]?.categoryName?.toLowerCase();
-        const lm = toLandmarkArray(handResult.landmarks[i]);
-        if (label === 'left' && !leftHandLandmarks) leftHandLandmarks = lm;
-        else if (label === 'right' && !rightHandLandmarks) rightHandLandmarks = lm;
+    let faceLandmarks: number[][] | null = null;
+    let faceMeanVisibility: number | null = null;
+    if (faceLandmarksRaw) {
+      let visSum = 0;
+      let presentCount = 0;
+      faceLandmarks = FACE_LANDMARK_INDICES.map((idx) => {
+        const lm = faceLandmarksRaw[idx];
+        if (lm && isFiniteLandmarkXY(lm)) {
+          presentCount += 1;
+          const modelVis =
+            typeof lm.visibility === 'number' && Number.isFinite(lm.visibility) ? lm.visibility : 0;
+          const geom = geometricFaceFramingScore(lm.x, lm.y);
+          const v = modelVis > FACE_VISIBILITY_MODEL_TRUST_EPS ? modelVis : geom;
+          visSum += v;
+          const z = typeof lm.z === 'number' && Number.isFinite(lm.z) ? lm.z : 0;
+          return [lm.x, lm.y, z];
+        }
+        return [0, 0, 0];
+      });
+
+      if (presentCount === 0) {
+        faceLandmarks = null;
+        faceMeanVisibility = null;
+      } else {
+        const meshCoverage = presentCount / FACE_LANDMARK_INDICES.length;
+        faceMeanVisibility = (visSum / presentCount) * meshCoverage;
       }
     }
 
-    const poseLandmarks = poseResult.landmarks?.[0]
-      ? toLandmarkArray(poseResult.landmarks[0])
-      : null;
+    let leftHandLandmarks: number[][] | null = null;
+    let rightHandLandmarks: number[][] | null = null;
+    let leftHandVisibilityMean: number | null = null;
+    let rightHandVisibilityMean: number | null = null;
+    if (handResult.landmarks && handResult.handedness) {
+      for (let i = 0; i < handResult.landmarks.length; i++) {
+        const label = handResult.handedness[i]?.[0]?.categoryName?.toLowerCase();
+        const rawHand = handResult.landmarks[i] as RawNormLm[] | undefined;
+        const lm = toLandmarkArray(rawHand as Array<{ x: number; y: number; z: number }> | undefined);
+        const meanVis = meanLandmarkSetVisibility(rawHand);
+        if (label === 'left' && !leftHandLandmarks) {
+          leftHandLandmarks = lm;
+          leftHandVisibilityMean = meanVis;
+        } else if (label === 'right' && !rightHandLandmarks) {
+          rightHandLandmarks = lm;
+          rightHandVisibilityMean = meanVis;
+        }
+      }
+    }
+
+    const rawPose = poseResult.landmarks?.[0] as RawNormLm[] | undefined;
+    const poseLandmarks =
+      Array.isArray(rawPose) && rawPose.length > 0
+        ? toLandmarkArray(rawPose as Array<{ x: number; y: number; z: number }>)
+        : null;
+    const poseVisibilityMean = meanLandmarkSubsetVisibility(rawPose, POSE_UPPER_BODY_VISIBILITY_INDICES);
 
     if (!faceLandmarks && !leftHandLandmarks && !rightHandLandmarks && !poseLandmarks) {
       return null;
@@ -165,10 +289,14 @@ export class WebMediaPipeLandmarkBackend implements LandmarkExtractionBackend {
     return {
       sessionId: '',
       timestampMs: ts,
+      faceMeanVisibility,
       faceLandmarks,
       leftHandLandmarks,
       rightHandLandmarks,
       poseLandmarks,
+      leftHandVisibilityMean,
+      rightHandVisibilityMean,
+      poseVisibilityMean,
     };
   }
 

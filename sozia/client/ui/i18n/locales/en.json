@@ -152,6 +152,11 @@
       "microphoneUnavailable": "Microphone unavailable",
       "lowSignalQuality": "Low signal quality",
       "noFaceDetected": "No face detected",
+      "keepFaceInCamera": "Please keep your face in the camera frame",
+      "signLowHands": "Hands are hard to see — keep them in the frame",
+      "signLowUpperBody": "Upper body is hard to see — step back or adjust the camera",
+      "signLowSigningFraming": "Hands and upper body are hard to see — step back, widen the shot, and improve lighting",
+      "signLowSigningVisibility": "Signing visibility is low — improve lighting and framing",
       "degraded": "Running in degraded mode",
       "restart": "Restart"
     },

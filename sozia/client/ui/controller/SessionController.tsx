@@ -144,6 +144,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
         setState,
         getHealthReports: () => healthReportsRef.current,
         setHealthReports,
+        getModalityPath: () => activePathRef.current,
       }),
     []
   );

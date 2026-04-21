@@ -43,6 +43,23 @@ export interface PipelineHealth {
   snr: number | null;
   /** Whether a face is currently detected. Video pipeline only; null for audio. */
   faceDetected: boolean | null;
+  /**
+   * Video only: rolling fraction of recent samples (same window as `available`)
+   * where `faceLandmarks` was non-null. null if no samples yet. Client-only for
+   * SPEECH lip UX; not sent on the wire.
+   */
+  faceFrameRatio?: number | null;
+  /**
+   * Video, SIGN: true when (any detected hand below `SIGN_HAND_VISIBILITY_MIN`) or (pose below
+   * `SIGN_POSE_VISIBILITY_MIN`) or (pose tracked but neither hand detected), continuously
+   * for ≥ `SIGN_VISIBILITY_LOW_MIN_MS`. Client-only; not on wire.
+   */
+  signVisibilitySustainedLow?: boolean;
+  /**
+   * Video, SIGN: i18n keys for degraded copy (hands-only, upper-body-only, or combined general).
+   * Set when sustained. Client-only; not on wire.
+   */
+  signVisibilityMessageKeys?: string[] | null;
   /** Milliseconds since session start. ≥ 0. */
   lastUpdatedMs: number;
 }
@@ -53,6 +70,14 @@ export interface LandmarkFrame {
   sessionId: string;
   /** Milliseconds since session start. ≥ 0, monotonically increasing within a session. */
   timestampMs: number;
+  /**
+   * [0, 1] face framing / confidence proxy over the 83-point subset (mean per landmark).
+   * Web: MediaPipe Face Landmarker usually leaves `visibility` at 0, so we use that when
+   * non-zero; otherwise a geometric score from normalized x/y (in-frame vs clipped edges).
+   * Missing mesh indices count as 0. null when no face mesh was detected this frame.
+   * Client-only: not serialized to the server (`FeatureSerializer` strips it).
+   */
+  faceMeanVisibility?: number | null;
   /** 83 linguistically-relevant face points, each [x, y, z] normalised to [0.0, 1.0]. null if not detected. */
   faceLandmarks: number[][] | null;
   /** 21 points, each [x, y, z]. null if not detected. */
@@ -61,6 +86,18 @@ export interface LandmarkFrame {
   rightHandLandmarks: number[][] | null;
   /** 33 points, each [x, y, z]. null if not detected. */
   poseLandmarks: number[][] | null;
+  /**
+   * Mean visibility-style score [0,1] for hands this tick (web: MediaPipe visibility or
+   * geometric framing). Client-only; not serialized to server.
+   */
+  leftHandVisibilityMean?: number | null;
+  rightHandVisibilityMean?: number | null;
+  /**
+   * Mean visibility-style score for pose (web: torso-only subset of MediaPipe Pose,
+   * indices 11,12,23,24 shoulders+hips to keep this signal independent from hand visibility).
+   * Client-only.
+   */
+  poseVisibilityMean?: number | null;
 }
 
 /** Timestamped chunk of preprocessed audio features (LLD §3.1.2). */

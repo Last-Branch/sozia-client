@@ -99,6 +99,9 @@ export class VideoPipeline implements IVideoPipeline {
         fps: 0,
         snr: null,
         faceDetected: null,
+        faceFrameRatio: null,
+        signVisibilitySustainedLow: false,
+        signVisibilityMessageKeys: null,
         lastUpdatedMs: 0,
       };
     }
@@ -147,10 +150,14 @@ export class VideoPipeline implements IVideoPipeline {
     return {
       sessionId: extracted.sessionId || this.sessionId,
       timestampMs,
+      faceMeanVisibility: extracted.faceMeanVisibility ?? null,
       faceLandmarks: extracted.faceLandmarks,
       leftHandLandmarks: extracted.leftHandLandmarks,
       rightHandLandmarks: extracted.rightHandLandmarks,
       poseLandmarks: extracted.poseLandmarks,
+      leftHandVisibilityMean: extracted.leftHandVisibilityMean ?? null,
+      rightHandVisibilityMean: extracted.rightHandVisibilityMean ?? null,
+      poseVisibilityMean: extracted.poseVisibilityMean ?? null,
     };
   }
 }

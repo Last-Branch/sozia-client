@@ -1,19 +1,20 @@
 import React from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
 
-import type { PipelineHealth, SessionState } from '@common/models';
+import type { ModalityPath, PipelineHealth, SessionState } from '@common/models';
 import { useLanguage } from '../../context/LanguageContext';
 import { getStatusBanner } from './helpers';
 
 interface StatusBarProps {
   state: SessionState;
   healthReports: PipelineHealth[];
+  activePath: ModalityPath | null;
   onRestart: () => void;
 }
 
-export function StatusBar({ state, healthReports, onRestart }: StatusBarProps) {
+export function StatusBar({ state, healthReports, activePath, onRestart }: StatusBarProps) {
   const { t } = useLanguage();
-  const banner = getStatusBanner(state, healthReports);
+  const banner = getStatusBanner(state, healthReports, activePath);
 
   if (!banner) return null;
 
@@ -25,7 +26,9 @@ export function StatusBar({ state, healthReports, onRestart }: StatusBarProps) {
         <ActivityIndicator size="small" color="#ffffff" />
       )}
       <Text className={`text-xs font-semibold ${banner.text}`}>
-        {t(banner.messageKey)}
+        {(banner.messageKeys?.length ? banner.messageKeys : [banner.messageKey])
+          .map((k) => t(k))
+          .join(' · ')}
       </Text>
       {banner.showRestart && (
         <TouchableOpacity

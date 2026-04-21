@@ -43,14 +43,31 @@ export function normalizeLandmarkFrame(raw: unknown): LandmarkFrame | null {
     return null;
   }
 
+  const faceMeanVisibility = readOptionalFaceMeanVisibility(obj['faceMeanVisibility']);
+  const leftHandVisibilityMean = readOptionalFaceMeanVisibility(obj['leftHandVisibilityMean']);
+  const rightHandVisibilityMean = readOptionalFaceMeanVisibility(obj['rightHandVisibilityMean']);
+  const poseVisibilityMean = readOptionalFaceMeanVisibility(obj['poseVisibilityMean']);
+
   return {
     sessionId: obj['sessionId'] as string,
     timestampMs: obj['timestampMs'] as number,
+    ...(faceMeanVisibility !== undefined ? { faceMeanVisibility } : {}),
+    ...(leftHandVisibilityMean !== undefined ? { leftHandVisibilityMean } : {}),
+    ...(rightHandVisibilityMean !== undefined ? { rightHandVisibilityMean } : {}),
+    ...(poseVisibilityMean !== undefined ? { poseVisibilityMean } : {}),
     faceLandmarks,
     leftHandLandmarks,
     rightHandLandmarks,
     poseLandmarks,
   };
+}
+
+/** Undefined if absent or invalid; null if JSON null; otherwise [0, 1]. */
+function readOptionalFaceMeanVisibility(value: unknown): number | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) return undefined;
+  return value;
 }
 
 /**

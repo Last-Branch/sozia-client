@@ -49,6 +49,7 @@ describe('sessionActions — onPipelineHealthChanged', () => {
       setState: (s) => stateUpdates.push(s),
       getHealthReports: () => healthUpdates.length > 0 ? healthUpdates[healthUpdates.length - 1] : [],
       setHealthReports: (h) => healthUpdates.push(h),
+      getModalityPath: () => null,
     });
   });
 
@@ -73,6 +74,52 @@ describe('sessionActions — onPipelineHealthChanged', () => {
     expect(stateUpdates).toContain(SessionState.DEGRADED);
   });
 
+  it('transitions RUNNING → DEGRADED on SPEECH when face frame ratio is below threshold', () => {
+    let modality: ModalityPath | null = ModalityPath.SPEECH;
+    actions = buildSessionActions({
+      getState: () => (stateUpdates.length > 0 ? stateUpdates[stateUpdates.length - 1] : SessionState.RUNNING),
+      setState: (s) => stateUpdates.push(s),
+      getHealthReports: () => (healthUpdates.length > 0 ? healthUpdates[healthUpdates.length - 1] : []),
+      setHealthReports: (h) => healthUpdates.push(h),
+      getModalityPath: () => modality,
+    });
+    actions.onPipelineHealthChanged(makeVideoHealth({ available: true, faceFrameRatio: 0.4 }));
+    expect(stateUpdates).toContain(SessionState.DEGRADED);
+  });
+
+  it('does not degrade on SIGN when face frame ratio is low', () => {
+    let modality: ModalityPath | null = ModalityPath.SIGN;
+    actions = buildSessionActions({
+      getState: () => (stateUpdates.length > 0 ? stateUpdates[stateUpdates.length - 1] : SessionState.RUNNING),
+      setState: (s) => stateUpdates.push(s),
+      getHealthReports: () => (healthUpdates.length > 0 ? healthUpdates[healthUpdates.length - 1] : []),
+      setHealthReports: (h) => healthUpdates.push(h),
+      getModalityPath: () => modality,
+    });
+    actions.onPipelineHealthChanged(makeVideoHealth({ available: true, faceFrameRatio: 0.2 }));
+    expect(stateUpdates.filter((s) => s === SessionState.DEGRADED)).toHaveLength(0);
+  });
+
+  it('transitions RUNNING → DEGRADED on SIGN when sign visibility has been sustained low', () => {
+    let modality: ModalityPath | null = ModalityPath.SIGN;
+    actions = buildSessionActions({
+      getState: () => (stateUpdates.length > 0 ? stateUpdates[stateUpdates.length - 1] : SessionState.RUNNING),
+      setState: (s) => stateUpdates.push(s),
+      getHealthReports: () => (healthUpdates.length > 0 ? healthUpdates[healthUpdates.length - 1] : []),
+      setHealthReports: (h) => healthUpdates.push(h),
+      getModalityPath: () => modality,
+    });
+    actions.onPipelineHealthChanged(
+      makeVideoHealth({
+        available: true,
+        faceFrameRatio: 0.9,
+        signVisibilitySustainedLow: true,
+        signVisibilityMessageKeys: ['health.signLowHands'],
+      }),
+    );
+    expect(stateUpdates).toContain(SessionState.DEGRADED);
+  });
+
   it('does NOT transition to DEGRADED if already in ERROR state', () => {
     stateUpdates.push(SessionState.ERROR);
     actions = buildSessionActions({
@@ -80,6 +127,7 @@ describe('sessionActions — onPipelineHealthChanged', () => {
       setState: (s) => stateUpdates.push(s),
       getHealthReports: () => [],
       setHealthReports: (h) => healthUpdates.push(h),
+      getModalityPath: () => null,
     });
     actions.onPipelineHealthChanged(makeAudioHealth({ available: false }));
     const nonError = stateUpdates.filter((s) => s !== SessionState.ERROR);
@@ -95,6 +143,7 @@ describe('sessionActions — onConnectionLost', () => {
       setState: (s) => stateUpdates.push(s),
       getHealthReports: () => [],
       setHealthReports: () => {},
+      getModalityPath: () => null,
     });
     actions.onConnectionLost();
     expect(stateUpdates).toContain(SessionState.ERROR);
