@@ -119,14 +119,6 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
   const cameraVideoRef = useRef<HTMLVideoElement | null>(null);
   const setCameraVideoElement = useCallback((el: HTMLVideoElement | null) => {
-    if (__DEV__) {
-      console.log('[SessionController] setCameraVideoElement:', {
-        present: Boolean(el),
-        width: el?.videoWidth ?? 0,
-        height: el?.videoHeight ?? 0,
-        readyState: el?.readyState ?? -1,
-      });
-    }
     cameraVideoRef.current = el;
     if (el) {
       deviceManager.current.updateVideoCameraHandle({
@@ -183,9 +175,7 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
 
   const startSession = useCallback(async (path: ModalityPath) => {
     try {
-      if (__DEV__) console.log('[SessionController] startSession: begin', { path });
       if (configLoadPromise.current) {
-        if (__DEV__) console.log('[SessionController] startSession: waiting config load');
         await configLoadPromise.current;
       }
 
@@ -196,16 +186,13 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
       setState(SessionState.INITIALIZING);
       store.clear();
       const newSessionId = uuidV4();
-      if (__DEV__) console.log('[SessionController] startSession: sessionId=', newSessionId);
       setSessionId(newSessionId);
       setActivePath(path);
 
       const savedCameraId = config.current.get('selectedCameraId');
-      if (__DEV__) console.log('[SessionController] startSession: savedCameraId=', savedCameraId);
       if (savedCameraId) {
         try {
           const devices = await deviceManager.current.enumerateDevices();
-          if (__DEV__) console.log('[SessionController] startSession: enumerated devices=', devices);
           const cameraExists = devices.some(
             (d) => d.kind === 'videoinput' && d.deviceId === savedCameraId
           );
@@ -229,45 +216,23 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
           }
           await new Promise<void>((resolve) => setTimeout(resolve, 50));
         }
-        if (__DEV__) {
-          const preview = cameraVideoRef.current;
-          console.log('[SessionController] startSession: web preview probe', {
-            hasLiveWebPreview,
-            readyState: preview?.readyState ?? -1,
-            width: preview?.videoWidth ?? 0,
-            height: preview?.videoHeight ?? 0,
-          });
-        }
       }
 
       if (hasLiveWebPreview) {
-        if (__DEV__) {
-          console.log('[SessionController] startSession: using existing live web preview; skipping activateCamera');
-        }
         deviceManager.current.markCameraAvailable();
       } else {
         await deviceManager.current.activateCamera();
-        if (__DEV__) console.log('[SessionController] startSession: camera activated');
       }
 
       if (path === ModalityPath.SPEECH) {
         const savedMicId = config.current.get('selectedMicId');
-        if (__DEV__) console.log('[SessionController] startSession: savedMicId=', savedMicId);
         if (savedMicId) deviceManager.current.selectMicrophone(savedMicId);
         await deviceManager.current.activateMicrophone();
-        if (__DEV__) console.log('[SessionController] startSession: microphone activated');
       }
 
       const serverUrl = config.current.get('serverUrl') ?? 'ws://localhost:8080';
       const maxReconnectAttempts = config.current.get('maxReconnectAttempts') ?? 5;
       const apiKey = config.current.get('apiKey') ?? '';
-      if (__DEV__) {
-        console.log('[SessionController] startSession: transmission config', {
-          serverUrl,
-          maxReconnectAttempts,
-          apiKeyPresent: Boolean(apiKey),
-        });
-      }
 
       const handleSessionStatus = (msg: SessionStatusMessage) => {
         if (msg.state === SessionState.ERROR) {
@@ -281,51 +246,31 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
         actions.onConnectionLost,
         maxReconnectAttempts,
         handleSessionStatus,
-        (msg) => {
-          // Server-level error payloads are not always fatal (e.g. transient
-          // inference issues). Keep the session alive unless an actual
-          // disconnect happens or session_status reports ERROR.
-          if (__DEV__) {
-            console.warn('server error', msg.code, msg.message);
-          }
-        },
+        () => {},
       );
 
       const videoEl = cameraVideoRef.current;
-      if (__DEV__) {
-        console.log('[SessionController] startSession: current video element', {
-          present: Boolean(videoEl),
-          width: videoEl?.videoWidth ?? 0,
-          height: videoEl?.videoHeight ?? 0,
-          readyState: videoEl?.readyState ?? -1,
-        });
-      }
       const cameraHandle = videoEl
         ? { getFrame: () => ({ timestampMs: Date.now(), width: videoEl.videoWidth, height: videoEl.videoHeight, data: videoEl }) }
         : {};
 
       if (path === ModalityPath.SPEECH) {
-        if (__DEV__) console.log('[SessionController] startSession: starting audio+video pipelines');
         await deviceManager.current.startAudioPipeline(newSessionId, {}, transmissionManager.current);
         await deviceManager.current.startVideoPipeline(newSessionId, cameraHandle, transmissionManager.current);
       } else if (path === ModalityPath.SIGN) {
-        if (__DEV__) console.log('[SessionController] startSession: starting video pipeline only');
         await deviceManager.current.startVideoPipeline(newSessionId, cameraHandle, transmissionManager.current);
       }
 
       // Connect in the background — the send buffer holds frames produced
       // during the connection window. onConnectionLost handles failure.
       void transmissionManager.current.connect(newSessionId, path, apiKey).catch((err: unknown) => {
-        if (__DEV__) console.warn('[SessionController] startSession: connect failed', err);
         if (err instanceof DisconnectBeforeReadyError) return;
         actions.onConnectionLost();
       });
 
       deviceManager.current.pauseAllPipelines();
-      if (__DEV__) console.log('[SessionController] startSession: pipelines paused, state -> PAUSED');
       setState(SessionState.PAUSED);
     } catch (e) {
-      if (__DEV__) console.error('[SessionController] startSession: ERROR', e);
       setState(SessionState.ERROR);
       throw e;
     }

@@ -88,29 +88,14 @@ export function WebCameraView({
 
     const openCamera = async (): Promise<void> => {
       try {
-        if (__DEV__) {
-          console.log('[WebCameraView] openCamera: request', {
-            deviceId,
-            facing,
-            preferredConstraint,
-          });
-        }
         const preferred = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: preferredConstraint,
         });
-        if (__DEV__) {
-          const track = preferred.getVideoTracks()[0];
-          console.log('[WebCameraView] openCamera: success', {
-            trackLabel: track?.label,
-            trackSettings: track?.getSettings?.(),
-          });
-        }
         attachStream(preferred);
         return;
       } catch (err: unknown) {
         if (cancelled) return;
-        if (__DEV__) console.warn('[WebCameraView] openCamera: failed', err);
         const message = err instanceof Error ? err.message : String(err);
         onMountErrorRef.current?.(message || 'Failed to open camera', deviceId);
       }
