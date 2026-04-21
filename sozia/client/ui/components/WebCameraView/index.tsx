@@ -63,7 +63,7 @@ export function WebCameraView({
       facingMode: facing === 'front' ? 'user' : 'environment',
     };
     const preferredConstraint: MediaTrackConstraints = deviceId
-      ? { deviceId: { exact: deviceId } }
+      ? { ...baselineConstraint, deviceId: { exact: deviceId } }
       : facingConstraint;
 
     const attachStream = (stream: MediaStream): void => {
@@ -87,17 +87,49 @@ export function WebCameraView({
     };
 
     const openCamera = async (): Promise<void> => {
-      try {
-        const preferred = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: preferredConstraint,
-        });
-        attachStream(preferred);
-        return;
-      } catch (err: unknown) {
-        if (cancelled) return;
-        const message = err instanceof Error ? err.message : String(err);
-        onMountErrorRef.current?.(message || 'Failed to open camera', deviceId);
+      // Release the existing stream before re-opening with a different device.
+      // Some browsers/device drivers reject opening another camera while one is active.
+      const previousStream = streamRef.current;
+      streamRef.current = null;
+      previousStream?.getTracks().forEach((t) => t.stop());
+      const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+      const isRetryableStartError = (err: unknown): boolean => {
+        const name = err instanceof Error ? err.name : '';
+        const message = (err instanceof Error ? err.message : String(err)).toLowerCase();
+        return (
+          name === 'NotReadableError' ||
+          name === 'AbortError' ||
+          message.includes('notreadableerror') ||
+          message.includes('could not start video source') ||
+          message.includes('starting videoinput failed')
+        );
+      };
+
+      if (previousStream) {
+        // Give the browser/driver a brief window to fully release the camera.
+        await sleep(120);
+      }
+
+      const maxAttempts = 3;
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        try {
+          const preferred = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: preferredConstraint,
+          });
+          attachStream(preferred);
+          return;
+        } catch (err: unknown) {
+          if (cancelled) return;
+          const retryable = isRetryableStartError(err);
+          if (retryable && attempt < maxAttempts) {
+            await sleep(180 * attempt);
+            continue;
+          }
+          const message = err instanceof Error ? err.message : String(err);
+          onMountErrorRef.current?.(message || 'Failed to open camera', deviceId);
+          return;
+        }
       }
     };
 
