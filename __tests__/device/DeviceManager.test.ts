@@ -175,6 +175,7 @@ class MockVideoPipeline implements IVideoPipeline {
       fps: this.running ? 30 : 0,
       snr: null,
       faceDetected: this.running ? true : null,
+      faceFrameRatio: this.running ? 1 : null,
       lastUpdatedMs: Date.now(),
     };
   }

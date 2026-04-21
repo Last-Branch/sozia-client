@@ -93,7 +93,7 @@ describe('FeatureSerializer', () => {
       expect(result.type).toBe('pipeline_health');
     });
 
-    it('preserves all LandmarkFrame fields as snake_case', () => {
+    it('preserves all LandmarkFrame wire fields as snake_case', () => {
       const frame = makeLandmarkFrame();
       const result = JSON.parse(serializer.serialize(frame));
       expect(result.session_id).toBe(frame.sessionId);
@@ -102,6 +102,20 @@ describe('FeatureSerializer', () => {
       expect(result.left_hand_landmarks).toBeNull();
       expect(result.right_hand_landmarks).toEqual(frame.rightHandLandmarks);
       expect(result.pose_landmarks).toBeNull();
+    });
+
+    it('does not serialize faceMeanVisibility (client-only)', () => {
+      const frame: LandmarkFrame = {
+        sessionId: 'session-1',
+        timestampMs: 1000,
+        faceMeanVisibility: 0.85,
+        faceLandmarks: [[0.1, 0.2, 0.3]],
+        leftHandLandmarks: null,
+        rightHandLandmarks: null,
+        poseLandmarks: null,
+      };
+      const result = JSON.parse(serializer.serialize(frame));
+      expect(result.face_mean_visibility).toBeUndefined();
     });
 
     it('preserves all AudioFeatureChunk fields as snake_case', () => {

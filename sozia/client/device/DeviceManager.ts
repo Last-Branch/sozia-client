@@ -204,6 +204,9 @@ export class DeviceManager {
         fps: null,
         snr: null,
         faceDetected: null,
+        faceFrameRatio: null,
+        signVisibilitySustainedLow: false,
+        signVisibilityMessageKeys: null,
         lastUpdatedMs: 0,
       };
     }

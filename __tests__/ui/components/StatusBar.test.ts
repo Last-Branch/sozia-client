@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { SessionState, type PipelineHealth } from '@common/models';
+import { ModalityPath, SessionState, type PipelineHealth } from '@common/models';
 import {
   getStatusBanner,
   type Banner,
@@ -35,66 +35,88 @@ function makeVideoHealth(overrides: Partial<PipelineHealth> = {}): PipelineHealt
 
 describe('getStatusBanner', () => {
   it('returns RUNNING banner for RUNNING state', () => {
-    const banner = getStatusBanner(SessionState.RUNNING, []);
+    const banner = getStatusBanner(SessionState.RUNNING, [], null);
     expect(banner).not.toBeNull();
     expect(banner!.messageKey).toBe('health.sessionActive');
     expect(banner!.bg).toContain('green');
   });
 
   it('returns INITIALIZING banner', () => {
-    const banner = getStatusBanner(SessionState.INITIALIZING, []);
+    const banner = getStatusBanner(SessionState.INITIALIZING, [], null);
     expect(banner).not.toBeNull();
     expect(banner!.bg).toContain('blue');
   });
 
   it('returns PAUSED banner', () => {
-    const banner = getStatusBanner(SessionState.PAUSED, []);
+    const banner = getStatusBanner(SessionState.PAUSED, [], null);
     expect(banner).not.toBeNull();
     expect(banner!.bg).toContain('yellow');
   });
 
   it('returns null for IDLE state', () => {
-    expect(getStatusBanner(SessionState.IDLE, [])).toBeNull();
+    expect(getStatusBanner(SessionState.IDLE, [], null)).toBeNull();
   });
 
   it('returns ERROR banner with showRestart flag', () => {
-    const banner = getStatusBanner(SessionState.ERROR, []);
+    const banner = getStatusBanner(SessionState.ERROR, [], null);
     expect(banner).not.toBeNull();
     expect(banner!.bg).toContain('red');
     expect(banner!.showRestart).toBe(true);
   });
 
   it('returns generic DEGRADED banner when no health reports', () => {
-    const banner = getStatusBanner(SessionState.DEGRADED, []);
+    const banner = getStatusBanner(SessionState.DEGRADED, [], null);
     expect(banner).not.toBeNull();
     expect(banner!.bg).toContain('orange');
   });
 
   it('returns mic-specific DEGRADED banner when audio unavailable', () => {
     const health = [makeAudioHealth({ available: false })];
-    const banner = getStatusBanner(SessionState.DEGRADED, health);
+    const banner = getStatusBanner(SessionState.DEGRADED, health, null);
     expect(banner).not.toBeNull();
     expect(banner!.messageKey).toBe('health.microphoneUnavailable');
   });
 
   it('returns no-face DEGRADED banner when video has no face detected', () => {
-    const health = [makeVideoHealth({ available: true, faceDetected: false })];
-    const banner = getStatusBanner(SessionState.DEGRADED, health);
+    const health = [makeVideoHealth({ available: true, faceDetected: false, faceFrameRatio: 0.9 })];
+    const banner = getStatusBanner(SessionState.DEGRADED, health, ModalityPath.SPEECH);
     expect(banner).not.toBeNull();
     expect(banner!.messageKey).toBe('health.noFaceDetected');
   });
 
   it('returns camera-obstructed DEGRADED banner when video unavailable', () => {
     const health = [makeVideoHealth({ available: false })];
-    const banner = getStatusBanner(SessionState.DEGRADED, health);
+    const banner = getStatusBanner(SessionState.DEGRADED, health, null);
     expect(banner).not.toBeNull();
     expect(banner!.messageKey).toBe('health.cameraObstructed');
   });
 
   it('returns low-signal DEGRADED banner when audio SNR is low', () => {
     const health = [makeAudioHealth({ available: true, snr: 3 })];
-    const banner = getStatusBanner(SessionState.DEGRADED, health);
+    const banner = getStatusBanner(SessionState.DEGRADED, health, null);
     expect(banner).not.toBeNull();
     expect(banner!.messageKey).toBe('health.lowSignalQuality');
+  });
+
+  it('returns keep-face DEGRADED banner on SPEECH when face frame ratio is low', () => {
+    const health = [makeVideoHealth({ available: true, faceFrameRatio: 0.35, faceDetected: true })];
+    const banner = getStatusBanner(SessionState.DEGRADED, health, ModalityPath.SPEECH);
+    expect(banner).not.toBeNull();
+    expect(banner!.messageKey).toBe('health.keepFaceInCamera');
+  });
+
+  it('returns SIGN DEGRADED banner with combined framing key when both hands and pose are bad', () => {
+    const health = [
+      makeVideoHealth({
+        available: true,
+        faceDetected: true,
+        faceFrameRatio: 0.9,
+        signVisibilityMessageKeys: ['health.signLowSigningFraming'],
+      }),
+    ];
+    const banner = getStatusBanner(SessionState.DEGRADED, health, ModalityPath.SIGN);
+    expect(banner).not.toBeNull();
+    expect(banner!.messageKeys).toEqual(['health.signLowSigningFraming']);
+    expect(banner!.messageKey).toBe('health.signLowSigningFraming');
   });
 });

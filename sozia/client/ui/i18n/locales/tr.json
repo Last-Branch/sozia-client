@@ -152,6 +152,11 @@
       "microphoneUnavailable": "Mikrofon kullanılamıyor",
       "lowSignalQuality": "Düşük sinyal kalitesi",
       "noFaceDetected": "Yüz algılanmadı",
+      "keepFaceInCamera": "Lütfen yüzünüzü kamera kadrajında tutun",
+      "signLowHands": "Eller zor görünüyor — kadrajda tutun",
+      "signLowUpperBody": "Üst vücut zor görünüyor — uzaklaşın veya kamerayı ayarlayın",
+      "signLowSigningFraming": "Eller ve üst vücut zor görünüyor — uzaklaşın, kadrajı genişletin, ışığı iyileştirin",
+      "signLowSigningVisibility": "İşaret görünürlüğü düşük — ışık ve kadrajı iyileştirin",
       "degraded": "Düşük performanslı modda çalışıyor",
       "restart": "Yeniden Başlat"
     },
