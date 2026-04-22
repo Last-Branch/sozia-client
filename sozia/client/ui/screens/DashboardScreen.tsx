@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, ChevronUp, CircleCheckBig, CircleHelp, CircleUser, Hand, House, Mic, Settings } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
@@ -14,11 +14,13 @@ export function DashboardScreen({
   onOpenSettings,
   onOpenHelp,
   onOpenProfile,
+  onOpenPermissions,
 }: {
   onOpenLive: () => void;
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   onOpenProfile: () => void;
+  onOpenPermissions: () => void;
 }) {
   const { state, activePath, startSession, enumerateDevices, selectMicrophone, selectCamera, config } = useSessionController();
   const { t } = useLanguage();
@@ -29,25 +31,19 @@ export function DashboardScreen({
   const [devices, setDevices] = useState<DeviceHandle[]>([]);
   const [selectedMicId, setSelectedMicId] = useState('');
   const [selectedCamId, setSelectedCamId] = useState('');
-  const [showConsent, setShowConsent] = useState(false);
-  const pendingPath = useRef<ModalityPath | null>(null);
 
-  const canStart = state === SessionState.IDLE || state === SessionState.ERROR;
+  const hasConsented = config.get('hasConsented');
+  const canStart = (state === SessionState.IDLE || state === SessionState.ERROR) && hasConsented;
 
   const requestSession = useCallback((path: ModalityPath) => {
     if (!canStart) return;
-    if (!config.get('hasConsented')) {
-      pendingPath.current = path;
-      setShowConsent(true);
-      return;
-    }
     onOpenLive();
     void (async () => {
       try { await startSession(path); } catch (e) {
         if (__DEV__) console.warn('Session start failed', e);
       }
     })();
-  }, [canStart, config, onOpenLive, startSession]);
+  }, [canStart, onOpenLive, startSession]);
 
   const loadDevices = useCallback(async () => {
     const list = await enumerateDevices();
@@ -87,8 +83,8 @@ export function DashboardScreen({
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
       <View className="flex-1 w-full bg-white dark:bg-gray-800">
-          <ScrollView 
-            className="flex-1 w-full" 
+          <ScrollView
+            className="flex-1 w-full"
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
             showsVerticalScrollIndicator={false}
           >
@@ -102,12 +98,23 @@ export function DashboardScreen({
               </TouchableOpacity>
             </View>
 
+            {!hasConsented && (
+              <View className="mx-6 mb-4 rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-950/30 px-4 py-4 gap-2">
+                <Text className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                  {t('dashboard.consentDeclinedWarning')}
+                </Text>
+                <TouchableOpacity onPress={onOpenPermissions}>
+                  <Text className="text-sm font-bold text-[#2ECC71]">{t('dashboard.grantConsent')} →</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Device Setup */}
             <View className="px-6 pb-2">
               <TouchableOpacity
-                className="flex-row items-center justify-between rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3"
-                onPress={() => setDeviceSetupOpen((v) => !v)}
+                className={`flex-row items-center justify-between rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3 ${!hasConsented ? 'opacity-40' : ''}`}
+                onPress={() => { if (hasConsented) setDeviceSetupOpen((v) => !v); }}
+                disabled={!hasConsented}
               >
                 <Text className="font-semibold text-gray-900 dark:text-gray-100">
                   {t('device.setupDevices')}
@@ -235,48 +242,6 @@ export function DashboardScreen({
               </View>
             </View>
           </View>
-      <Modal
-        visible={showConsent}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowConsent(false)}
-      >
-        <View className="flex-1 items-center justify-center bg-black/60 px-6">
-          <View className="w-full rounded-3xl bg-white dark:bg-gray-900 p-6 gap-4">
-            <Text className="text-xl font-black text-gray-900 dark:text-white">
-              {t('consent.title')}
-            </Text>
-            <Text className="text-sm leading-6 text-gray-600 dark:text-gray-300">
-              {t('consent.body')}
-            </Text>
-            <TouchableOpacity
-              className="items-center rounded-2xl bg-[#2ECC71] py-3"
-              onPress={() => {
-                config.set('hasConsented', true);
-                setShowConsent(false);
-                const path = pendingPath.current;
-                if (path !== null) {
-                  pendingPath.current = null;
-                  onOpenLive();
-                  void (async () => {
-                    try { await startSession(path); } catch (e) {
-                      if (__DEV__) console.warn('Session start failed', e);
-                    }
-                  })();
-                }
-              }}
-            >
-              <Text className="font-bold text-white">{t('consent.accept')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="items-center py-2"
-              onPress={() => { setShowConsent(false); pendingPath.current = null; }}
-            >
-              <Text className="text-sm text-gray-500 dark:text-gray-400">{t('consent.decline')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
