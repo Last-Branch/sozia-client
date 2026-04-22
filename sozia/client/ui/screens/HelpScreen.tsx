@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLanguage } from '../context/LanguageContext';
-import { ArrowLeft, Camera, ChevronDown, ChevronRight, Hand, MessageCircle, Mic, Shield } from 'lucide-react-native';
+import { ArrowLeft, Camera, ChevronDown, ChevronRight, Hand, Mic, Shield } from 'lucide-react-native';
+import { SoziaLogo } from '../components/SoziaLogo';
 
 export function HelpScreen({ onBack }: { onBack: () => void }) {
   const { t } = useLanguage();
@@ -118,9 +119,7 @@ export function HelpScreen({ onBack }: { onBack: () => void }) {
         </View>
 
         <View className="items-center pb-8 pt-4">
-          <View className="mb-3 h-16 w-16 items-center justify-center rounded-3xl bg-[#2ECC71]/10">
-            <MessageCircle size={32} color="#2ECC71" />
-          </View>
+          <SoziaLogo size={64} style={{ marginBottom: 12 }} />
           <Text className="text-xl font-black text-gray-900 dark:text-gray-100">SOZIA</Text>
           <Text className="text-xs font-semibold text-gray-400 dark:text-gray-500">{t('help.subtitle')}</Text>
         </View>

@@ -14,13 +14,15 @@ export function DashboardScreen({
   onOpenSettings,
   onOpenHelp,
   onOpenProfile,
+  onOpenPermissions,
 }: {
   onOpenLive: () => void;
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   onOpenProfile: () => void;
+  onOpenPermissions: () => void;
 }) {
-  const { state, activePath, startSession, enumerateDevices, selectMicrophone, selectCamera } = useSessionController();
+  const { state, activePath, startSession, enumerateDevices, selectMicrophone, selectCamera, config } = useSessionController();
   const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'home' | 'help' | 'profile'>('home');
@@ -30,22 +32,41 @@ export function DashboardScreen({
   const [selectedMicId, setSelectedMicId] = useState('');
   const [selectedCamId, setSelectedCamId] = useState('');
 
-  const canStart = state === SessionState.IDLE || state === SessionState.ERROR;
+  const hasConsented = config.get('hasConsented');
+  const canStart = (state === SessionState.IDLE || state === SessionState.ERROR) && hasConsented;
+
+  const requestSession = useCallback((path: ModalityPath) => {
+    if (!canStart) return;
+    onOpenLive();
+    void (async () => {
+      try { await startSession(path); } catch (e) {
+        if (__DEV__) console.warn('Session start failed', e);
+      }
+    })();
+  }, [canStart, onOpenLive, startSession]);
 
   const loadDevices = useCallback(async () => {
     const list = await enumerateDevices();
     setDevices(list);
-    const defaultMic = list.find((d) => d.kind === 'audioinput' && d.isDefault);
-    const defaultCam = list.find((d) => d.kind === 'videoinput' && d.isDefault);
-    if (defaultMic && !selectedMicId) setSelectedMicId(defaultMic.deviceId);
-    if (defaultCam && !selectedCamId) setSelectedCamId(defaultCam.deviceId);
-  }, [enumerateDevices, selectedMicId, selectedCamId]);
+
+    const savedMic = config.get('selectedMicId');
+    const micId = (savedMic && list.some((d) => d.deviceId === savedMic))
+      ? savedMic
+      : list.find((d) => d.kind === 'audioinput' && d.isDefault)?.deviceId ?? '';
+    setSelectedMicId(micId);
+
+    const savedCam = config.get('selectedCameraId');
+    const camId = (savedCam && list.some((d) => d.deviceId === savedCam))
+      ? savedCam
+      : list.find((d) => d.kind === 'videoinput' && d.isDefault)?.deviceId ?? '';
+    setSelectedCamId(camId);
+  }, [enumerateDevices, config]);
 
   useEffect(() => {
-    if (deviceSetupOpen && devices.length === 0) {
-      loadDevices();
+    if (deviceSetupOpen) {
+      void loadDevices();
     }
-  }, [deviceSetupOpen, devices.length, loadDevices]);
+  }, [deviceSetupOpen, loadDevices]);
 
   const mics = devices.filter((d) => d.kind === 'audioinput');
   const cameras = devices.filter((d) => d.kind === 'videoinput');
@@ -62,8 +83,8 @@ export function DashboardScreen({
   return (
     <SafeAreaView className="flex-1 w-full self-stretch bg-gradient-to-br from-[#2ECC71]/5 via-white dark:via-gray-900 to-[#2ECC71]/5">
       <View className="flex-1 w-full bg-white dark:bg-gray-800">
-          <ScrollView 
-            className="flex-1 w-full" 
+          <ScrollView
+            className="flex-1 w-full"
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
             showsVerticalScrollIndicator={false}
           >
@@ -77,12 +98,23 @@ export function DashboardScreen({
               </TouchableOpacity>
             </View>
 
+            {!hasConsented && (
+              <View className="mx-6 mb-4 rounded-2xl border border-amber-200 bg-amber-50 dark:border-amber-800/50 dark:bg-amber-950/30 px-4 py-4 gap-2">
+                <Text className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                  {t('dashboard.consentDeclinedWarning')}
+                </Text>
+                <TouchableOpacity onPress={onOpenPermissions}>
+                  <Text className="text-sm font-bold text-[#2ECC71]">{t('dashboard.grantConsent')} →</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
             {/* Device Setup */}
             <View className="px-6 pb-2">
               <TouchableOpacity
-                className="flex-row items-center justify-between rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3"
-                onPress={() => setDeviceSetupOpen((v) => !v)}
+                className={`flex-row items-center justify-between rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-4 py-3 ${!hasConsented ? 'opacity-40' : ''}`}
+                onPress={() => { if (hasConsented) setDeviceSetupOpen((v) => !v); }}
+                disabled={!hasConsented}
               >
                 <Text className="font-semibold text-gray-900 dark:text-gray-100">
                   {t('device.setupDevices')}
@@ -121,15 +153,7 @@ export function DashboardScreen({
               <TouchableOpacity
                 className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#2ECC71] p-8 shadow-xl ${!canStart ? 'opacity-50' : ''}`}
                 disabled={!canStart}
-                onPress={async () => {
-                  if (!canStart) return;
-                  onOpenLive();
-                  try {
-                    await startSession(ModalityPath.SPEECH);
-                  } catch (e: unknown) {
-                    if (__DEV__) console.warn('Session start failed (SPEECH)', e);
-                  }
-                }}
+                onPress={() => requestSession(ModalityPath.SPEECH)}
               >
                 <View className="mb-4 h-24 w-24 items-center justify-center rounded-full bg-white/20">
                   <Mic size={56} color="#fff" />
@@ -141,15 +165,7 @@ export function DashboardScreen({
               <TouchableOpacity
                 className={`relative min-h-[180px] items-center justify-center rounded-[32px] bg-[#1E8449] p-8 shadow-xl ${!canStart ? 'opacity-50' : ''}`}
                 disabled={!canStart}
-                onPress={async () => {
-                  if (!canStart) return;
-                  onOpenLive();
-                  try {
-                    await startSession(ModalityPath.SIGN);
-                  } catch (e: unknown) {
-                    if (__DEV__) console.warn('Session start failed (SIGN)', e);
-                  }
-                }}
+                onPress={() => requestSession(ModalityPath.SIGN)}
               >
                 <View className="mb-4 h-24 w-24 items-center justify-center rounded-full bg-white/20">
                   <Hand size={56} color="#fff" />

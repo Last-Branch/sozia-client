@@ -3,15 +3,12 @@ import type { TransmissionManager } from '@/transmission/TransmissionManager';
 import type { SensitivityLevel } from './VoiceActivityDetector';
 
 /**
- * Opaque platform-specific microphone handle passed into the audio pipeline.
- *
- * Mirrors `RawMediaHandle` on the video side — the interface keeps the field
- * so the signature matches LLD §3.2.3, even though `ExpoAudioPipeline` does
- * not use it (expo-audio manages the microphone internally via its own AudioRecorder
- * instance). Present for symmetry and for future native modules that do need
- * a concrete handle.
+ * Platform-specific microphone handle passed into the audio pipeline.
+ * On web, `deviceId` is forwarded to the recording backend so the correct
+ * physical microphone is used. On native the field is ignored — expo-audio
+ * manages the microphone internally and does not expose device selection.
  */
-export type RawAudioHandle = Record<string, never>;
+export type RawAudioHandle = { deviceId?: string };
 
 /**
  * A single frame of extracted audio features, produced by the audio pipeline

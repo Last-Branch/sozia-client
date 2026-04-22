@@ -26,7 +26,7 @@
       "accessNeeded": "Access Needed",
       "description": "Sozia needs camera and microphone access to read lips and translate signs.",
       "camera": "Camera",
-      "cameraDesc": "For lip reading",
+      "cameraDesc": "For lip reading & sign language",
       "microphone": "Microphone",
       "micDesc": "For audio input",
       "privacy": "Your privacy matters. ",
@@ -55,7 +55,9 @@
         "Tip: Position your camera at eye level for best results.",
         "Tip: Minimize background noise for clearer speech detection.",
         "Tip: Keep your hands visible and centered for sign language."
-      ]
+      ],
+      "consentDeclinedWarning": "You declined the privacy consent notice. Speech and Sign Language modes are disabled.",
+      "grantConsent": "Grant Consent"
     },
     "help": {
       "title": "Help",
@@ -130,6 +132,12 @@
       "idle": "Ready",
       "listening": "Listening…",
       "reading": "Reading…"
+    },
+    "consent": {
+      "title": "Before We Begin",
+      "body": "Sozia processes your camera and microphone to assist communication. Raw audio and video never leave your device — only anonymised numerical features are transmitted over an encrypted connection for inference.\n\nBy continuing you confirm you have read and understood this notice.",
+      "accept": "Grant Consent",
+      "decline": "Deny Consent"
     },
     "device": {
       "selectMicrophone": "Select Microphone",

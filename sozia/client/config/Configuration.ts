@@ -15,6 +15,8 @@ export interface AppConfig {
   vadSensitivity: 'low' | 'medium' | 'high';
   /** API key sent in the `session_init` message (DEV-02). Empty string = no auth. */
   apiKey: string;
+  /** True once the user has accepted the privacy consent notice (TC-07). */
+  hasConsented: boolean;
 }
 
 export interface IConfigurationManager {
@@ -43,6 +45,7 @@ const DEFAULT_CONFIG: AppConfig = {
   diagnosticsEnabled: false,
   vadSensitivity: 'high',
   apiKey: process.env.EXPO_PUBLIC_API_KEY ?? '',
+  hasConsented: false,
 };
 
 function getBrowserStorage(): KeyValueStorage | null {
@@ -86,6 +89,7 @@ function mergeWithDefaults(raw: unknown): AppConfig {
         ? input.vadSensitivity
         : 'medium',
     apiKey: typeof input.apiKey === 'string' ? input.apiKey : '',
+    hasConsented: input.hasConsented === true,
   };
 }
 

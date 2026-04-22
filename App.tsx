@@ -25,8 +25,8 @@ function AppContent() {
     if (isLoading) return;
     if (user !== null) {
       setRoute((prev) => {
-        if (prev === 'login') return 'dashboard';
         if (prev === 'signup') return 'permissions';
+        if (prev === 'login') return 'dashboard';
         return prev;
       });
     } else {
@@ -38,6 +38,10 @@ function AppContent() {
     setRoute('login');
     await signOut();
   }, [signOut]);
+
+  const handleOpenPermissions = React.useCallback(() => {
+    setRoute('permissions');
+  }, []);
 
   if (isLoading) {
     return (
@@ -60,11 +64,12 @@ function AppContent() {
           <SignUpScreen
             onNext={() => setRoute('permissions')}
             onBack={() => setRoute('login')}
-            onGoogleSignIn={signInWithGoogle}
           />
         )}
         {route === 'permissions' && (
-          <PermissionsScreen onNext={() => setRoute('dashboard')} onBack={() => setRoute('signup')} />
+          <PermissionsScreen
+            onNext={() => setRoute('dashboard')}
+          />
         )}
         {route === 'dashboard' && (
           <DashboardScreen
@@ -72,6 +77,7 @@ function AppContent() {
             onOpenSettings={() => setRoute('settings')}
             onOpenHelp={() => setRoute('help')}
             onOpenProfile={() => setRoute('profile')}
+            onOpenPermissions={handleOpenPermissions}
           />
         )}
         {route === 'help' && <HelpScreen onBack={() => setRoute('dashboard')} />}

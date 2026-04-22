@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, CircleUser, LogOut } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
@@ -8,6 +8,8 @@ import { useAuth } from '../auth/AuthContext';
 export function ProfileScreen({ onBack }: { onBack: () => void }) {
   const { t } = useLanguage();
   const { user, signOut } = useAuth();
+  const colorScheme = useColorScheme();
+  const iconColor = colorScheme === 'dark' ? '#F3F4F6' : '#374151';
 
   const handleSignOut = async () => {
     onBack();
@@ -24,7 +26,7 @@ export function ProfileScreen({ onBack }: { onBack: () => void }) {
             hitSlop={8}
             activeOpacity={0.8}
           >
-            <ArrowLeft size={20} color="#374151" />
+            <ArrowLeft size={20} color={iconColor} />
           </TouchableOpacity>
           <Text className="text-2xl font-black text-gray-900 dark:text-gray-100">{t('profile.title')}</Text>
         </View>

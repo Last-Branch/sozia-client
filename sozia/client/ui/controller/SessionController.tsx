@@ -123,6 +123,8 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
           data: el,
         }),
       });
+    } else {
+      deviceManager.current.updateVideoCameraHandle({ getFrame: () => null });
     }
   }, []);
 
@@ -153,15 +155,15 @@ export function SessionControllerProvider({ children }: { children: React.ReactN
     []
   );
 
-  const selectMicrophone = useCallback(
-    (id: string) => deviceManager.current.selectMicrophone(id),
-    []
-  );
+  const selectMicrophone = useCallback((id: string) => {
+    deviceManager.current.selectMicrophone(id);
+    config.current.set('selectedMicId', id);
+  }, []);
 
-  const selectCamera = useCallback(
-    (id: string) => deviceManager.current.selectCamera(id),
-    []
-  );
+  const selectCamera = useCallback((id: string) => {
+    deviceManager.current.selectCamera(id);
+    config.current.set('selectedCameraId', id);
+  }, []);
 
   const setNativeLandmarks = useCallback((frame: LandmarkFrame | null, seq = 0, inferenceCompletedAtMs = 0) => {
     NativeLandmarkBridge.setLatestFrame(frame, seq, inferenceCompletedAtMs);

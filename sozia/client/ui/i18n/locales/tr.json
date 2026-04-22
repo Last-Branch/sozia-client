@@ -26,7 +26,7 @@
       "accessNeeded": "Erişim Gerekli",
       "description": "Sozia'nın dudak okumak ve işaretleri çevirmek için kamera ve mikrofon erişimine ihtiyacı var.",
       "camera": "Kamera",
-      "cameraDesc": "Dudak okuma için",
+      "cameraDesc": "Dudak okuma ve işaret dili için",
       "microphone": "Mikrofon",
       "micDesc": "Ses girişi için",
       "privacy": "Gizliliğiniz önemlidir. ",
@@ -55,7 +55,9 @@
         "İpucu: En iyi sonuçlar için kameranızı göz hizasına yerleştirin.",
         "İpucu: Daha net konuşma algılaması için arka plan gürültüsünü en aza indirin.",
         "İpucu: İşaret dili için ellerinizi görünür ve ortada tutun."
-      ]
+      ],
+      "consentDeclinedWarning": "Gizlilik onay bildirimini reddettiniz. Konuşma ve İşaret Dili modları devre dışı.",
+      "grantConsent": "Onay Ver"
     },
     "help": {
       "title": "Yardım",
@@ -130,6 +132,12 @@
       "idle": "Hazır",
       "listening": "Dinleniyor",
       "reading": "Okunuyor"
+    },
+    "consent": {
+      "title": "Başlamadan Önce",
+      "body": "Sozia, iletişimi desteklemek için kamera ve mikrofonunuzu işler. Ham ses ve görüntü hiçbir zaman cihazınızı terk etmez; yalnızca anonimleştirilmiş sayısal özellikler çıkarım için şifreli bağlantı üzerinden iletilir.\n\nDevam ederek bu bildirimi okuduğunuzu ve anladığınızı onaylıyorsunuz.",
+      "accept": "Onay Ver",
+      "decline": "Reddet"
     },
     "device": {
       "selectMicrophone": "Mikrofon Seçin",

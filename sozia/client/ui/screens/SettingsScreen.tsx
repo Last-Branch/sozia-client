@@ -3,7 +3,8 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import { useLanguage } from '../context/LanguageContext';
-import { ArrowLeft, ChevronRight, FileText, Globe, MessageCircle, Moon } from 'lucide-react-native';
+import { ArrowLeft, ChevronRight, FileText, Globe, Moon } from 'lucide-react-native';
+import { SoziaLogo } from '../components/SoziaLogo';
 
 export function SettingsScreen({ onBack }: { onBack: () => void }) {
   const { t, language, setLanguage } = useLanguage();
@@ -108,9 +109,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
 
         <View className="mt-8">
           <View className="items-center pt-4">
-            <View className="mb-2 h-16 w-16 items-center justify-center rounded-[24px] bg-[#2ECC71]/10">
-              <MessageCircle size={32} color="#2ECC71" />
-            </View>
+            <SoziaLogo size={64} style={{ marginBottom: 8 }} />
             <Text className="text-xl font-black text-gray-900 dark:text-gray-100">SOZIA</Text>
             <Text className="text-xs font-semibold text-gray-400 dark:text-gray-500">{t('settings.version')}</Text>
           </View>

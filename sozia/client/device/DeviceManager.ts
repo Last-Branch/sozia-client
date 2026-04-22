@@ -9,7 +9,6 @@
  */
 
 import { requestRecordingPermissionsAsync } from 'expo-audio';
-import { Camera as ExpoCamera } from 'expo-camera';
 import { Platform } from 'react-native';
 import type { PipelineHealth } from '@common/models';
 import type { IAudioPipeline, RawAudioHandle, SensitivityLevel } from '@/pipeline/audio';
@@ -59,6 +58,11 @@ export class DeviceManager {
    * Throws with an actionable message if permission is denied.
    */
   async activateMicrophone(): Promise<void> {
+    if (Platform.OS === 'web') {
+      await this._requestWebPermission('audio');
+      this.micAvailable = true;
+      return;
+    }
     const { granted } = await requestRecordingPermissionsAsync();
     if (!granted) {
       this.micAvailable = false;
@@ -77,26 +81,43 @@ export class DeviceManager {
    * Throws with an actionable message if permission is denied.
    */
   async activateCamera(): Promise<void> {
-    if (Platform.OS !== 'web') {
-      const { Camera: VisionCamera } = require('react-native-vision-camera') as typeof import('react-native-vision-camera');
-      const status = await VisionCamera.requestCameraPermission();
-      if (status !== 'granted') {
-        this.cameraAvailable = false;
-        throw new Error(
-          'Camera permission denied. Grant camera access in device settings to use sign language recognition.'
-        );
-      }
+    if (Platform.OS === 'web') {
+      await this._requestWebPermission('video');
       this.cameraAvailable = true;
       return;
     }
-    const { granted } = await ExpoCamera.requestCameraPermissionsAsync();
-    if (!granted) {
+    const { Camera: VisionCamera } = require('react-native-vision-camera') as typeof import('react-native-vision-camera');
+    const status = await VisionCamera.requestCameraPermission();
+    if (status !== 'granted') {
       this.cameraAvailable = false;
       throw new Error(
         'Camera permission denied. Grant camera access in device settings to use sign language recognition.'
       );
     }
     this.cameraAvailable = true;
+  }
+
+  /**
+   * Web-only helper: calls getUserMedia to trigger the browser permission
+   * prompt and immediately stops the acquired stream. Throws if denied.
+   * Exists because expo-camera/expo-audio permission APIs are unreliable
+   * on web when their components are not mounted.
+   */
+  private async _requestWebPermission(kind: 'video' | 'audio'): Promise<void> {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices) return;
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(
+        kind === 'video' ? { video: true, audio: false } : { audio: true, video: false },
+      );
+    } catch {
+      const label = kind === 'video' ? 'Camera' : 'Microphone';
+      const hint = kind === 'video'
+        ? 'use sign language recognition'
+        : 'use speech recognition';
+      throw new Error(`${label} permission denied. Grant ${label.toLowerCase()} access in device settings to ${hint}.`);
+    }
+    stream.getTracks().forEach((t) => t.stop());
   }
 
   /**
@@ -118,7 +139,10 @@ export class DeviceManager {
     if (!this.audioPipeline) {
       throw new Error('Cannot start audio pipeline: no IAudioPipeline configured.');
     }
-    await this.audioPipeline.start(sessionId, micHandle ?? {}, tx);
+    const effectiveHandle: RawAudioHandle = {
+      deviceId: micHandle?.deviceId ?? this.selectedMicId ?? undefined,
+    };
+    await this.audioPipeline.start(sessionId, effectiveHandle, tx);
   }
 
   /**

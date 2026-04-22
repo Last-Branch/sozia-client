@@ -15,6 +15,8 @@ const STALE_THRESHOLD_MULTIPLIER = 3;
  * preventing the 30 Hz poll loop from re-broadcasting stale landmark frames
  * to the server while the native thread is still busy.
  */
+const STALE_FRAME_TIMEOUT_MS = 2_000;
+
 export class NativeMediaPipeLandmarkBackend implements LandmarkExtractionBackend {
   private readonly targetIntervalMs: number;
 
