@@ -64,7 +64,6 @@ function AppContent() {
           <SignUpScreen
             onNext={() => setRoute('permissions')}
             onBack={() => setRoute('login')}
-            onGoogleSignIn={signInWithGoogle}
           />
         )}
         {route === 'permissions' && (

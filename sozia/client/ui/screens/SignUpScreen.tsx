@@ -4,16 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Eye, EyeOff, Lock, Mail, MessageCircle, User } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../auth/AuthContext';
-import { GoogleLogo } from '../components/GoogleLogo';
-
 export function SignUpScreen({
   onNext,
   onBack,
-  onGoogleSignIn,
 }: {
   onNext: () => void;
   onBack: () => void;
-  onGoogleSignIn: () => Promise<void>;
 }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -178,32 +174,6 @@ export function SignUpScreen({
                 </Text>
               )}
             </TouchableOpacity>
-
-            <View className="mb-4 flex-row items-center">
-              <View className="h-px flex-1 bg-gray-200 dark:border-gray-700" />
-              <Text className="px-3 text-sm text-gray-400 dark:text-gray-500">
-                {t('signup.orSignUpWith')}
-              </Text>
-              <View className="h-px flex-1 bg-gray-200 dark:border-gray-700" />
-            </View>
-
-            <View className="mb-6">
-              <TouchableOpacity
-                className="h-14 w-full flex-row items-center justify-center rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
-                onPress={onGoogleSignIn}
-                disabled={isSigning}
-                activeOpacity={0.85}
-              >
-                {isSigning ? (
-                  <ActivityIndicator size="small" color="#9CA3AF" />
-                ) : (
-                  <>
-                    <GoogleLogo size={20} />
-                    <Text className="ml-2 text-base text-gray-700 dark:text-gray-300">Google</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
 
             <View className="items-center border-t border-gray-100 dark:border-gray-700 pt-4">
               <View className="flex-row items-center">
