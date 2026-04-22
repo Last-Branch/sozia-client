@@ -1,6 +1,7 @@
 import React from 'react';
-import { Text, TouchableOpacity, View, useColorScheme } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useColorScheme } from 'nativewind';
 import { ArrowLeft, CircleUser, LogOut } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../auth/AuthContext';
@@ -8,8 +9,8 @@ import { useAuth } from '../auth/AuthContext';
 export function ProfileScreen({ onBack }: { onBack: () => void }) {
   const { t } = useLanguage();
   const { user, signOut } = useAuth();
-  const colorScheme = useColorScheme();
-  const iconColor = colorScheme === 'dark' ? '#F3F4F6' : '#374151';
+  const { colorScheme } = useColorScheme();
+  const iconColor = colorScheme === 'dark' ? '#D1D5DB' : '#374151';
 
   const handleSignOut = async () => {
     onBack();
@@ -22,7 +23,7 @@ export function ProfileScreen({ onBack }: { onBack: () => void }) {
         <View className="flex-row items-center px-6 pt-4 pb-6">
           <TouchableOpacity
             onPress={onBack}
-            className="mr-4 h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700"
+            className="mr-3 h-10 w-10 items-center justify-center rounded-2xl bg-gray-200 dark:bg-gray-700"
             hitSlop={8}
             activeOpacity={0.8}
           >

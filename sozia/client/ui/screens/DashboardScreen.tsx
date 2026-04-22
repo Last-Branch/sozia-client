@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, ChevronUp, CircleCheckBig, CircleHelp, CircleUser, Hand, House, Mic, Settings } from 'lucide-react-native';
+import { SoziaLogo } from '../components/SoziaLogo';
 import { useLanguage } from '../context/LanguageContext';
 
 import { ModalityPath, SessionState } from '@common/models';
@@ -88,14 +89,20 @@ export function DashboardScreen({
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
             showsVerticalScrollIndicator={false}
           >
-            <View className="flex-row items-center justify-between px-6 pt-6 pb-4">
+            <View className="flex-row items-center px-6 pt-6 pb-4">
+              <View className="flex-1" />
+              <SoziaLogo size={80} />
+              <View className="flex-1 items-end">
+                <TouchableOpacity
+                  className="h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
+                  onPress={onOpenSettings}
+                >
+                  <Settings size={20} color="#374151" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View className="px-6 pb-2">
               <Text className="text-3xl font-black text-gray-900 dark:text-gray-100">{t('dashboard.hello')}</Text>
-              <TouchableOpacity
-                className="h-10 w-10 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800"
-                onPress={onOpenSettings}
-              >
-                <Settings size={20} color="#374151" />
-              </TouchableOpacity>
             </View>
 
             {!hasConsented && (
