@@ -3,9 +3,10 @@ import { Camera as ExpoCamera } from 'expo-camera';
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Camera, MessageCircle, Mic } from 'lucide-react-native';
+import { Camera, Mic } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
 import { useSessionController } from '../controller/SessionController';
+import { SoziaLogo } from '../components/SoziaLogo';
 
 export function PermissionsScreen({ onNext }: { onNext: () => void }) {
   const { t } = useLanguage();
@@ -48,9 +49,7 @@ export function PermissionsScreen({ onNext }: { onNext: () => void }) {
           showsVerticalScrollIndicator={false}
         >
           <View className="mb-8 items-center">
-            <View className="mb-4 h-20 w-20 items-center justify-center rounded-3xl bg-[#2ECC71] shadow-lg">
-              <MessageCircle size={48} color="#fff" />
-            </View>
+            <SoziaLogo size={80} style={{ marginBottom: 16 }} />
             <Text className="text-4xl font-black tracking-tight text-gray-900 dark:text-gray-100">SOZIA</Text>
           </View>
 
