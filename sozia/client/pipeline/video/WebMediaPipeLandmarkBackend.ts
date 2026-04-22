@@ -53,6 +53,13 @@ function toLandmarkArray(
   return landmarks.map((lm) => [lm.x, lm.y, lm.z]);
 }
 
+function toPoseLandmarkArray(
+  landmarks: Array<{ x: number; y: number; z: number; visibility: number }> | undefined,
+): number[][] | null {
+  if (!landmarks || landmarks.length === 0) return null;
+  return landmarks.map((lm) => [lm.x, lm.y, lm.z, lm.visibility]);
+}
+
 export class WebMediaPipeLandmarkBackend implements LandmarkExtractionBackend {
   private faceLandmarker: FaceLandmarker | null = null;
   private handLandmarker: HandLandmarker | null = null;
@@ -155,7 +162,7 @@ export class WebMediaPipeLandmarkBackend implements LandmarkExtractionBackend {
     }
 
     const poseLandmarks = poseResult.landmarks?.[0]
-      ? toLandmarkArray(poseResult.landmarks[0])
+      ? toPoseLandmarkArray(poseResult.landmarks[0])
       : null;
 
     if (!faceLandmarks && !leftHandLandmarks && !rightHandLandmarks && !poseLandmarks) {

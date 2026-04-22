@@ -109,7 +109,7 @@ class SoziaMediaPipeHolistic(private val context: Context) {
 
         val posePoints: List<NormalizedLandmark>? = poseResult.landmarks().firstOrNull()
         val poseLandmarks: List<List<Float>>? = posePoints?.map { lm: NormalizedLandmark ->
-            listOf(lm.x(), lm.y(), lm.z())
+            listOf(lm.x(), lm.y(), lm.z(), lm.visibility().orElse(1.0f))
         }
 
         return LandmarkResult(faceLandmarks, leftHand, rightHand, poseLandmarks)
